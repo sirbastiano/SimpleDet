@@ -48,7 +48,7 @@ def install_dependencies():
     subprocess.check_call(["mim", "install"] + lista_packgs)
     subprocess.check_call(["git", "clone", "https://github.com/open-mmlab/mmdetection.git"])
     os.chdir("./mmdetection")
-    subprocess.check_call(["pip", "install", "-v", "-e", "."])
+    subprocess.check_call(["pip", "install", "-v", "."])
 
 install_dependencies()
 

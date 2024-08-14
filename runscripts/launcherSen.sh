@@ -28,7 +28,7 @@ fi
 # Default values for the arguments
 BANDS=("2" "3" "4" "8" "2,3" "2,4" "2,8" "2,3,4" "2,3,8" "2,4,8" "3,4,8" "2,3,4,8")
 SEEDS=(42 71 18 53 89)
-BATCH_SIZES=(8 4 2 1)
+BATCH_SIZES=(4 2 1)
 LEARNING_RATE=(0.002 0.001 0.0005)
 RESIZE=2048
 
