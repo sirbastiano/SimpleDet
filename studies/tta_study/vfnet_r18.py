@@ -36,7 +36,7 @@ env_cfg = dict(
     cudnn_benchmark=False,
     dist_cfg=dict(backend='nccl'),
     mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))
-load_from = '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b7/53_BS_2_LR_0.0009_ME_30_OPT_SGD/epoch_30.pth'
+load_from = '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b10/53_BS_2_LR_0.0008_ME_30_OPT_SGD/epoch_30.pth'
 log_level = 'INFO'
 log_processor = dict(by_epoch=True, type='LogProcessor', window_size=50)
 metainfo = dict(
@@ -92,11 +92,11 @@ model = dict(
         use_vfl=True),
     data_preprocessor=dict(
         mean=[
-            88.819916,
+            111.64337,
         ],
         pad_size_divisor=1,
         std=[
-            69.65824,
+            103.4634,
         ],
         type='MyPrePro'),
     neck=dict(
@@ -125,7 +125,7 @@ model = dict(
         pos_weight=-1),
     type='VFNet')
 optim_wrapper = dict(
-    optimizer=dict(lr=0.0009, momentum=0.9, type='SGD', weight_decay=0.0001),
+    optimizer=dict(lr=0.0008, momentum=0.9, type='SGD', weight_decay=0.0001),
     type='OptimWrapper')
 param_scheduler = [
     dict(begin=0, by_epoch=True, end=6, start_factor=0.001, type='LinearLR'),
@@ -146,7 +146,7 @@ param_scheduler = [
         by_epoch=True,
         convert_to_iter_based=True,
         end=30,
-        eta_min=4.5e-05,
+        eta_min=4e-05,
         type='CosineAnnealingLR'),
 ]
 randomness = dict(diff_rank_seed=True, seed=53)
@@ -157,7 +157,7 @@ test_dataloader = dict(
     batch_size=1,
     dataset=dict(
         ann_file=
-        '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_7.json',
+        '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_10.json',
         data_prefix=dict(img='perfect/'),
         data_root='/Data_large/marine/Datasets/VENuS/ds_L0/',
         filter_cfg=dict(filter_empty_gt=True),
@@ -170,14 +170,14 @@ test_dataloader = dict(
         ]),
         pipeline=[
             dict(bands_list=[
-                7,
+                10,
             ], to_float32=True, type='SelBandLoader'),
             dict(type='LoadAnnotations', with_bbox=True),
             dict(keep_ratio=False, scale=(
                 2048,
                 2048,
             ), type='Resize'),
-            dict(corruption='gaussian', severity=3.5, type='ImageCorruption'),
+            dict(corruption='gaussian', severity=2.0, type='ImageCorruption'),
             dict(
                 meta_keys=(
                     'img_path',
@@ -208,11 +208,11 @@ test_dataloader = dict(
     sampler=dict(shuffle=False, type='DefaultSampler'))
 test_evaluator = dict(
     ann_file=
-    '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_7.json',
+    '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_10.json',
     format_only=False,
     metric='bbox',
     outfile_prefix=
-    '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b7/53_BS_2_LR_0.0009_ME_30_OPT_SGD/test_results',
+    '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b10/53_BS_2_LR_0.0008_ME_30_OPT_SGD/test_results',
     type='CocoMetric')
 test_pipeline = [
     dict(
@@ -242,7 +242,7 @@ train_dataloader = dict(
     batch_size=2,
     dataset=dict(
         ann_file=
-        '/Data_large/marine/Datasets/VENuS/annotations/perfect/train__band_7.json',
+        '/Data_large/marine/Datasets/VENuS/annotations/perfect/train__band_10.json',
         backend_args=None,
         data_prefix=dict(img='perfect/'),
         data_root='/Data_large/marine/Datasets/VENuS/ds_L0/',
@@ -256,7 +256,7 @@ train_dataloader = dict(
         ]),
         pipeline=[
             dict(bands_list=[
-                7,
+                10,
             ], to_float32=True, type='SelBandLoader'),
             dict(type='LoadAnnotations', with_bbox=True),
             dict(prob=0.4, type='RandomFlip'),
@@ -317,7 +317,7 @@ val_dataloader = dict(
     batch_size=2,
     dataset=dict(
         ann_file=
-        '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_7.json',
+        '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_10.json',
         backend_args=None,
         data_prefix=dict(img='perfect/'),
         data_root='/Data_large/marine/Datasets/VENuS/ds_L0/',
@@ -331,7 +331,7 @@ val_dataloader = dict(
         ]),
         pipeline=[
             dict(bands_list=[
-                7,
+                10,
             ], to_float32=True, type='SelBandLoader'),
             dict(type='LoadAnnotations', with_bbox=True),
             dict(keep_ratio=False, scale=(
@@ -356,7 +356,7 @@ val_dataloader = dict(
     sampler=dict(shuffle=False, type='DefaultSampler'))
 val_evaluator = dict(
     ann_file=
-    '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_7.json',
+    '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_10.json',
     backend_args=None,
     format_only=False,
     metric='bbox',
