@@ -36,7 +36,7 @@ env_cfg = dict(
     cudnn_benchmark=False,
     dist_cfg=dict(backend='nccl'),
     mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))
-load_from = '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b1/42_BS_2_LR_0.0009_ME_30_OPT_SGD/best_coco_bbox_mAP_50_epoch_29.pth'
+load_from = '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b2/42_BS_2_LR_0.0009_ME_30_OPT_SGD/epoch_30.pth'
 log_level = 'INFO'
 log_processor = dict(by_epoch=True, type='LogProcessor', window_size=50)
 metainfo = dict(
@@ -92,11 +92,11 @@ model = dict(
         use_vfl=True),
     data_preprocessor=dict(
         mean=[
-            158.69588,
+            124.42161,
         ],
         pad_size_divisor=1,
         std=[
-            34.95446,
+            46.282494,
         ],
         type='MyPrePro'),
     neck=dict(
@@ -157,7 +157,7 @@ test_dataloader = dict(
     batch_size=1,
     dataset=dict(
         ann_file=
-        '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_1.json',
+        '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_2.json',
         data_prefix=dict(img='perfect/'),
         data_root='/Data_large/marine/Datasets/VENuS/ds_L0/',
         filter_cfg=dict(filter_empty_gt=True),
@@ -177,6 +177,10 @@ test_dataloader = dict(
                 2048,
                 2048,
             ), type='Resize'),
+            dict(
+                corruption='gaussian',
+                severity=2.8000000000000003,
+                type='ImageCorruption'),
             dict(
                 meta_keys=(
                     'img_path',
@@ -207,11 +211,11 @@ test_dataloader = dict(
     sampler=dict(shuffle=False, type='DefaultSampler'))
 test_evaluator = dict(
     ann_file=
-    '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_1.json',
+    '/Data_large/marine/Datasets/VENuS/annotations/perfect/test__band_2.json',
     format_only=False,
     metric='bbox',
     outfile_prefix=
-    '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b1/42_BS_2_LR_0.0009_ME_30_OPT_SGD/test_results',
+    '/Data_large/marine/PythonProjects/MMDET/checkpoints/VENuS/Single/perfect_b2/42_BS_2_LR_0.0009_ME_30_OPT_SGD/test_results',
     type='CocoMetric')
 test_pipeline = [
     dict(
@@ -241,7 +245,7 @@ train_dataloader = dict(
     batch_size=2,
     dataset=dict(
         ann_file=
-        '/Data_large/marine/Datasets/VENuS/annotations/perfect/train__band_1.json',
+        '/Data_large/marine/Datasets/VENuS/annotations/perfect/train__band_2.json',
         backend_args=None,
         data_prefix=dict(img='perfect/'),
         data_root='/Data_large/marine/Datasets/VENuS/ds_L0/',
@@ -255,7 +259,7 @@ train_dataloader = dict(
         ]),
         pipeline=[
             dict(bands_list=[
-                1,
+                2,
             ], to_float32=True, type='SelBandLoader'),
             dict(type='LoadAnnotations', with_bbox=True),
             dict(prob=0.4, type='RandomFlip'),
@@ -316,7 +320,7 @@ val_dataloader = dict(
     batch_size=2,
     dataset=dict(
         ann_file=
-        '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_1.json',
+        '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_2.json',
         backend_args=None,
         data_prefix=dict(img='perfect/'),
         data_root='/Data_large/marine/Datasets/VENuS/ds_L0/',
@@ -330,7 +334,7 @@ val_dataloader = dict(
         ]),
         pipeline=[
             dict(bands_list=[
-                1,
+                2,
             ], to_float32=True, type='SelBandLoader'),
             dict(type='LoadAnnotations', with_bbox=True),
             dict(keep_ratio=False, scale=(
@@ -355,7 +359,7 @@ val_dataloader = dict(
     sampler=dict(shuffle=False, type='DefaultSampler'))
 val_evaluator = dict(
     ann_file=
-    '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_1.json',
+    '/Data_large/marine/Datasets/VENuS/annotations/perfect/val__band_2.json',
     backend_args=None,
     format_only=False,
     metric='bbox',

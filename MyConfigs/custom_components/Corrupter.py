@@ -39,7 +39,6 @@ def add_gaussian_noise(image: np.ndarray, mean: float = 0, stddev: float = 1.0) 
 
     # Add the Gaussian noise to the original image
     if stddev == 0:
-        print("No noise added")
         noisy_image = image
     else:
         noisy_image = image + gaussian_noise
@@ -71,7 +70,6 @@ def corrupt_image(image: np.ndarray, noise_type: str, severity: float) -> np.nda
         raise ValueError("Input image must be a numpy array with dtype np.float32")
 
     if noise_type == 'gaussian':
-        print("Adding Gaussian noise")
         noisy_image = add_gaussian_noise(image, mean=0, stddev=severity)
     elif noise_type == 'salt':
         noisy_image = util.random_noise(image, mode='salt', amount=severity)
