@@ -177,7 +177,7 @@ test_dataloader = dict(
                 2048,
                 2048,
             ), type='Resize'),
-            dict(corruption='gaussian', severity=0.0, type='ImageCorruption'),
+            dict(corruption='gaussian', severity=1.0, type='ImageCorruption'),
             dict(
                 meta_keys=(
                     'img_path',

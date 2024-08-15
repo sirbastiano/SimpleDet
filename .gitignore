@@ -12,6 +12,8 @@ notebooks/*.json
 *run
 tmp/
 
+studies/tta_study/
+
 *.json
 
 *.npy
