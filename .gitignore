@@ -12,7 +12,7 @@ notebooks/*.json
 *run
 tmp/
 
-studies/tta_study/
+studies/tta_study/*
 
 *.json
 
