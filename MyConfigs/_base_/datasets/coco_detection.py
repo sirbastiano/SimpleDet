@@ -1,6 +1,6 @@
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = 'data/coco/'
+data_root = '/Data_large/marine/PythonProjects/MMDET/data/coco'
 
 # Example to use different file client
 # Method 1: simply set the data root and let the file I/O module
