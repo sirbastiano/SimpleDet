@@ -248,7 +248,7 @@ def main(args):
         assert isinstance(random_crop, int), 'RandomCrop Error: single dimension must be specified. E.g. 224'
         # insert random crop: 
         rc = dict(type='RandomCrop', crop_size=(random_crop, random_crop))
-        cfg.train_dataloader.dataset.pipeline.insert(3, rc)
+        cfg.train_dataloader.dataset.pipeline.insert(4, rc)
         cfg.val_dataloader.dataset.pipeline.insert(2, rc)
         
 

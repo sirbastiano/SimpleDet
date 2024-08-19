@@ -1,6 +1,7 @@
 checkpoints/
 mmdetection/
 deploy/
+data/
 test_results/
 notebooks/*.json
 *.yaml
