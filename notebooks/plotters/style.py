@@ -42,3 +42,165 @@ def set_style(scale_factor=1.5, font_family='STIXGeneral', dpi=500, fig_width=15
     
  
 set_style()
+
+
+
+def plot_precision_recall(ax, pr_x_band):
+    """
+    Helper function to plot precision-recall curves with shaded areas for standard deviation.
+
+    Parameters:
+    ax (matplotlib.axes._subplots.AxesSubplot): The subplot axes to plot on.
+    pr_x_band (list): A list of evaluation results for different spectral bands.
+    """
+    identifiers = list(pr_x_band.keys())
+    
+    V = [pr_x_band[i] for i in identifiers]
+    coco_eval_lists = V
+    identifiers = ['$B_5$-$B_{10}$-$B_{11}$', '$B_3$-$B_{5}$-$B_{7}$-$B_{11}$', '$B_5$-$B_{12}$', '$B_3$-$B_4$-$B_7$', '$B_3$-$B_4$-$B_7$-$B_{11}$', '$B_3$-$B_4$-$B_7$-$B_{11}$-$B_{12}$', '$B_5$-$B_{10}$']
+    labels = identifiers
+
+    colors = sns.color_palette("colorblind", len(labels)) 
+    recall_list = []
+    lower_bound_list = []
+    upper_bound_list = []
+    mean_precision_list = []
+    
+    for i, coco_eval_list in enumerate(coco_eval_lists):
+        # Extract precision values and recall
+        all_precisions = []
+        recall = np.arange(0.0, 1.01, 0.01)
+        recall_list.append(recall)
+
+        for coco_eval in coco_eval_list:
+            precision = coco_eval.eval['precision'][0, :, 0, 0, 2]  # precision for IoU=0.50:0.95 and area=all
+            all_precisions.append(precision)
+
+        # Convert list of all precisions to a numpy array for easier manipulation
+        all_precisions = np.array(all_precisions)
+
+        # Compute the mean precision and the standard deviation for shading
+        mean_precision = np.mean(all_precisions, axis=0)
+        mean_precision_list.append(mean_precision)
+        std_precision = np.std(all_precisions, axis=0)
+
+        upper_bound = mean_precision + std_precision
+        lower_bound = mean_precision - std_precision
+        
+        upper_bound_list.append(upper_bound)
+        lower_bound_list.append(lower_bound)
+
+        # Plot shaded area and mean precision line
+        ax.fill_between(recall, lower_bound, upper_bound, color=colors[i], alpha=0.3)
+        ax.plot(recall, mean_precision, label=labels[i], color=colors[i])
+
+    # Add zoomed-in plot
+    axins = ax.inset_axes([0.05, 0.5, 0.35, 0.35])
+    
+    # Iterate over all curves to add them to the zoomed-in plot
+    for i in range(len(recall_list)):
+        recall = recall_list[i]
+        lower_bound = lower_bound_list[i]
+        upper_bound = upper_bound_list[i]
+        mean_precision = mean_precision_list[i]
+        axins.fill_between(recall, lower_bound, upper_bound, color=colors[i], alpha=0.3)
+        axins.plot(recall, mean_precision, label=labels[i], color=colors[i])
+    
+    axins.set_xlim(0.72, 0.85)
+    axins.set_ylim(0.8, 1)
+    axins.set_xticklabels('')
+    axins.set_yticklabels('')
+    ax.indicate_inset_zoom(axins)
+    # ax.set_title('Precision-Recall Curves by Band')
+    
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
+    
+    ax.legend()
+    ax.set_ylim([0,1.1])
+    ax.grid(True)
+
+def reformat(s):
+    s = s.split('_')
+    # Capitalize
+    x = [i.split('b')[-1] for i in s]
+    
+    x = [f'$B_{{{i}}}$' for i in x]
+    x = '-'.join(x)
+    return x
+
+
+def plot_error_bars(ax, grouped, labels=None):
+    """
+    Helper function to plot error bars for COCO bbox mAP metrics by spectral band.
+
+    Parameters:
+    ax (matplotlib.axes._subplots.AxesSubplot): The subplot axes to plot on.
+    grouped (pandas.DataFrame): DataFrame containing mean and std of coco/bbox mAP metrics by spectral band.
+    """
+    
+    # Plotting the error bars for each metric
+    ax.errorbar(grouped['Band'], grouped['mean_mAP'], yerr=grouped['std_mAP'], 
+                 label='$AP$', fmt='-o', capsize=5)
+
+    ax.errorbar(grouped['Band'], grouped['mean_mAP_50'], yerr=grouped['std_mAP_50'], 
+                 label='$AP_{50}$', fmt='-s', capsize=5)
+
+    ax.errorbar(grouped['Band'], grouped['mean_mAP_75'], yerr=grouped['std_mAP_75'], 
+                 label='$AP_{75}$', fmt='-^', capsize=5)
+
+
+    ax.set_ylim([0,1.15])
+    
+    if labels is not None:
+        ax.set_xticks(range(len(labels)), labels=labels, fontsize=15)
+    ax.set_xlabel('Spectral Band')
+    ax.set_ylabel('Mean Metric Value')
+    ax.legend()
+    ax.grid(True)
+
+# Main plotting function
+def PR(pr_x_band, all_band, savepath):
+    """
+    Main function to generate subplots for precision-recall curves and error bars for COCO bbox mAP metrics.
+
+    Parameters:
+    pr_x_band (list): List of evaluation results for different spectral bands.
+    all_band (pandas.DataFrame): DataFrame containing coco/bbox mAP metrics grouped by spectral band.
+    """
+    # Create figure and subplots
+    scale_factor = 1.5
+    plt.figure(figsize=(15 * scale_factor, 5 * scale_factor))
+
+    # First subplot: Precision-Recall Curves
+    ax1 = plt.subplot(1, 2, 1)
+    plot_precision_recall(ax1, pr_x_band)
+
+    
+
+    # Group the data by 'Band' and calculate the mean and standard deviation for second subplot
+    grouped = all_band.groupby('Band').agg(
+        mean_mAP=('coco/bbox_mAP', 'mean'),
+        std_mAP=('coco/bbox_mAP', 'std'),
+        mean_mAP_50=('coco/bbox_mAP_50', 'mean'),
+        std_mAP_50=('coco/bbox_mAP_50', 'std'),
+        mean_mAP_75=('coco/bbox_mAP_75', 'mean'),
+        std_mAP_75=('coco/bbox_mAP_75', 'std')
+    ).reset_index()
+
+    labels = [reformat(idx[0]) for idx in list(all_band.groupby(['Band','LR','BS','ME']).mean().index)]
+
+    # Second subplot: Error bars for COCO bbox mAP metrics
+    ax2 = plt.subplot(1, 2, 2)
+    plot_error_bars(ax2, grouped, labels)
+
+
+    # Add text (a) and (b) under axes
+    ax1.text(0.25, -0.14, '(a) Precision-Recall Curves (VDVRaw)', transform=ax1.transAxes, va='top')
+    ax2.text(0.25, -0.14, '(b) Error Plot of BBox Metrics (VDVRaw)', transform=ax2.transAxes, va='top')
+
+    # Adjust layout and display plot
+    plt.subplots_adjust(hspace=0.45)
+    plt.savefig(savepath, bbox_inches='tight')
+    plt.show()
+    return grouped
