@@ -1,6 +1,6 @@
 import argparse
 import logging
-import os
+import os, sys
 import torch
 import numpy as np
 import random
@@ -330,7 +330,12 @@ def main(args):
                     json.dump(output_test_data, json_file, indent=4)
                 
                 logger.info(f"Data has been saved to {file_name}")
-    
+                logger.info('Execution finished.')
+        # if output_test_data dict is not {}:
+        if output_test_data:
+            return 0 
+        else:
+            return 1
 
 RUN = True
 TRAIN = True
@@ -338,4 +343,4 @@ TEST = True
 
 if __name__ == '__main__':
     args = parse_args()
-    main(args=args)
+    sys.exit(main(args=args))

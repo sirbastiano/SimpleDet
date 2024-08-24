@@ -56,22 +56,27 @@ def plot_precision_recall(ax, pr_x_band, axins_true=False):
     pr_x_band (list): A list of evaluation results for different spectral bands.
     """
     
-    if len(pr_x_band) == 4:
-        print('4 labels active') 
-        V = [pr_x_band[f'b{i}'] for i in [2,3,4,8]]
-        coco_eval_lists = V
-        labels = [f"$B_{{{i}}}$" for i in [2,3,4,8]]
+    identifiers = list(pr_x_band.keys())
+    V = [pr_x_band[i] for i in identifiers]
+    coco_eval_lists = V
+    labels = identifiers
     
-    elif len(pr_x_band) == 12:
-        V = [pr_x_band[f'b{i}'] for i in range(1, 13)]
-        coco_eval_lists = V
-        labels = [f"$B_{{{i}}}$" for i in range(1, 13)]
+    # if len(pr_x_band) == 4:
+    #     print('4 labels active') 
+    #     V = [pr_x_band[f'b{i}'] for i in [2,3,4,8]]
+    #     coco_eval_lists = V
+    #     labels = [f"$B_{{{i}}}$" for i in [2,3,4,8]]
     
-    else:
-        identifiers = list(pr_x_band.keys())
-        V = [pr_x_band[i] for i in identifiers]
-        coco_eval_lists = V
-        labels = identifiers
+    # elif len(pr_x_band) == 12:
+    #     V = [pr_x_band[f'b{i}'] for i in range(1, 13)]
+    #     coco_eval_lists = V
+    #     labels = [f"$B_{{{i}}}$" for i in range(1, 13)]
+    
+    # else:
+    #     identifiers = list(pr_x_band.keys())
+    #     V = [pr_x_band[i] for i in identifiers]
+    #     coco_eval_lists = V
+    #     labels = identifiers
 
     colors = sns.color_palette("colorblind", len(labels) + 5) 
     recall_list = []
