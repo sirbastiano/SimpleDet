@@ -176,7 +176,7 @@ def plot_error_bars(ax, grouped, labels=None):
     ax.grid(True)
 
 # Main plotting function
-def PR(pr_x_band, all_band, savepath):
+def combined_plot(pr_x_band, all_band, savepath):
     """
     Main function to generate subplots for precision-recall curves and error bars for COCO bbox mAP metrics.
 
