@@ -43,9 +43,11 @@ def set_style(scale_factor=1.5, font_family='STIXGeneral', dpi=500, fig_width=15
  
 set_style()
 
+def smooth_curve(y, window_size=5):
+    """Smooth the curve using a moving average with a given window size."""
+    return np.convolve(y, np.ones(window_size)/window_size, mode='same')
 
-
-def plot_precision_recall(ax, pr_x_band):
+def plot_precision_recall(ax, pr_x_band, axins_true=False):
     """
     Helper function to plot precision-recall curves with shaded areas for standard deviation.
 
@@ -53,14 +55,25 @@ def plot_precision_recall(ax, pr_x_band):
     ax (matplotlib.axes._subplots.AxesSubplot): The subplot axes to plot on.
     pr_x_band (list): A list of evaluation results for different spectral bands.
     """
-    identifiers = list(pr_x_band.keys())
     
-    V = [pr_x_band[i] for i in identifiers]
-    coco_eval_lists = V
-    identifiers = ['$B_5$-$B_{10}$-$B_{11}$', '$B_3$-$B_{5}$-$B_{7}$-$B_{11}$', '$B_5$-$B_{12}$', '$B_3$-$B_4$-$B_7$', '$B_3$-$B_4$-$B_7$-$B_{11}$', '$B_3$-$B_4$-$B_7$-$B_{11}$-$B_{12}$', '$B_5$-$B_{10}$']
-    labels = identifiers
+    if len(pr_x_band) == 4:
+        print('4 labels active') 
+        V = [pr_x_band[f'b{i}'] for i in [2,3,4,8]]
+        coco_eval_lists = V
+        labels = [f"$B_{{{i}}}$" for i in [2,3,4,8]]
+    
+    elif len(pr_x_band) == 12:
+        V = [pr_x_band[f'b{i}'] for i in range(1, 13)]
+        coco_eval_lists = V
+        labels = [f"$B_{{{i}}}$" for i in range(1, 13)]
+    
+    else:
+        identifiers = list(pr_x_band.keys())
+        V = [pr_x_band[i] for i in identifiers]
+        coco_eval_lists = V
+        labels = identifiers
 
-    colors = sns.color_palette("colorblind", len(labels)) 
+    colors = sns.color_palette("colorblind", len(labels) + 5) 
     recall_list = []
     lower_bound_list = []
     upper_bound_list = []
@@ -82,10 +95,12 @@ def plot_precision_recall(ax, pr_x_band):
         # Compute the mean precision and the standard deviation for shading
         mean_precision = np.mean(all_precisions, axis=0)
         mean_precision_list.append(mean_precision)
-        std_precision = np.std(all_precisions, axis=0)
+        std_precision = np.std(all_precisions, axis=0, ddof=1)
+        std_precision_smooth = smooth_curve(std_precision, window_size=5)
+        mean_precision_smooth = smooth_curve(mean_precision, window_size=5)
 
-        upper_bound = mean_precision + std_precision
-        lower_bound = mean_precision - std_precision
+        upper_bound = mean_precision + std_precision_smooth
+        lower_bound = mean_precision - std_precision_smooth
         
         upper_bound_list.append(upper_bound)
         lower_bound_list.append(lower_bound)
@@ -94,23 +109,24 @@ def plot_precision_recall(ax, pr_x_band):
         ax.fill_between(recall, lower_bound, upper_bound, color=colors[i], alpha=0.3)
         ax.plot(recall, mean_precision, label=labels[i], color=colors[i])
 
-    # Add zoomed-in plot
-    axins = ax.inset_axes([0.05, 0.5, 0.35, 0.35])
-    
-    # Iterate over all curves to add them to the zoomed-in plot
-    for i in range(len(recall_list)):
-        recall = recall_list[i]
-        lower_bound = lower_bound_list[i]
-        upper_bound = upper_bound_list[i]
-        mean_precision = mean_precision_list[i]
-        axins.fill_between(recall, lower_bound, upper_bound, color=colors[i], alpha=0.3)
-        axins.plot(recall, mean_precision, label=labels[i], color=colors[i])
-    
-    axins.set_xlim(0.72, 0.85)
-    axins.set_ylim(0.8, 1)
-    axins.set_xticklabels('')
-    axins.set_yticklabels('')
-    ax.indicate_inset_zoom(axins)
+    if axins_true:
+        # Add zoomed-in plot
+        axins = ax.inset_axes([0.05, 0.5, 0.35, 0.35])
+        
+        # Iterate over all curves to add them to the zoomed-in plot
+        for i in range(len(recall_list)):
+            recall = recall_list[i]
+            lower_bound = lower_bound_list[i]
+            upper_bound = upper_bound_list[i]
+            mean_precision = mean_precision_list[i]
+            axins.fill_between(recall, lower_bound, upper_bound, color=colors[i], alpha=0.3)
+            axins.plot(recall, mean_precision, label=labels[i], color=colors[i])
+        
+        axins.set_xlim(0.72, 0.85)
+        axins.set_ylim(0.8, 1)
+        axins.set_xticklabels('')
+        axins.set_yticklabels('')
+        ax.indicate_inset_zoom(axins)
     # ax.set_title('Precision-Recall Curves by Band')
     
     ax.set_xlabel('Recall')

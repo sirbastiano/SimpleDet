@@ -4,12 +4,47 @@ from pycocotools.cocoeval import COCOeval
 from pathlib import Path
 import matplotlib.pyplot as plt
 import json
+import logging
 
 import pandas as pd 
 
 from style import set_style
 
 set_style()
+
+
+def create_logger(log_file):
+    """
+    Create a logger with a specified log file.
+
+    Parameters:
+    log_file (str): The path to the log file.
+
+    Returns:
+    logging.Logger: The created logger object.
+    """
+    # Create a logger
+    logger = logging.getLogger(__name__)
+
+    # Set the logging level
+    logger.setLevel(logging.INFO)
+
+    # Create a file handler
+    file_handler = logging.FileHandler(log_file)
+
+    # Create a formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # Set the formatter for the file handler
+    file_handler.setFormatter(formatter)
+
+    # Add the file handler to the logger
+    logger.addHandler(file_handler)
+
+    # Log a message
+    logger.info('Logger created successfully')
+
+    return logger
 
 
 def find_json(folder, mode='test'):
