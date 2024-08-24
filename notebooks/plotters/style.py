@@ -107,7 +107,7 @@ def plot_precision_recall(ax, pr_x_band, axins_true=False):
 
         # Plot shaded area and mean precision line
         ax.fill_between(recall, lower_bound, upper_bound, color=colors[i], alpha=0.3)
-        ax.plot(recall, mean_precision, label=labels[i], color=colors[i])
+        ax.plot(recall, mean_precision, label=reformat(labels[i]), color=colors[i])
 
     if axins_true:
         # Add zoomed-in plot
