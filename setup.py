@@ -18,10 +18,8 @@ else:
 def install_dependencies():
     torch_dependencies = "https://download.pytorch.org/whl/torch_stable.html"
 
-    if system == 0:
-        subprocess.check_call(["pip", "install", "torch==2.0.0+cu118", "torchvision==0.15.1+cu118", "-f", torch_dependencies])
-    else:
-        subprocess.check_call(["pip", "install", "torch==2.0.0", "torchvision==0.15.1", "-f", torch_dependencies])
+    subprocess.check_call(["pip", "install", "light-the-torch"])
+    subprocess.check_call(["ltt", "install", "torch"])
         
     subprocess.check_call(["pip", "install", "SciencePlots"])
     subprocess.check_call(["pip", "install", "-U", "openmim"])
