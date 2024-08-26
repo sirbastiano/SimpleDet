@@ -1,7 +1,7 @@
 #!/bin/sh
 
-DEPLOY_CFG_PATH="/root/workspace/mmdeploy/configs/mmdet/detection/detection_openvino_dynamic-800x1344.py" # The deployment configuration of mmdeploy for the model, including the type of inference framework, whether quantize, whether the input shape is dynamic, etc. There may be a reference relationship between configuration files,
 
+DEPLOY_CFG_PATH="/root/workspace/mmdeploy/configs/mmdet/detection/detection_openvino_dynamic-800x1344.py" # The deployment configuration of mmdeploy for the model, including the type of inference framework, whether quantize, whether the input shape is dynamic, etc. There may be a reference relationship between configuration files,
 MODEL_CFG_PATH="/root/workspace/mmdet/checkpoints/Venus/norm_test_vfnet_r18_fpn_1x_venus/20240508_120009_LR_0.0015_BATCH_4_IMG_2304/vfnet_r18_fpn_1x_venus.py" # Model configuration for algorithm library
 MODEL_CHECKPOINT_PATH="/root/workspace/mmdet/checkpoints/Venus/norm_test_vfnet_r18_fpn_1x_venus/20240508_120009_LR_0.0015_BATCH_4_IMG_2304/best_coco_bbox_mAP_50_epoch_12.pth" # Model checkpoint file path
 
