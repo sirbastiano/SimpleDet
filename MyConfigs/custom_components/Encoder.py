@@ -24,3 +24,4 @@ class TimmEncoder(nn.Module):
 
     def forward(self, x):  # should return a tuple
         return tuple(self.model(x))
+    

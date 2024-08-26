@@ -34,9 +34,9 @@ fi
 
 # Default values for the arguments
 BANDS=("2" "3" "4" "8")
-SEEDS=(42 71 18 53 89)
+SEEDS=(42 71 18) # 53 89
 BATCH_SIZES=(2)
-LEARNING_RATE=(0.008 0.009 0.0011 0.0012)
+LEARNING_RATE=(0.01)
 RESIZE=2048
 
 # Parsing command-line arguments
