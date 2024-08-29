@@ -14,6 +14,51 @@ import numpy as np
 import numpy as np
 from skimage import util
 
+def radiometric_spike_noise(array: np.ndarray, severity=.1):
+    """
+    Randomly amplifies or reduces the values in each column of a 2D or 3D array.
+
+    This function iterates through each channel (2D slice) of the input array and modifies 
+    its columns by applying a random amplification or reduction factor. The degree of 
+    amplification or reduction is controlled by the `severity` parameter.
+
+    Parameters:
+    ----------
+    array : numpy.ndarray
+        A 2D or 3D numpy array. If the array is 3D, the first dimension is considered as 
+        the channel dimension.
+    severity : float, optional
+        A positive float that controls the severity of the amplification/reduction. 
+        A higher value will result in a greater range of possible changes. Default is 1.0.
+
+    Returns:
+    -------
+    numpy.ndarray
+        The modified array with amplified or reduced column values.
+    """
+    # Ensure severity is positive
+    if severity <= 0:
+        raise ValueError("Severity must be a positive number.")
+    
+    # If the input is 2D, convert it to 3D with a single channel
+    if array.ndim == 2:
+        array = np.expand_dims(array, axis=0)
+    
+    # Apply random amplification/reduction to each channel and column
+    for channel in range(array.shape[0]):
+        for col in range(array.shape[2]):
+            # Generate a random factor for amplification/reduction
+            factor = 1 + (np.random.rand() * severity * np.random.choice([-1, 1]))
+            # Apply the factor to the column
+            array[channel, :, col] *= factor
+    
+    # If the input was originally 2D, return to 2D
+    if array.shape[0] == 1:
+        return np.squeeze(array, axis=0)
+    
+    return array
+
+
 def add_gaussian_noise(image: np.ndarray, mean: float = 0, stddev: float = 1.0) -> np.ndarray:
     """
     Adds Gaussian noise to a np.float32 image.
@@ -71,18 +116,10 @@ def corrupt_image(image: np.ndarray, noise_type: str, severity: float) -> np.nda
 
     if noise_type == 'gaussian':
         noisy_image = add_gaussian_noise(image, mean=0, stddev=severity)
-    elif noise_type == 'salt':
-        noisy_image = util.random_noise(image, mode='salt', amount=severity)
-    elif noise_type == 'pepper':
-        noisy_image = util.random_noise(image, mode='pepper', amount=severity)
-    elif noise_type == 's&p':
-        noisy_image = util.random_noise(image, mode='s&p', amount=severity)
-    elif noise_type == 'speckle':
-        noisy_image = util.random_noise(image, mode='speckle', var=severity**2)
-    elif noise_type == 'poisson':
-        noisy_image = util.random_noise(image, mode='poisson')
+    elif noise_type == 'spike':
+        noisy_image = radiometric_spike_noise(image, severity=severity)
     else:
-        raise ValueError("Unsupported noise type. Choose from 'gaussian', 'salt', 'pepper', 's&p', 'speckle', 'poisson'.")
+        raise ValueError("Unsupported noise type. Choose from 'gaussian', 'spike'.")
 
     # Convert the noisy image back to np.float32 if needed
     return noisy_image.astype(np.float32)
