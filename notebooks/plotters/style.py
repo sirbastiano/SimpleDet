@@ -40,8 +40,8 @@ def set_style(scale_factor=1.5, font_family='STIXGeneral', dpi=500, fig_width=15
         "figure.titlesize": font_size
     })
     
- 
 set_style()
+ 
 
 def smooth_curve(y, window_size=5):
     """Smooth the curve using a moving average with a given window size."""
@@ -169,6 +169,36 @@ def plot_error_bars(ax, grouped, labels=None):
 
     ax.errorbar(grouped['Band'], grouped['mean_mAP_75'], yerr=grouped['std_mAP_75'], 
                  label='$AP_{75}$', fmt='-^', capsize=5)
+
+
+    ax.set_ylim([0,1.15])
+    
+    if labels is not None:
+        ax.set_xticks(range(len(labels)), labels=labels, fontsize=15)
+    ax.set_xlabel('Spectral Band')
+    ax.set_ylabel('Mean Metric Value')
+    ax.legend()
+    ax.grid(True)
+    
+    
+def plot_error_bars2(ax, grouped, labels=None):
+    """
+    Helper function to plot error bars for COCO bbox mAP metrics by spectral band.
+
+    Parameters:
+    ax (matplotlib.axes._subplots.AxesSubplot): The subplot axes to plot on.
+    grouped (pandas.DataFrame): DataFrame containing mean and std of coco/bbox mAP metrics by spectral band.
+    """
+    
+    # Plotting the error bars for each metric
+    ax.errorbar(grouped['Band'], grouped['mean_mAP'], yerr=grouped['std_mAP'], 
+                 label='$P$', fmt='-o', capsize=5)
+
+    ax.errorbar(grouped['Band'], grouped['mean_mAP_50'], yerr=grouped['std_mAP_50'], 
+                 label='$R$', fmt='-s', capsize=5)
+
+    ax.errorbar(grouped['Band'], grouped['mean_mAP_75'], yerr=grouped['std_mAP_75'], 
+                 label='$F_1$', fmt='-^', capsize=5)
 
 
     ax.set_ylim([0,1.15])

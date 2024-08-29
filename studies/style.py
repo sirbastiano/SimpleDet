@@ -4,7 +4,7 @@ import seaborn as sns
 
 sns.set_style("whitegrid")
 
-def set_style(scale_factor=1.5, font_family='STIXGeneral', dpi=500, fig_width=15, fig_height=5, fontsize=13):
+def set_style(scale_factor=1.5, font_family='STIXGeneral', dpi=500, fig_width=15, fig_height=5, fontsize=16):
     """
     Sets the styling parameters for Matplotlib and Seaborn plots, including figure dimensions.
 
