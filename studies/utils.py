@@ -111,9 +111,13 @@ def get_band_files(band_num):
     files = list_files(f'/Data_large/marine/PythonProjects/MMDET/studies/crops/B{band_num}')
     return [x.as_posix() for x in files] 
 
+def get_band_files_sen(band_num):
+    files = list_files(f'/Data_large/marine/PythonProjects/MMDET/studies/cropsSen/B{band_num}')
+    return [x.as_posix() for x in files] 
+
 
 def get_corresponding_B1_files(band_num):
-    B1_files = get_band_files(band_num=1)
+    B1_files = get_band_files_sen(band_num=1)
     corresponding = [x.replace('B1',f'B{band_num}') for x in B1_files]
     
     if band_num == 1:

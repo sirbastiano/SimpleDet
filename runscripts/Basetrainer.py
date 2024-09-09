@@ -22,7 +22,7 @@ setup_cache_size_limit_of_dynamo()
 
 class ObjectDetectionPipeline:
     def __init__(self, seed=71, band=[5], resize=2048, batch_size=2, learning_rate=0.001,
-                 random_crop=None, sensor='VENUS', special=True, max_epochs=30, amp=False,
+                 random_crop=None, sensor='VENUS', special=False, max_epochs=30, amp=False,
                  optimizer_choice='SGD'):
         self.seed = seed
         self.band = band
