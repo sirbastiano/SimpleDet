@@ -249,7 +249,7 @@ def get_hog_and_features(input_img, threshold_value=0.85):
     return hog_image, num_features
 
 
-def plot_bands_and_hog(array_in_band, threshold_value=0.85):
+def plot_bands_and_hog(array_in_band, threshold_value=0.85, max_bands=12):
     """
     Plot original images and their HOG (Histogram of Oriented Gradients) features for each band in a 2-row layout.
     Utilizes Seaborn for enhanced aesthetics.
@@ -264,9 +264,9 @@ def plot_bands_and_hog(array_in_band, threshold_value=0.85):
 
 
     # Create a 2-row subplot layout
-    fig, axes = plt.subplots(2, 12, figsize=(20, 2), sharex=True, sharey=True, dpi=300)
+    fig, axes = plt.subplots(2, max_bands, figsize=(20, 2), sharex=True, sharey=True, dpi=300)
     
-    for band in range(1, 13):
+    for band in range(1, max_bands+1):
         # Get the image and its corresponding HOG features
         image_array = array_in_band[band]
         hog_image, num_features = get_hog_and_features(image_array, threshold_value)
