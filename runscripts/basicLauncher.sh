@@ -33,10 +33,13 @@ else
 fi
 
 # RUNNING:
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 5  --band '2,3,4,8'
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 99 --band '2,3,4,8'
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 16 --band '2,3,4,8'
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 40 --band '2,3,4,8'
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 5  --band '[2,8]'
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 99 --band '[2,8]'
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 16 --band '[2,8]'
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 40 --band '[2,8]'
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 23 --band '[2,8]'
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 71 --band '[2,8]'
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 18 --band '[2,8]'
 
 
 

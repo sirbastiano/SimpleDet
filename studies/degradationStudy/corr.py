@@ -126,47 +126,10 @@ def corrupt_image(image: np.ndarray, noise_type: str, severity: float) -> np.nda
     return noisy_image.astype(np.float32)
 
 
-def add_snr_psf(
-    input_data: np.ndarray,
-    snr_values: dict,
-    psf_kernels: dict,
-    l_ref: float,
-    kernel_bands: list,
-    snr_bands: list
-) -> dict:
-    """
-    Adds SNR and PSF effects to input data using provided SNR values and PSF kernels.
-    
-    :param input_data: Input 4D array (t, h, w, d) where 'd' corresponds to different bands.
-    :param snr_values: A dictionary of SNR values for each band.
-    :param psf_kernels: A dictionary of PSF kernels for each band.
-    :param l_ref: Reference spectral radiance.
-    :param kernel_bands: List of band names corresponding to PSF kernels.
-    :param snr_bands: List of band names corresponding to SNR values.
-    :return: A dictionary with keys 'snr_added' and 'psf_added', containing the resulting data after SNR and PSF effects.
-    """
 
-    # Adding SNR noise to input data
-    random_noise = np.random.normal(size=input_data.shape)
-    
-    snr = np.array([snr_values[band] for band in snr_bands])
-    snr = np.reshape(snr, (1, 1, 1, len(snr)))  # Reshape to match input dimensions (t, h, w, d)
-    
-    noisy_data = input_data + l_ref * random_noise / snr  # Adding noise based on SNR
-    
-    # Applying PSF kernel convolution to the noisy data
-    psf_convolved_data = np.concatenate([
-        np.concatenate([
-            convolve(noisy_data[..., band], psf_kernels[kernel_band], mode="mirror")[..., np.newaxis]
-            for band, kernel_band in enumerate(kernel_bands)
-        ], axis=-1)[np.newaxis, ...]
-        for _data in noisy_data
-    ], axis=0)
 
-    return {
-        'snr_added': noisy_data,
-        'psf_added': psf_convolved_data
-    }
+
+
 
 
 
