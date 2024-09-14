@@ -154,7 +154,7 @@ class ImageCorruption(BaseTransform):
             Returns a string representation of the ImageCorruption object.
     """
 
-    def __init__(self, sensor: str, SNR: float = 10, mtf_at_fe: float = 0.2) -> None:
+    def __init__(self, sensor: str, SNR: float = 100, mtf_at_fe: float = 0.2) -> None:
         self.sensor = sensor
         self.SNR = SNR
 
@@ -175,9 +175,6 @@ class ImageCorruption(BaseTransform):
         Returns:
             dict: Result dict with images corrupted.
         """
-
-        if self.corruption is None:
-            raise RuntimeError('imagecorruptions is not installed')
         results['img'] = self.optical_system.apply(results['img'])
         return results
 

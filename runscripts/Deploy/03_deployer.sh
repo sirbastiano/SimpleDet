@@ -1,11 +1,11 @@
 #!/bin/sh
 
-
 DEPLOY_CFG_PATH="/root/workspace/mmdeploy/configs/mmdet/detection/detection_openvino_dynamic-800x1344.py" # The deployment configuration of mmdeploy for the model, including the type of inference framework, whether quantize, whether the input shape is dynamic, etc. There may be a reference relationship between configuration files,
-MODEL_CFG_PATH="/root/workspace/mmdet/checkpoints/Venus/norm_test_vfnet_r18_fpn_1x_venus/20240508_120009_LR_0.0015_BATCH_4_IMG_2304/vfnet_r18_fpn_1x_venus.py" # Model configuration for algorithm library
-MODEL_CHECKPOINT_PATH="/root/workspace/mmdet/checkpoints/Venus/norm_test_vfnet_r18_fpn_1x_venus/20240508_120009_LR_0.0015_BATCH_4_IMG_2304/best_coco_bbox_mAP_50_epoch_12.pth" # Model checkpoint file path
+MODEL_CFG_PATH="/root/workspace/mmdet/checkpoints/VENuS/Single/perfect_b10/18_BS_3_LR_0.0008_ME_30_OPT_SGD/vfnet_r18.py" # Model configuration for algorithm library
+MODEL_CHECKPOINT_PATH="/root/workspace/mmdet/checkpoints/VENuS/Single/perfect_b10/18_BS_3_LR_0.0008_ME_30_OPT_SGD/epoch_30.pth" # Model checkpoint file path
 
-INPUT_IMG="/root/workspace/mmdet/checkpoints/ASH_L0_02686_20180203_CoReg_mask_OK.tiff" # Input image path or point cloud file used for testing during the model conversion.
+INPUT_IMG="/root/workspace/mmdet/tgt_imgs/ASH_L0_09936_20190618_MultiLayer_mask_OK.tif" # Input image path or point cloud file used for testing during the model conversion.
+# INPUT_IMG="/root/workspace/mmdet/tgt_imgs/ASH_L0_09936_20190618_MultiLayer_mask_OK.tif" # Input image path or point cloud file used for testing during the model conversion.
 # TEST_IMG ="/root/workspace/mmdet/checkpoints/ASH_L0_02686_20180203_CoReg_mask_OK.tif" # The path of the image file that is used to test the model. If not specified, it will be set to None.
 WORK_DIR="/root/workspace/mmdet/deploy/deployed_model" # The path of the work directory that is used to save logs and models.
 DEVICE="cuda:0" # The device used for model conversion. If not specified, it will be set to cpu. For trt, use cuda:0 format.

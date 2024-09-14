@@ -13,6 +13,7 @@ notebooks/*.json
 *summary.json
 *run
 tmp/
+tgt_imgs/
 
 studies/tta_study/*
 

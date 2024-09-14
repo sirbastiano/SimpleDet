@@ -106,7 +106,6 @@ class SIoUCocoMetric(BaseMetric):
         if iou_thrs is None:
             iou_thrs = np.linspace(
                 .5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
-            print('\n\n\n\n IOU HOOK \n\n\n\n')
             iou_thrs = [0.4]
             
         self.iou_thrs = iou_thrs

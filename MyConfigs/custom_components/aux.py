@@ -15,7 +15,7 @@ class OpticalSystem:
         self.wavelength = wavelength  # Wavelength in mm (800 nm)
         pixel_pitch = self.stored_params(sensor)['pixel_pitch']
         f_number = self.stored_params(sensor)['f_number']
-        self.l_ref = 30.0  # Reference luminance for noise addition
+        self.l_ref = 100.0  # Reference luminance for noise addition
         
         assert M_b_n_TGT <= M_b_n_SRC, 'Target MTF must be less than or equal to the source MTF'
         self.M_b_n_TGT = M_b_n_TGT # 
@@ -116,7 +116,7 @@ class OpticalSystem:
         # MTF_at_nyquist = 0.3 # From OrbitalAI paper.
         f_number = focal_length / aperture
         # pixel_pitch = 7.5 micro meters # Available in the paper: https://www.sciencedirect.com/topics/materials-science/sentinel-2
-        SENTINEL = {'f_number': f_number, 'pixel_pitch': 0.0075, 'MTF_at_nyquist': 0.3}
+        SENTINEL = {'f_number': f_number, 'pixel_pitch': 0.0075, 'MTF_at_nyquist': 0.3, 'l_ref': 103., 'SNR': 174}
         
         if sensor == 'sentinel':
             return SENTINEL
