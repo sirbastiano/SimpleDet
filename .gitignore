@@ -4,6 +4,7 @@ deploy/
 data/
 Models/
 test_results/
+Deploy_out/
 notebooks/*.json
 *.yaml
 *.log
@@ -13,11 +14,12 @@ notebooks/*.json
 *summary.json
 *run
 tmp/
-tgt_imgs/
+runscripts/Deploy/
 
 studies/tta_study/*
 
 *.json
+*.onnx
 
 *.npy
 *.pyc

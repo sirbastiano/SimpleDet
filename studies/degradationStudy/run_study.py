@@ -134,9 +134,9 @@ if __name__ == '__main__':
     mtf_tgt = 0.2 if SENSOR == 'venus' else 0.3
 
     # SNR = 174 # Nominal SNR --> for S-2 at B8: 174 | for VENµS: 100. 
-    SNR_levels = np.geomspace(174, 1, 20)
+    SNR_levels = np.geomspace(174, 1, 10)
 
-    MTFS = [0.2, 0.1, 0.05, 0.01, 0.001] if SENSOR == 'venus' else [0.3, 0.2, 0.1, 0.05, 0.01]
+    MTFS = [0.2, 0.05, 0.001] if SENSOR == 'venus' else [0.3]
 
     for mtf_tgt in MTFS:
         for SNR in SNR_levels:
@@ -167,5 +167,5 @@ if __name__ == '__main__':
             Results['F1'].append(F1)
             
 
-    pd.DataFrame(Results).to_pickle(f'{SENSOR}_SNR_study_b{BAND}.pkl')
+    pd.DataFrame(Results).to_pickle(f'/Data_large/marine/PythonProjects/MMDET/studies/degradationStudy/{SENSOR}_SNR_study_b{BAND}.pkl')
     print('Done')

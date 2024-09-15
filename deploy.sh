@@ -6,7 +6,7 @@ export LD_LIBRARY_PATH=$(pwd)/../mmdeploy-dep/onnxruntime-linux-x64-1.8.1/lib/:$
 
 BASE="/Data_large/marine/PythonProjects/MMDET/"
 
-DEPLOY_CFG_PATH="${BASE}runscripts/Deploy/mmdeploy/configs/mmdet/detection/detection_openvino_dynamic-800x1344.py" # The deployment configuration of mmdeploy for the model, including the type of inference framework, whether quantize, whether the input shape is dynamic, etc. There may be a reference relationship between configuration files,
+DEPLOY_CFG_PATH="${BASE}runscripts/Deploy/mmdeploy/configs/mmdet/_base_/base_openvino_static-800x1344.py" # The deployment configuration of mmdeploy for the model, including the type of inference framework, whether quantize, whether the input shape is dynamic, etc. There may be a reference relationship between configuration files,
 MODEL_CFG_PATH="${BASE}checkpoints/VENuS/Single/perfect_b10/18_BS_3_LR_0.0008_ME_30_OPT_SGD/vfnet_r18.py" # Model configuration for algorithm library
 MODEL_CHECKPOINT_PATH="${BASE}checkpoints/VENuS/Single/perfect_b10/18_BS_3_LR_0.0008_ME_30_OPT_SGD/epoch_30.pth" # Model checkpoint file path
 
@@ -32,8 +32,8 @@ python3 ${BASE}runscripts/Deploy/mmdeploy/tools/deploy.py \
     --work-dir ${WORK_DIR} \
     --device ${DEVICE} \
     --log-level INFO \
-    --show \
     --dump-info
+    # --show \
     # --test-img ${TEST_IMG} \
     # --calib-dataset-cfg ${CALIB_DATA_CFG} \
 
