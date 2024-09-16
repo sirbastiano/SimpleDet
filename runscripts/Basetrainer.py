@@ -50,7 +50,7 @@ class ObjectDetectionPipeline:
         self.logger.info(f'Pipeline configured with the following parameters: Seed {self.seed}, Batch Size: {self.batch_size}, Learning Rate: {self.learning_rate}, Random Crop: {self.random_crop}, Sensor: {self.sensor}, Special: {self.special}, Max Epochs: {self.max_epochs}, AMP: {self.amp}, Optimizer: {self.optimizer_choice}')
 
     def _init_cfg(self):
-        cfg = Config.fromfile(f'{self.base_folder}/Sentinel_b2/vfnet_r18.py')
+        cfg = Config.fromfile(f'{self.base_folder}/base_config.py')
         cfg.work_dir = self.workdir
         return cfg
 
@@ -69,7 +69,7 @@ class ObjectDetectionPipeline:
         single_multi = 'Multi' if len(self.band) > 1 else 'Single'
         k_mode = {'SENTINEL': 'Sentinel', 'VENUS': 'VENuS'}
         workdir = (f'/Data_large/marine/PythonProjects/MMDET/checkpoints/'
-                   f'{k_mode[self.sensor]}/Special/BS_{self.batch_size}/'
+                   f'{k_mode[self.sensor]}/Export/BS_{self.batch_size}/'
                    f'LR_{self.learning_rate}/IMG_{self.resize}/BANDS_{bands_names}/'
                    f'{self.seed}_Optim_{self.optimizer_choice}')
         return workdir

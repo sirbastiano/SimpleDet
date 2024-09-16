@@ -33,34 +33,22 @@ else
 fi
 
 # RUNNING:
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[8]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 16 --band  '[8]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 123 --band '[8]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 402 --band '[8]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 233 --band '[8]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 701 --band '[8]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 108 --band '[8]' --batch_size 12 --learning_rate 0.05
-12python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[2]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 16 --band  '[2]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 123 --band '[2]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 402 --band '[2]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 233 --band '[2]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 701 --band '[2]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 108 --band '[2]' --batch_size 12 --learning_rate 0.05
-12python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[3]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 16 --band  '[3]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 123 --band '[3]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 402 --band '[3]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 233 --band '[3]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 701 --band '[3]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 108 --band '[3]' --batch_size 12 --learning_rate 0.05
-12python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[4]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 16 --band  '[4]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 123 --band '[4]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 402 --band '[4]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 233 --band '[4]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 701 --band '[4]' --batch_size 12 --learning_rate 0.05
-python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 108 --band '[4]' --batch_size 12 --learning_rate 0.05
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 18  --band '[8]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 18  --band '[8]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 18  --band '[8]' --batch_size 2
+
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 53  --band '[8]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 53  --band '[8]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 53  --band '[8]' --batch_size 2
+
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 71  --band '[8]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 71  --band '[8]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 71  --band '[8]' --batch_size 2
+
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[8]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[8]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[8]' --batch_size 2
+
 
 # Trap keyboard interrupt and call the interrupt_handler function
 trap interrupt_handler SIGINT

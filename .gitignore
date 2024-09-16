@@ -5,7 +5,8 @@ data/
 Models/
 test_results/
 Deploy_out/
-notebooks/*.json
+
+
 *.yaml
 *.log
 *metadata.json
@@ -20,6 +21,9 @@ studies/tta_study/*
 
 *.json
 *.onnx
+*.pth
+*.xml
+*.mapping
 
 *.npy
 *.pyc

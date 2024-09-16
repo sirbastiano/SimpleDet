@@ -116,7 +116,7 @@ class OpticalSystem:
         # MTF_at_nyquist = 0.3 # From OrbitalAI paper.
         f_number = focal_length / aperture
         # pixel_pitch = 7.5 micro meters # Available in the paper: https://www.sciencedirect.com/topics/materials-science/sentinel-2
-        SENTINEL = {'f_number': f_number, 'pixel_pitch': 0.0075, 'MTF_at_nyquist': 0.3, 'l_ref': 103., 'SNR': 174}
+        SENTINEL = {'f_number': f_number, 'pixel_pitch': 0.0075, 'MTF_at_nyquist': 0.3, 'l_ref': 103., 'SNR': 174} # https://sentinels.copernicus.eu/en/web/sentinel/technical-guides/sentinel-2-msi/mission-performance
         
         if sensor == 'sentinel':
             return SENTINEL

@@ -1,20 +1,21 @@
 _base_ = [
-    '../_base_/datasets/venus_detection.py',
+    '../_base_/datasets/sentinel_b2.py',
     '../_base_/schedules/schedule_120.py', '../_base_/esa_runtime.py'
 ]
+
 # model settings
 model = dict(
     type='VFNet',
     data_preprocessor=dict(
         type='DetDataPreprocessor',
-        mean=[200, 154, 116],
-        std=[22, 24, 27],
+        mean=[105.380424],
+        std=[55.741932],
         bgr_to_rgb=False,
         pad_size_divisor=1),
     backbone=dict(
         type='ResNet',
         depth=50,
-        in_channels=3, ##### MODIFIED #####
+        in_channels=1, ##### MODIFIED #####
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,

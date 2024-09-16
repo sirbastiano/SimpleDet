@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument('--learning_rate', type=float, default=0.0005, help='Learning rate')
     parser.add_argument('--max_epochs', type=int, default=130, help='Max epochs')
     parser.add_argument('--sensor', type=str, default='SENTINEL', help='Sensor')
+    parser.add_argument('--AMP', type=bool, default=False, help='Mixed Precision Training')
     return parser.parse_args()
 
 
@@ -29,6 +30,7 @@ if __name__ == '__main__':
                                        seed=args.seed, 
                                        learning_rate=args.learning_rate, 
                                        max_epochs=args.max_epochs, 
+                                       amp=args.AMP,
                                        sensor='SENTINEL')
     pipeline.build() # Builds the pipeline
 
