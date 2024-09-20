@@ -68,7 +68,7 @@ class ObjectDetectionPipeline:
         bands_names = ''.join([f'_b{x}' for x in self.band])
         single_multi = 'Multi' if len(self.band) > 1 else 'Single'
         k_mode = {'SENTINEL': 'Sentinel', 'VENUS': 'VENuS'}
-        workdir = (f'/Data_large/marine/PythonProjects/MMDET/checkpoints/'
+        workdir = (f'/Data_large/marine/PythonProjects/MMDET/Deploy_out/'
                    f'{k_mode[self.sensor]}/Export/BS_{self.batch_size}/'
                    f'LR_{self.learning_rate}/IMG_{self.resize}/BANDS_{bands_names}/'
                    f'{self.seed}_Optim_{self.optimizer_choice}')

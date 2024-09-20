@@ -11,7 +11,10 @@ class OpticalSystem:
                  wavelength=0.0008):
         
         # sensor: must be either 'sentinel' or 'venus'
+        self.sensor = sensor
         M_b_n_SRC = self.stored_params(sensor)['MTF_at_nyquist']
+        self.M_b_SRC = M_b_n_SRC
+        
         self.wavelength = wavelength  # Wavelength in mm (800 nm)
         pixel_pitch = self.stored_params(sensor)['pixel_pitch']
         f_number = self.stored_params(sensor)['f_number']
@@ -108,7 +111,13 @@ class OpticalSystem:
         # f_number = 7.  # F-number for the VENµS VSSC
         # pixel_pitch = 0.0169  # Pixel pitch in mm 5200 pixels in 69 mm
         # MTF_at_nyquist = 0.2 # https://www.spiedigitallibrary.org/conference-proceedings-of-spie/11180/111804F/Measuring-modeling-and-removing-optical-straylight-from-venμs-super-spectral/10.1117/12.2536078.full
-        VENUS = {'f_number': 7., 'pixel_pitch': 69/5200, 'MTF_at_nyquist': 0.2}
+        VENUS = {'f_number': 7., 'pixel_pitch': 69/5200, 'MTF_at_nyquist': 0.15}
+        
+        
+        
+        
+        
+        
         ########################################################
         # Sentinel-2:
         aperture =  150 # mm 
@@ -174,6 +183,7 @@ class OpticalSystem:
             noisy_data = img  # No noise added if SNR <= 0
 
         # Step 4: Convolve the noisy data with the normalized PSF kernel
+            
         psf_convolved_data = convolve(noisy_data, self.psf_kernel, mode='mirror')
         
         # Step 5: Normalize output to match original data distribution if requested

@@ -2,7 +2,7 @@
 clear
 
 # Log file path
-LOG_FILE="/Data_large/marine/PythonProjects/MMDET/runscripts/Logs/supplement_S2_single.log"
+LOG_FILE="/Data_large/marine/PythonProjects/MMDET/runscripts/Logs/export_logger.log"
 
 # Function to handle keyboard interrupt (Ctrl+C)
 interrupt_handler() {
@@ -36,18 +36,32 @@ fi
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 18  --band '[8]' --batch_size 4 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 18  --band '[8]' --batch_size 3 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 18  --band '[8]' --batch_size 2
-
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 53  --band '[8]' --batch_size 4 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 53  --band '[8]' --batch_size 3 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 53  --band '[8]' --batch_size 2
-
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 71  --band '[8]' --batch_size 4 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 71  --band '[8]' --batch_size 3 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 71  --band '[8]' --batch_size 2
-
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[8]' --batch_size 4 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[8]' --batch_size 3 
 python /Data_large/marine/PythonProjects/MMDET/runscripts/SenTrainer.py --seed 89  --band '[8]' --batch_size 2
+
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 42  --band '[10]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 42  --band '[10]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 42  --band '[10]' --batch_size 2
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 18  --band '[10]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 18  --band '[10]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 18  --band '[10]' --batch_size 2
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 53  --band '[10]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 53  --band '[10]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 53  --band '[10]' --batch_size 2
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 71  --band '[10]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 71  --band '[10]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 71  --band '[10]' --batch_size 2
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 89  --band '[10]' --batch_size 4 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 89  --band '[10]' --batch_size 3 
+python /Data_large/marine/PythonProjects/MMDET/runscripts/VenTrainer.py --seed 89  --band '[10]' --batch_size 2
+
 
 
 # Trap keyboard interrupt and call the interrupt_handler function

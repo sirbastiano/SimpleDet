@@ -515,6 +515,7 @@ class RADCVFNetHead(ATSSHead, FCOSHead):
             if self.use_vfl:
                 pos_ious = iou_targets_rf.clone().detach()
                 cls_iou_targets = torch.zeros_like(flatten_cls_scores)
+                pos_ious = pos_ious.to(cls_iou_targets.dtype) # modified: to avoid dtype mismatch using FP16
                 cls_iou_targets[pos_inds, pos_labels] = pos_ious
         else:
             loss_bbox = pos_bbox_preds.sum() * 0
