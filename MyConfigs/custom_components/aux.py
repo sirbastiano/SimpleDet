@@ -156,7 +156,7 @@ class OpticalSystem:
         plt.show()
 
 
-    def apply(self, img, normalize=False):
+    def apply(self, img, normalize=True):
         """
         Adds noise to the image based on the provided SNR and applies a PSF kernel convolution.
         
