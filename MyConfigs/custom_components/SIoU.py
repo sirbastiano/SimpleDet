@@ -3,7 +3,7 @@ import numpy as np
 
 
 class COCOevalSIoU(COCOeval):
-    def __init__(self, cocoGt=None, cocoDt=None, iouType='bbox', gamma=0.5, kappa=8):
+    def __init__(self, cocoGt=None, cocoDt=None, iouType='bbox', gamma=0.5, kappa=2.82):
         super().__init__(cocoGt, cocoDt, iouType)
         self.gamma = gamma
         self.kappa = kappa
@@ -51,7 +51,7 @@ class COCOevalSIoU(COCOeval):
         iou = inter_area / union_area if union_area > 0 else 0
 
         size_factor = np.sqrt(w1 * h1 + w2 * h2)
-        p = 1 - gamma * np.exp(-size_factor / np.sqrt(2 * kappa))
+        p = 1 - gamma * np.exp(-size_factor / np.sqrt(2) * kappa)
 
         siou = iou ** p
 
