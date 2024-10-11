@@ -33,34 +33,9 @@ else
 fi
 
 # RUNNING:
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 18  --band '[8]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 18  --band '[8]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 18  --band '[8]' --batch_size 2
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 53  --band '[8]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 53  --band '[8]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 53  --band '[8]' --batch_size 2
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 71  --band '[8]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 71  --band '[8]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 71  --band '[8]' --batch_size 2
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 89  --band '[8]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 89  --band '[8]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 89  --band '[8]' --batch_size 2
+# python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16SenTrainer.py --seed 18  --band '[8]' --batch_size 4 
 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 42  --band '[10]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 42  --band '[10]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 42  --band '[10]' --batch_size 2
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 18  --band '[10]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 18  --band '[10]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 18  --band '[10]' --batch_size 2
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 53  --band '[10]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 53  --band '[10]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 53  --band '[10]' --batch_size 2
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 71  --band '[10]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 71  --band '[10]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 71  --band '[10]' --batch_size 2
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 89  --band '[10]' --batch_size 4 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 89  --band '[10]' --batch_size 3 
-python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 89  --band '[10]' --batch_size 2
+python /Data_large/marine/PythonProjects/MMDET/runscripts/FP16VenTrainer.py --seed 89  --band '[5]' --batch_size 2 --learning_rate 0.001
 
 
 
