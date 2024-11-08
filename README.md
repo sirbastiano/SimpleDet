@@ -1,4 +1,4 @@
-# Simple MDet
+# SimpleDet
 
 > **Warning**: The full code and models will be released upon the pubblication of the final paper. Please refer to the arxive: https://arxiv.org/pdf/2411.03403.
 
