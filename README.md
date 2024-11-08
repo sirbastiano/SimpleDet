@@ -18,7 +18,7 @@
 ![Open issues percentage](https://img.shields.io/github/issues/detail/state/sirbastiano/SimpleDet/1.svg)
 
 <p align="center">
-    <img src="SimpleDet.jpg?raw=true" alt="Logo" width="50%">
+    <img src="SimpleDet.jpg?raw=true" alt="Logo" width="100%">
 </p>
 
 
