@@ -26,6 +26,16 @@
 
 This project is part of a collaboration with ESA Phi-Lab, focusing on Object Detection in satellite imagery. The primary goal is to detect objects in satellite images and provide bounding boxes around them for precise localization.
 
+
+## Data
+
+• The VDS2Raw (v2) dataset, which is integral to our research, is publicly accessible for further exploration and utilization. Researchers and practitioners can download the dataset from the following link: 10.5281/zenodo.13889073.
+
+• The VDVRaw dataset is publicly accessible for further exploration and utilization. The dataset is accessible at the following link: 10.5281/zenodo.13897485.
+
+• Both classification datasets are publicly accessible for further exploration and utilization at the following link: 10.5281/zenodo.14007820.
+
+
 ### Object Detection
 
 Object detection is a computer vision technique that identifies and locates objects within images or videos. It combines two key tasks: object classification and object localization. The goal is not only to classify the object but also to determine its position in the image.
