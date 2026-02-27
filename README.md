@@ -67,36 +67,6 @@ python -m simpledet --version
 - `runscripts/`: executable training/inference launch scripts
 - `build/`: generated build output (not intended for direct edits)
 
-## Publishing
-
-Use the project Makefile for deterministic releases.
-
-### Recommended one-shot publish
-
-```bash
-make publish
-```
-
-This runs the following steps:
-
-1. `bootstrap` — installs/updates build and publish tooling
-2. `build` — builds wheel and sdist
-3. `check` — validates distribution metadata
-4. uploads to PyPI via Twine
-
-### Test publish / manual controls
-
-```bash
-make publish-test   # publish to TestPyPI using the same prepare steps
-make bootstrap      # install/upgrade build + upload tooling
-make build          # build dist artifacts
-make check          # validate dist artifacts
-make install        # install project from local metadata
-make clean          # clean build artifacts
-```
-
-> `make publish` and `make publish-test` require valid Twine credentials (`TWINE_USERNAME` and `TWINE_PASSWORD`, or token-based auth).
-
 ## Contributing
 
 1. Create a branch.
