@@ -64,14 +64,20 @@ python -m pip install simpledet
 Release workflow with Makefile:
 
 ```bash
-make install           # install dependencies from project metadata
-make build             # build dist/*.whl and dist/*.tar.gz
-make check             # validate distributions
-make publish           # upload to PyPI
+make publish           # bootstrap tools, build dist/, validate, and upload to PyPI
 make publish-test      # upload to TestPyPI
 ```
 
 > `make publish` and `make publish-test` require Twine credentials (or token in environment variables).
+
+Optional step-by-step (equivalent flow):
+
+```bash
+make bootstrap      # install build tools
+make build          # build dist/*.whl and dist/*.tar.gz
+make check          # validate distributions
+make publish        # upload to PyPI
+```
 
 
 
