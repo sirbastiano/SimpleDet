@@ -8,12 +8,13 @@ help:
 	@echo "Targets:"
 	@echo "  make install        Install project from source"
 	@echo "  make install-editable Install with optional OpenMMLab extras"
+	@echo "  make bootstrap      Ensure build/publishing tools are up to date"
 	@echo "  make build          Build source distribution and wheel"
 	@echo "  make sdist           Build source distribution only"
 	@echo "  make wheel           Build wheel only"
 	@echo "  make check           Validate sdist/wheel metadata"
-	@echo "  make publish         Upload to PyPI (requires Twine credentials)"
-	@echo "  make publish-test    Upload to TestPyPI"
+	@echo "  make publish         Run bootstrap, build, check, then upload to PyPI"
+	@echo "  make publish-test    Run bootstrap, build, check, then upload to TestPyPI"
 	@echo "  make clean           Remove build artifacts"
 
 install:
@@ -37,10 +38,10 @@ wheel:
 check:
 	$(PYTHON) -m twine check dist/*
 
-publish:
+publish: bootstrap build check
 	$(PYTHON) -m twine upload dist/*
 
-publish-test:
+publish-test: bootstrap build check
 	$(PYTHON) -m twine upload --repository testpypi dist/*
 
 clean:
