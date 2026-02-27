@@ -28,3 +28,8 @@ studies/tta_study/*
 *.npy
 *.pyc
 *.pkl
+
+# Ignore AI-agent generated artifacts
+.agents/
+.codex/
+AGENTS.md
