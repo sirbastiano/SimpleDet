@@ -1,37 +1,25 @@
-checkpoints/
-mmdetection/
-deploy/
-data/
-Models/
-test_results/
-Deploy_out/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
 
+# Virtual environments
+.venv/
+.env/
 
-*.yaml
-*.log
-*metadata.json
-*.txt
-*.wandb
-*summary.json
-*run
-tmp/
-runscripts/Deploy/
+.buildenv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 
-studies/tta_study/*
+# Packaging
+build/
+dist/
+*.egg-info/
 
-*.json
-*.onnx
-*.pth
-*.xml
-*.mapping
+# Jupyter
+.ipynb_checkpoints/
 
-*.npy
-*.pyc
-*.pkl
-
-# Ignore AI-agent generated artifacts
-.agents/
-.codex/
-.apgents/
-.ralp/
-AGENTS.md
+# Project data and environment artifacts
+Data/

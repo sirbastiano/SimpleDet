@@ -23,15 +23,21 @@ This repository contains a custom implementation of MMDetection, with custom dat
 
 1. Clone the repository:
 
-    ```bash
-    git clone https://github.com/sirbastiano/MDet.git
-    ```
+```bash
+git clone https://github.com/sirbastiano/MDet.git
+```
 
 2. Install the required dependencies:
 
-    ```bash
-    source setup.sh
-    ```
+```bash
+python -m pip install .
+```
+
+For an installation with optional OpenMMLab runtime packages:
+
+```bash
+python -m pip install ".[openmmlab]"
+```
 
 
 
@@ -44,8 +50,28 @@ git clone https://github.com/sirbastiano/MDet.git
 2. Install the requirements:
 
 ```bash
-source setup.sh
+python -m pip install ".[openmmlab]"
 ```
+
+## Packaging and publishing
+
+You can also install this package from PyPI after it is published:
+
+```bash
+python -m pip install simpledet
+```
+
+Release workflow with Makefile:
+
+```bash
+make install           # install dependencies from project metadata
+make build             # build dist/*.whl and dist/*.tar.gz
+make check             # validate distributions
+make publish           # upload to PyPI
+make publish-test      # upload to TestPyPI
+```
+
+> `make publish` and `make publish-test` require Twine credentials (or token in environment variables).
 
 
 

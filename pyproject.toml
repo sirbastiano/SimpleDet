@@ -1,0 +1,59 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=69.0",
+  "wheel",
+]
+
+[project]
+name = "simpledet"
+version = "0.1.0"
+description = "Custom MMDetection toolkit for object detection workflows"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+  { name = "Roberto Del Prete", email = "roberto.delprete@ext.esa.int" }
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+]
+dependencies = [
+  "torch",
+  "mmengine",
+  "mmdet",
+]
+
+[project.optional-dependencies]
+openmmlab = [
+  "openmim",
+  "mmcv==2.1.0",
+  "SciencePlots",
+  "pandas>=1.4,<2",
+  "numpy",
+  "matplotlib",
+  "rasterio",
+  "geopandas",
+]
+dev = [
+  "build",
+  "twine",
+  "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/sirbastiano/MDet"
+Source = "https://github.com/sirbastiano/MDet"
+
+[project.scripts]
+simpledet = "simpledet.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["simpledet*"]
