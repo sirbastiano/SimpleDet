@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MMDET Docs - Core Concepts</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">MMDET <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="installation.html">Installation</a>
+          <a class="nav-link" href="getting-started.html">Getting Started</a>
+          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <h1>Core concepts</h1>
+        <p class="subtle">What to understand before editing training scripts, adding datasets, or swapping detector backbones.</p>
+      </section>
+
+      <section class="content">
+        <div class="toc">
+          <strong>Quick map:</strong>
+          <a href="#architecture">Architecture</a>
+          <a href="#entrypoints">Execution paths</a>
+          <a href="#configs">Configuration model</a>
+          <a href="#outputs">Artifacts and outputs</a>
+        </div>
+
+        <article class="section" id="architecture">
+          <h2>Architecture overview</h2>
+          <ul>
+            <li><strong>simpledet package:</strong> core Python modules under <code>simpledet/</code> expose CLI, training, inference, and utilities.</li>
+            <li><strong>Detector backends:</strong> scripts and presets in <code>simpledet/detectors</code> and many model blueprints in <code>simpledet/src</code>.</li>
+            <li><strong>Configuration-centric:</strong> model behavior is primarily driven by config objects and run scripts.</li>
+          </ul>
+          <pre><code>simpledet/
+  cli.py
+  __main__.py
+  api.py
+  detectors/
+    train.py
+    infer.py
+    evaluate.py
+  src/
+    configs/
+  simpledet/pyscripts/
+  runscripts/</code></pre>
+        </article>
+
+        <article class="section" id="entrypoints">
+          <h2>Execution paths</h2>
+          <h3>CLI-first flow</h3>
+          <p>Use entrypoint <code>python -m simpledet</code> or installed command <code>simpledet</code> for fast experiments and checks.</p>
+          <pre><code>simpledet --check-openmmlab</code></pre>
+
+          <h3>Script-first flow</h3>
+          <p>Use repo scripts for dataset-specific launch presets and repeatable runs.</p>
+          <pre><code>python runscripts/SenTrainer.py ...
+python runscripts/VenTrainer.py ...</code></pre>
+
+          <h3>API-first flow</h3>
+          <p>Use <code>simpledet.train()</code> for programmatic integration in notebooks or services.</p>
+          <pre><code>from simpledet import train
+result = train(config={...})</code></pre>
+        </article>
+
+        <article class="section" id="configs">
+          <h2>Configuration model</h2>
+          <p>Most experiment control comes from explicit parameters: datasets, model family, optimizers, run length, batch sizes, seeds, and sensor options.</p>
+          <pre><code>config = {
+  "dataset": "path/to/annotations.json",
+  "dataset_path": "path/to/dataset_root",
+  "model_name": "faster_rcnn_resnet50_fpn",
+  "epochs": 1,
+  "batch_size": 2,
+  "train_split": "train",
+  "device": "cuda",
+}</code></pre>
+        </article>
+
+        <article class="section" id="outputs">
+          <h2>Artifacts and expected outputs</h2>
+          <ul>
+            <li>Checkpoint files (<code>.pth</code>) in the selected output folder.</li>
+            <li>Metric reports like <code>coco_metrics.json</code> for post-run validation.</li>
+            <li>Log and scalar files useful for iteration comparison and debugging.</li>
+          </ul>
+          <pre><code>ls -R runs/mmdet_smoke
+python -c "import json;print(json.load(open('runs/mmdet_smoke/coco_metrics.json')).keys())"</code></pre>
+        </article>
+      </section>
+    </main>
+
+    <footer>MMDET documentation · Core concepts</footer>
+  </body>
+</html>

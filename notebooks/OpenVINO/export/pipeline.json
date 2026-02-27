@@ -1,0 +1,117 @@
+{
+    "pipeline": {
+        "input": [
+            "img"
+        ],
+        "output": [
+            "post_output"
+        ],
+        "tasks": [
+            {
+                "type": "Task",
+                "module": "Transform",
+                "name": "Preprocess",
+                "input": [
+                    "img"
+                ],
+                "output": [
+                    "prep_output"
+                ],
+                "transforms": [
+                    {
+                        "backend_args": null,
+                        "color_type": "grayscale",
+                        "imdecode_backend": "tifffile",
+                        "to_float32": true,
+                        "type": "LoadImageFromFile"
+                    },
+                    {
+                        "keep_ratio": false,
+                        "type": "Resize",
+                        "size": [
+                            2304,
+                            2304
+                        ]
+                    },
+                    {
+                        "type": "Normalize",
+                        "to_rgb": false,
+                        "mean": [
+                            63.0
+                        ],
+                        "std": [
+                            60.0
+                        ]
+                    },
+                    {
+                        "type": "Pad",
+                        "size_divisor": 1
+                    },
+                    {
+                        "type": "DefaultFormatBundle"
+                    },
+                    {
+                        "meta_keys": [
+                            "pad_shape",
+                            "filename",
+                            "flip",
+                            "valid_ratio",
+                            "img_id",
+                            "ori_filename",
+                            "pad_param",
+                            "flip_direction",
+                            "img_shape",
+                            "img_path",
+                            "ori_shape",
+                            "scale_factor",
+                            "img_norm_cfg"
+                        ],
+                        "type": "Collect",
+                        "keys": [
+                            "img"
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "vfnet",
+                "type": "Task",
+                "module": "Net",
+                "is_batched": false,
+                "input": [
+                    "prep_output"
+                ],
+                "output": [
+                    "infer_output"
+                ],
+                "input_map": {
+                    "img": "input"
+                },
+                "output_map": {}
+            },
+            {
+                "type": "Task",
+                "module": "mmdet",
+                "name": "postprocess",
+                "component": "ResizeBBox",
+                "params": {
+                    "max_per_img": 100,
+                    "min_bbox_size": 0,
+                    "nms": {
+                        "iou_threshold": 0.5,
+                        "type": "nms"
+                    },
+                    "nms_pre": 1000,
+                    "score_thr": 0.05
+                },
+                "output": [
+                    "post_output"
+                ],
+                "input": [
+                    "prep_output",
+                    "infer_output"
+                ]
+            }
+        ]
+    }
+}

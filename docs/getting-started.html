@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MMDET Docs - Getting Started</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">MMDET <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="installation.html">Installation</a>
+          <a class="nav-link" href="getting-started.html">Getting Started</a>
+          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <h1>Running / Getting started</h1>
+        <p class="subtle">Use these commands to validate your environment, launch a smoke run, and run basic inference.</p>
+      </section>
+
+      <section class="content">
+        <div class="toc">
+          <strong>Quick map:</strong>
+          <a href="#prereq">Prerequisites</a>
+          <a href="#checks">Sanity checks</a>
+          <a href="#training">Training smoke test</a>
+          <a href="#inference">Inference</a>
+          <a href="#verify">Verify outputs</a>
+        </div>
+
+        <article class="section" id="prereq">
+          <h2>Prerequisites</h2>
+          <p>Install first, then run CLI validation:</p>
+          <pre><code>python -m pip install -e .
+python -m simpledet --version
+python -m simpledet --check-openmmlab</code></pre>
+        </article>
+
+        <article class="section" id="checks">
+          <h2>Quick sanity checks</h2>
+          <pre><code>python -c "import torch; print(torch.__version__, torch.cuda.is_available())"</code></pre>
+          <pre><code>python - <<'PY'
+from pathlib import Path
+print('annotations exists:', Path('path/to/annotations.json').is_file())
+print('images exists:', Path('path/to/images').is_dir())
+PY</code></pre>
+        </article>
+
+        <article class="section" id="training">
+          <h2>Training smoke test</h2>
+          <p>Run a 1 epoch command first, then scale settings for production.</p>
+          <pre><code>python runscripts/SenTrainer.py \
+  --batch_size 2 \
+  --band "[5]" \
+  --seed 71 \
+  --learning_rate 0.001 \
+  --max_epochs 1 \
+  --sensor SENTINEL \
+  --AMP False</code></pre>
+
+          <p>Run a VENUS variant smoke test:</p>
+          <pre><code>python runscripts/VenTrainer.py \
+  --batch_size 2 \
+  --band "[10]" \
+  --seed 54 \
+  --learning_rate 0.0009 \
+  --max_epochs 1 \
+  --sensor VENUS</code></pre>
+
+          <h3>API usage</h3>
+          <pre><code>from simpledet import train
+
+result = train(config={
+    "dataset": "path/to/annotations.json",
+    "output_dir": "runs/mmdet_smoke",
+    "model_name": "faster_rcnn_resnet50_fpn",
+    "epochs": 1,
+    "batch_size": 2,
+    "learning_rate": 0.001,
+    "dataset_path": "path/to/dataset_root",
+    "train_split": "train",
+    "device": "cuda",
+})
+print(result["checkpoint_path"])</code></pre>
+        </article>
+
+        <article class="section" id="inference">
+          <h2>Inference</h2>
+          <pre><code>from PIL import Image
+from simpledet.detectors.infer import load_model, predict
+
+model = load_model(
+    "runs/mmdet_smoke/epoch_001.pth",
+    device="cpu",
+    score_threshold=0.2,
+    max_detections=200,
+)
+
+res = predict(Image.open("path/to/sample.tif"), model=model)
+print(res["boxes"][:5], res["scores"][:5], res["class_ids"][:5])</code></pre>
+        </article>
+
+        <article class="section" id="verify">
+          <h2>Verify training output</h2>
+          <pre><code>ls -R runs/mmdet_smoke
+
+python - <<'PY'
+import json
+with open("runs/mmdet_smoke/coco_metrics.json") as f:
+    m = json.load(f)
+print(m.keys())
+PY</code></pre>
+          <p>Minimum expected files from the smoke run:</p>
+          <pre><code>ls runs/mmdet_smoke/*.pth
+python -c "import json;print(json.load(open('runs/mmdet_smoke/coco_metrics.json')).get('bbox_mAP', 'missing'))"</code></pre>
+        </article>
+      </section>
+    </main>
+
+    <footer>MMDET documentation · Getting started</footer>
+  </body>
+</html>

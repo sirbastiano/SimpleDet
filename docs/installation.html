@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MMDET Docs - Installation</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">MMDET <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="installation.html">Installation</a>
+          <a class="nav-link" href="getting-started.html">Getting Started</a>
+          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <h1>Installation</h1>
+        <p class="subtle">Install for development, run a fast runtime check, then validate optional OpenMMLab dependencies.</p>
+      </section>
+
+      <section class="content">
+        <div class="toc">
+          <strong>Quick map:</strong>
+          <a href="#requirements">Requirements</a>
+          <a href="#install">Install</a>
+          <a href="#verification">Verification</a>
+          <a href="#troubleshooting">Troubleshooting</a>
+        </div>
+
+        <article class="section" id="requirements">
+          <h2>Requirements</h2>
+          <p>Python 3.10+ is recommended. You need a working CUDA-enabled setup only if you plan to train on GPU.</p>
+          <pre><code>python --version
+python -m pip --version</code></pre>
+        </article>
+
+        <article class="section" id="install">
+          <h2>Editable install</h2>
+          <p>Clone the repository and install the package in editable mode from project root:</p>
+          <pre><code>python -m pip install -e .</code></pre>
+          <p>Alternative package check:</p>
+          <pre><code>python -m simpledet --version</code></pre>
+          <p>From a new terminal, verify CLI launch works:</p>
+          <pre><code>simpledet --help</code></pre>
+        </article>
+
+        <article class="section" id="verification">
+          <h2>OpenMMLab dependency check</h2>
+          <pre><code>python -m simpledet --check-openmmlab</code></pre>
+          <p>If your environment is using CUDA, keep torch/cuda versions aligned with your GPU driver.</p>
+        </article>
+
+        <article class="section" id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <ul>
+            <li><strong>CLI not found:</strong> ensure install succeeded and check active environment/bin path.</li>
+            <li><strong>Version mismatch:</strong> rerun your CUDA/torch install and then reinstall dependencies.</li>
+            <li><strong>Permission issues:</strong> avoid global installs; use virtual environments only.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <footer>MMDET documentation · Installation</footer>
+  </body>
+</html>

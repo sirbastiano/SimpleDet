@@ -1,0 +1,3515 @@
+<?xml version="1.0"?>
+<mapping>
+	<map>
+		<framework name="input" output_port_id="input" />
+		<IR name="input" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Flatten_2" output_port_id="/Flatten_2_output_0" />
+		<IR name="/Flatten_2" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1490" output_port_id="onnx::Conv_1490" />
+		<IR name="onnx::Conv_1490" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/conv1/Conv" output_port_id="/backbone/conv1/Conv_output_0" />
+		<IR name="/backbone/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/relu/Relu" output_port_id="/backbone/relu/Relu_output_0" />
+		<IR name="/backbone/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/maxpool/MaxPool" output_port_id="/backbone/maxpool/MaxPool_output_0" />
+		<IR name="/backbone/maxpool/MaxPool" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1493" output_port_id="onnx::Conv_1493" />
+		<IR name="onnx::Conv_1493" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.0/conv1/Conv" output_port_id="/backbone/layer1/layer1.0/conv1/Conv_output_0" />
+		<IR name="/backbone/layer1/layer1.0/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.0/relu/Relu" output_port_id="/backbone/layer1/layer1.0/relu/Relu_output_0" />
+		<IR name="/backbone/layer1/layer1.0/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1496" output_port_id="onnx::Conv_1496" />
+		<IR name="onnx::Conv_1496" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.0/conv2/Conv" output_port_id="/backbone/layer1/layer1.0/conv2/Conv_output_0" />
+		<IR name="/backbone/layer1/layer1.0/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.0/Add" output_port_id="/backbone/layer1/layer1.0/Add_output_0" />
+		<IR name="/backbone/layer1/layer1.0/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.0/relu_1/Relu" output_port_id="/backbone/layer1/layer1.0/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer1/layer1.0/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1499" output_port_id="onnx::Conv_1499" />
+		<IR name="onnx::Conv_1499" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.1/conv1/Conv" output_port_id="/backbone/layer1/layer1.1/conv1/Conv_output_0" />
+		<IR name="/backbone/layer1/layer1.1/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.1/relu/Relu" output_port_id="/backbone/layer1/layer1.1/relu/Relu_output_0" />
+		<IR name="/backbone/layer1/layer1.1/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1502" output_port_id="onnx::Conv_1502" />
+		<IR name="onnx::Conv_1502" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.1/conv2/Conv" output_port_id="/backbone/layer1/layer1.1/conv2/Conv_output_0" />
+		<IR name="/backbone/layer1/layer1.1/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.1/Add" output_port_id="/backbone/layer1/layer1.1/Add_output_0" />
+		<IR name="/backbone/layer1/layer1.1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer1/layer1.1/relu_1/Relu" output_port_id="/backbone/layer1/layer1.1/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer1/layer1.1/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1505" output_port_id="onnx::Conv_1505" />
+		<IR name="onnx::Conv_1505" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.0/conv1/Conv" output_port_id="/backbone/layer2/layer2.0/conv1/Conv_output_0" />
+		<IR name="/backbone/layer2/layer2.0/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.0/relu/Relu" output_port_id="/backbone/layer2/layer2.0/relu/Relu_output_0" />
+		<IR name="/backbone/layer2/layer2.0/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1508" output_port_id="onnx::Conv_1508" />
+		<IR name="onnx::Conv_1508" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.0/conv2/Conv" output_port_id="/backbone/layer2/layer2.0/conv2/Conv_output_0" />
+		<IR name="/backbone/layer2/layer2.0/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1511" output_port_id="onnx::Conv_1511" />
+		<IR name="onnx::Conv_1511" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.0/downsample/downsample.0/Conv" output_port_id="/backbone/layer2/layer2.0/downsample/downsample.0/Conv_output_0" />
+		<IR name="/backbone/layer2/layer2.0/downsample/downsample.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.0/Add" output_port_id="/backbone/layer2/layer2.0/Add_output_0" />
+		<IR name="/backbone/layer2/layer2.0/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.0/relu_1/Relu" output_port_id="/backbone/layer2/layer2.0/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer2/layer2.0/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1514" output_port_id="onnx::Conv_1514" />
+		<IR name="onnx::Conv_1514" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.1/conv1/Conv" output_port_id="/backbone/layer2/layer2.1/conv1/Conv_output_0" />
+		<IR name="/backbone/layer2/layer2.1/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.1/relu/Relu" output_port_id="/backbone/layer2/layer2.1/relu/Relu_output_0" />
+		<IR name="/backbone/layer2/layer2.1/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1517" output_port_id="onnx::Conv_1517" />
+		<IR name="onnx::Conv_1517" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.1/conv2/Conv" output_port_id="/backbone/layer2/layer2.1/conv2/Conv_output_0" />
+		<IR name="/backbone/layer2/layer2.1/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.1/Add" output_port_id="/backbone/layer2/layer2.1/Add_output_0" />
+		<IR name="/backbone/layer2/layer2.1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer2/layer2.1/relu_1/Relu" output_port_id="/backbone/layer2/layer2.1/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer2/layer2.1/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="neck.lateral_convs.0.conv.weight" output_port_id="neck.lateral_convs.0.conv.weight" />
+		<IR name="neck.lateral_convs.0.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/lateral_convs.0/conv/Conv" output_port_id="/neck/lateral_convs.0/conv/Conv_output_0" />
+		<IR name="/neck/lateral_convs.0/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1520" output_port_id="onnx::Conv_1520" />
+		<IR name="onnx::Conv_1520" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.0/conv1/Conv" output_port_id="/backbone/layer3/layer3.0/conv1/Conv_output_0" />
+		<IR name="/backbone/layer3/layer3.0/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.0/relu/Relu" output_port_id="/backbone/layer3/layer3.0/relu/Relu_output_0" />
+		<IR name="/backbone/layer3/layer3.0/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1523" output_port_id="onnx::Conv_1523" />
+		<IR name="onnx::Conv_1523" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.0/conv2/Conv" output_port_id="/backbone/layer3/layer3.0/conv2/Conv_output_0" />
+		<IR name="/backbone/layer3/layer3.0/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1526" output_port_id="onnx::Conv_1526" />
+		<IR name="onnx::Conv_1526" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.0/downsample/downsample.0/Conv" output_port_id="/backbone/layer3/layer3.0/downsample/downsample.0/Conv_output_0" />
+		<IR name="/backbone/layer3/layer3.0/downsample/downsample.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.0/Add" output_port_id="/backbone/layer3/layer3.0/Add_output_0" />
+		<IR name="/backbone/layer3/layer3.0/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.0/relu_1/Relu" output_port_id="/backbone/layer3/layer3.0/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer3/layer3.0/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1529" output_port_id="onnx::Conv_1529" />
+		<IR name="onnx::Conv_1529" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.1/conv1/Conv" output_port_id="/backbone/layer3/layer3.1/conv1/Conv_output_0" />
+		<IR name="/backbone/layer3/layer3.1/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.1/relu/Relu" output_port_id="/backbone/layer3/layer3.1/relu/Relu_output_0" />
+		<IR name="/backbone/layer3/layer3.1/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1532" output_port_id="onnx::Conv_1532" />
+		<IR name="onnx::Conv_1532" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.1/conv2/Conv" output_port_id="/backbone/layer3/layer3.1/conv2/Conv_output_0" />
+		<IR name="/backbone/layer3/layer3.1/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.1/Add" output_port_id="/backbone/layer3/layer3.1/Add_output_0" />
+		<IR name="/backbone/layer3/layer3.1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer3/layer3.1/relu_1/Relu" output_port_id="/backbone/layer3/layer3.1/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer3/layer3.1/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="neck.lateral_convs.1.conv.weight" output_port_id="neck.lateral_convs.1.conv.weight" />
+		<IR name="neck.lateral_convs.1.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/lateral_convs.1/conv/Conv" output_port_id="/neck/lateral_convs.1/conv/Conv_output_0" />
+		<IR name="/neck/lateral_convs.1/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1535" output_port_id="onnx::Conv_1535" />
+		<IR name="onnx::Conv_1535" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.0/conv1/Conv" output_port_id="/backbone/layer4/layer4.0/conv1/Conv_output_0" />
+		<IR name="/backbone/layer4/layer4.0/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.0/relu/Relu" output_port_id="/backbone/layer4/layer4.0/relu/Relu_output_0" />
+		<IR name="/backbone/layer4/layer4.0/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1538" output_port_id="onnx::Conv_1538" />
+		<IR name="onnx::Conv_1538" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.0/conv2/Conv" output_port_id="/backbone/layer4/layer4.0/conv2/Conv_output_0" />
+		<IR name="/backbone/layer4/layer4.0/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1541" output_port_id="onnx::Conv_1541" />
+		<IR name="onnx::Conv_1541" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.0/downsample/downsample.0/Conv" output_port_id="/backbone/layer4/layer4.0/downsample/downsample.0/Conv_output_0" />
+		<IR name="/backbone/layer4/layer4.0/downsample/downsample.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.0/Add" output_port_id="/backbone/layer4/layer4.0/Add_output_0" />
+		<IR name="/backbone/layer4/layer4.0/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.0/relu_1/Relu" output_port_id="/backbone/layer4/layer4.0/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer4/layer4.0/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1544" output_port_id="onnx::Conv_1544" />
+		<IR name="onnx::Conv_1544" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.1/conv1/Conv" output_port_id="/backbone/layer4/layer4.1/conv1/Conv_output_0" />
+		<IR name="/backbone/layer4/layer4.1/conv1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.1/relu/Relu" output_port_id="/backbone/layer4/layer4.1/relu/Relu_output_0" />
+		<IR name="/backbone/layer4/layer4.1/relu/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1547" output_port_id="onnx::Conv_1547" />
+		<IR name="onnx::Conv_1547" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.1/conv2/Conv" output_port_id="/backbone/layer4/layer4.1/conv2/Conv_output_0" />
+		<IR name="/backbone/layer4/layer4.1/conv2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.1/Add" output_port_id="/backbone/layer4/layer4.1/Add_output_0" />
+		<IR name="/backbone/layer4/layer4.1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/backbone/layer4/layer4.1/relu_1/Relu" output_port_id="/backbone/layer4/layer4.1/relu_1/Relu_output_0" />
+		<IR name="/backbone/layer4/layer4.1/relu_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="neck.lateral_convs.2.conv.weight" output_port_id="neck.lateral_convs.2.conv.weight" />
+		<IR name="neck.lateral_convs.2.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/lateral_convs.2/conv/Conv" output_port_id="/neck/lateral_convs.2/conv/Conv_output_0" />
+		<IR name="/neck/lateral_convs.2/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/neck/Shape" output_port_id="/neck/Shape_output_0" />
+		<IR name="/neck/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/Constant_2" output_port_id="/neck/Constant_2_output_0" />
+		<IR name="/neck/Constant_2" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/neck/Constant_3" output_port_id="/neck/Constant_3_output_0" />
+		<IR name="/neck/Constant_3" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/neck/Slice" output_port_id="/neck/Slice_output_0" />
+		<IR name="/neck/Slice" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="/neck/Constant_4" output_port_id="/neck/Constant_4_output_0" />
+		<IR name="/neck/Constant_4" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/neck/Concat" output_port_id="/neck/Concat_output_0" />
+		<IR name="/neck/Concat" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/neck/Resize" output_port_id="/neck/Resize_output_0" />
+		<IR name="/neck/Resize" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/neck/Add" output_port_id="/neck/Add_output_0" />
+		<IR name="/neck/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/neck/Shape_1" output_port_id="/neck/Shape_1_output_0" />
+		<IR name="/neck/Shape_1" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/Slice_1" output_port_id="/neck/Slice_1_output_0" />
+		<IR name="/neck/Slice_1" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="/neck/Constant_6" output_port_id="/neck/Constant_6_output_0" />
+		<IR name="/neck/Constant_6" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/neck/Concat_1" output_port_id="/neck/Concat_1_output_0" />
+		<IR name="/neck/Concat_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/neck/Resize_1" output_port_id="/neck/Resize_1_output_0" />
+		<IR name="/neck/Resize_1" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/neck/Add_1" output_port_id="/neck/Add_1_output_0" />
+		<IR name="/neck/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="neck.fpn_convs.0.conv.weight" output_port_id="neck.fpn_convs.0.conv.weight" />
+		<IR name="neck.fpn_convs.0.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/fpn_convs.0/conv/Conv" output_port_id="/neck/fpn_convs.0/conv/Conv_output_0" />
+		<IR name="/neck/fpn_convs.0/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="bbox_head.cls_convs.0.conv.weight" output_port_id="bbox_head.cls_convs.0.conv.weight" />
+		<IR name="bbox_head.cls_convs.0.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/conv/Conv" output_port_id="/bbox_head/cls_convs.0/conv/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.0/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn/Constant" output_port_id="/bbox_head/cls_convs.0/gn/Constant_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn/Constant" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn/Reshape" output_port_id="/bbox_head/cls_convs.0/gn/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_1616" output_port_id="/bbox_head/cls_convs.0/gn/InstanceNormalization_output_0" />
+		<IR name="MVN_1616" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn/Shape" output_port_id="/bbox_head/cls_convs.0/gn/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn/Reshape_1" output_port_id="/bbox_head/cls_convs.0/gn/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn/Mul" output_port_id="/bbox_head/cls_convs.0/gn/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn/Add" output_port_id="/bbox_head/cls_convs.0/gn/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/activate/Relu" output_port_id="/bbox_head/cls_convs.0/activate/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.0/activate/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="bbox_head.cls_convs.1.conv.weight" output_port_id="bbox_head.cls_convs.1.conv.weight" />
+		<IR name="bbox_head.cls_convs.1.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/conv/Conv" output_port_id="/bbox_head/cls_convs.1/conv/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.1/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn/Reshape" output_port_id="/bbox_head/cls_convs.1/gn/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_1725" output_port_id="/bbox_head/cls_convs.1/gn/InstanceNormalization_output_0" />
+		<IR name="MVN_1725" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn/Shape" output_port_id="/bbox_head/cls_convs.1/gn/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn/Reshape_1" output_port_id="/bbox_head/cls_convs.1/gn/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn/Mul" output_port_id="/bbox_head/cls_convs.1/gn/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn/Add" output_port_id="/bbox_head/cls_convs.1/gn/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/activate/Relu" output_port_id="/bbox_head/cls_convs.1/activate/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.1/activate/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="bbox_head.cls_convs.2.conv.weight" output_port_id="bbox_head.cls_convs.2.conv.weight" />
+		<IR name="bbox_head.cls_convs.2.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/conv/Conv" output_port_id="/bbox_head/cls_convs.2/conv/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.2/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn/Reshape" output_port_id="/bbox_head/cls_convs.2/gn/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_1834" output_port_id="/bbox_head/cls_convs.2/gn/InstanceNormalization_output_0" />
+		<IR name="MVN_1834" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn/Shape" output_port_id="/bbox_head/cls_convs.2/gn/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn/Reshape_1" output_port_id="/bbox_head/cls_convs.2/gn/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn/Mul" output_port_id="/bbox_head/cls_convs.2/gn/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn/Add" output_port_id="/bbox_head/cls_convs.2/gn/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/activate/Relu" output_port_id="/bbox_head/cls_convs.2/activate/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.2/activate/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1577" output_port_id="onnx::Conv_1559" />
+		<IR name="onnx::Conv_1577" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1577" output_port_id="onnx::Conv_1613" />
+		<IR name="onnx::Conv_1577" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1577" output_port_id="onnx::Conv_1595" />
+		<IR name="onnx::Conv_1577" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1577" output_port_id="onnx::Conv_1631" />
+		<IR name="onnx::Conv_1577" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1577" output_port_id="onnx::Conv_1577" />
+		<IR name="onnx::Conv_1577" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/Add" output_port_id="/bbox_head/vfnet_cls_dconv/Add_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1580" output_port_id="onnx::Conv_1562" />
+		<IR name="onnx::Conv_1580" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1580" output_port_id="onnx::Conv_1616" />
+		<IR name="onnx::Conv_1580" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1580" output_port_id="onnx::Conv_1598" />
+		<IR name="onnx::Conv_1580" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1580" output_port_id="onnx::Conv_1634" />
+		<IR name="onnx::Conv_1580" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1580" output_port_id="onnx::Conv_1580" />
+		<IR name="onnx::Conv_1580" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/Add_1" output_port_id="/bbox_head/vfnet_cls_dconv/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1583" output_port_id="onnx::Conv_1637" />
+		<IR name="onnx::Conv_1583" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1583" output_port_id="onnx::Conv_1565" />
+		<IR name="onnx::Conv_1583" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1583" output_port_id="onnx::Conv_1583" />
+		<IR name="onnx::Conv_1583" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1583" output_port_id="onnx::Conv_1619" />
+		<IR name="onnx::Conv_1583" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1583" output_port_id="onnx::Conv_1601" />
+		<IR name="onnx::Conv_1583" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/Add_2" output_port_id="/bbox_head/vfnet_cls_dconv/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="bbox_head.vfnet_cls_dconv.attention.0.weight" output_port_id="bbox_head.vfnet_cls_dconv.attention.0.weight" />
+		<IR name="bbox_head.vfnet_cls_dconv.attention.0.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.0/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.1/Sigmoid" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.1/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.1/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/Mul" output_port_id="/bbox_head/vfnet_cls_dconv/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="bbox_head.vfnet_cls.weight" output_port_id="bbox_head.vfnet_cls.weight" />
+		<IR name="bbox_head.vfnet_cls.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls/Conv" output_port_id="/bbox_head/vfnet_cls/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose" output_port_id="/Transpose_output_0" />
+		<IR name="/Transpose" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Shape" output_port_id="/Shape_output_0" />
+		<IR name="/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather" output_port_id="/Unsqueeze_output_0" />
+		<IR name="/Gather" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Constant_2" output_port_id="/Constant_2_output_0" />
+		<IR name="/Constant_2" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Constant_3" output_port_id="/Constant_3_output_0" />
+		<IR name="/Constant_3" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Concat" output_port_id="/Concat_output_0" />
+		<IR name="/Concat" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape" output_port_id="/Reshape_output_0" />
+		<IR name="/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Sigmoid" output_port_id="/Sigmoid_output_0" />
+		<IR name="/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/ReduceMax" output_port_id="/ReduceMax_output_0" />
+		<IR name="/ReduceMax" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="Constant_665" output_port_id="onnx::Where_1050" />
+		<IR name="Constant_665" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Shape_1" output_port_id="/Shape_1_output_0" />
+		<IR name="/Shape_1" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/backbone/conv1/Constant" output_port_id="/backbone/conv1/Constant_output_0" />
+		<IR name="/backbone/conv1/Constant" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Gather_1" output_port_id="/Add_output_0" />
+		<IR name="/Gather_1" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_1" output_port_id="/Gather_1_output_0" />
+		<IR name="/Gather_1" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Less" output_port_id="/Less_output_0" />
+		<IR name="/Less" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Where" output_port_id="/Where_output_0" />
+		<IR name="/Where" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_2" output_port_id="/Reshape_2_output_0" />
+		<IR name="/Reshape_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK" output_port_id="/TopK_output_0" />
+		<IR name="/TopK" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK" output_port_id="/Add_3_output_0" />
+		<IR name="/TopK" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/TopK" output_port_id="/TopK_output_1" />
+		<IR name="/TopK" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_8" output_port_id="/Gather_8_output_0" />
+		<IR name="/Gather_8" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_6" output_port_id="/Shape_6_output_0" />
+		<IR name="/Shape_6" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Constant_8" output_port_id="/Constant_8_output_0" />
+		<IR name="/Constant_8" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Concat_4" output_port_id="/Concat_4_output_0" />
+		<IR name="/Concat_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_5" output_port_id="/Reshape_5_output_0" />
+		<IR name="/Reshape_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Flatten_5" output_port_id="/Flatten_5_output_0" />
+		<IR name="/Flatten_5" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="neck.fpn_convs.1.conv.weight" output_port_id="neck.fpn_convs.1.conv.weight" />
+		<IR name="neck.fpn_convs.1.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/fpn_convs.1/conv/Conv" output_port_id="/neck/fpn_convs.1/conv/Conv_output_0" />
+		<IR name="/neck/fpn_convs.1/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/conv_1/Conv" output_port_id="/bbox_head/cls_convs.0/conv_1/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.0/conv_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_1/Reshape" output_port_id="/bbox_head/cls_convs.0/gn_1/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_1/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_2932" output_port_id="/bbox_head/cls_convs.0/gn_1/InstanceNormalization_output_0" />
+		<IR name="MVN_2932" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_1/Shape" output_port_id="/bbox_head/cls_convs.0/gn_1/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_1/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_1/Reshape_1" output_port_id="/bbox_head/cls_convs.0/gn_1/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_1/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_1/Mul" output_port_id="/bbox_head/cls_convs.0/gn_1/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_1/Add" output_port_id="/bbox_head/cls_convs.0/gn_1/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/activate_1/Relu" output_port_id="/bbox_head/cls_convs.0/activate_1/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.0/activate_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/conv_1/Conv" output_port_id="/bbox_head/cls_convs.1/conv_1/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.1/conv_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_1/Reshape" output_port_id="/bbox_head/cls_convs.1/gn_1/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_1/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_3041" output_port_id="/bbox_head/cls_convs.1/gn_1/InstanceNormalization_output_0" />
+		<IR name="MVN_3041" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_1/Shape" output_port_id="/bbox_head/cls_convs.1/gn_1/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_1/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_1/Reshape_1" output_port_id="/bbox_head/cls_convs.1/gn_1/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_1/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_1/Mul" output_port_id="/bbox_head/cls_convs.1/gn_1/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_1/Add" output_port_id="/bbox_head/cls_convs.1/gn_1/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/activate_1/Relu" output_port_id="/bbox_head/cls_convs.1/activate_1/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.1/activate_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/conv_1/Conv" output_port_id="/bbox_head/cls_convs.2/conv_1/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.2/conv_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_1/Reshape" output_port_id="/bbox_head/cls_convs.2/gn_1/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_1/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_3150" output_port_id="/bbox_head/cls_convs.2/gn_1/InstanceNormalization_output_0" />
+		<IR name="MVN_3150" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_1/Shape" output_port_id="/bbox_head/cls_convs.2/gn_1/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_1/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_1/Reshape_1" output_port_id="/bbox_head/cls_convs.2/gn_1/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_1/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_1/Mul" output_port_id="/bbox_head/cls_convs.2/gn_1/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_1/Add" output_port_id="/bbox_head/cls_convs.2/gn_1/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/activate_1/Relu" output_port_id="/bbox_head/cls_convs.2/activate_1/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.2/activate_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_1/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_1/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_1/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_1/Add" output_port_id="/bbox_head/vfnet_cls_dconv_1/Add_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_1/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_1/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_1/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_1/Add_1" output_port_id="/bbox_head/vfnet_cls_dconv_1/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_1/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_1/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_1/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_1/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_1/Add_2" output_port_id="/bbox_head/vfnet_cls_dconv_1/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_1/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.0_1/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.1_1/Sigmoid" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.1_1/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.1_1/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_1/Mul" output_port_id="/bbox_head/vfnet_cls_dconv_1/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_1/Conv" output_port_id="/bbox_head/vfnet_cls_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_2" output_port_id="/Transpose_2_output_0" />
+		<IR name="/Transpose_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_6" output_port_id="/Reshape_6_output_0" />
+		<IR name="/Reshape_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Sigmoid_1" output_port_id="/Sigmoid_1_output_0" />
+		<IR name="/Sigmoid_1" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/ReduceMax_1" output_port_id="/ReduceMax_1_output_0" />
+		<IR name="/ReduceMax_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Shape_7" output_port_id="/Shape_7_output_0" />
+		<IR name="/Shape_7" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_9" output_port_id="/Add_4_output_0" />
+		<IR name="/Gather_9" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_9" output_port_id="/Gather_9_output_0" />
+		<IR name="/Gather_9" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Less_1" output_port_id="/Less_1_output_0" />
+		<IR name="/Less_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Where_1" output_port_id="/Where_1_output_0" />
+		<IR name="/Where_1" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_8" output_port_id="/Reshape_8_output_0" />
+		<IR name="/Reshape_8" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_1" output_port_id="/TopK_1_output_0" />
+		<IR name="/TopK_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_1" output_port_id="/Add_7_output_0" />
+		<IR name="/TopK_1" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/TopK_1" output_port_id="/TopK_1_output_1" />
+		<IR name="/TopK_1" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_16" output_port_id="/Gather_16_output_0" />
+		<IR name="/Gather_16" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_12" output_port_id="/Shape_12_output_0" />
+		<IR name="/Shape_12" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Concat_7" output_port_id="/Concat_7_output_0" />
+		<IR name="/Concat_7" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_11" output_port_id="/Reshape_11_output_0" />
+		<IR name="/Reshape_11" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Flatten_8" output_port_id="/Flatten_8_output_0" />
+		<IR name="/Flatten_8" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="neck.fpn_convs.2.conv.weight" output_port_id="neck.fpn_convs.2.conv.weight" />
+		<IR name="neck.fpn_convs.2.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/fpn_convs.2/conv/Conv" output_port_id="/neck/fpn_convs.2/conv/Conv_output_0" />
+		<IR name="/neck/fpn_convs.2/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/conv_2/Conv" output_port_id="/bbox_head/cls_convs.0/conv_2/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.0/conv_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_2/Reshape" output_port_id="/bbox_head/cls_convs.0/gn_2/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_2/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_4248" output_port_id="/bbox_head/cls_convs.0/gn_2/InstanceNormalization_output_0" />
+		<IR name="MVN_4248" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_2/Shape" output_port_id="/bbox_head/cls_convs.0/gn_2/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_2/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_2/Reshape_1" output_port_id="/bbox_head/cls_convs.0/gn_2/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_2/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_2/Mul" output_port_id="/bbox_head/cls_convs.0/gn_2/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_2/Add" output_port_id="/bbox_head/cls_convs.0/gn_2/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/activate_2/Relu" output_port_id="/bbox_head/cls_convs.0/activate_2/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.0/activate_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/conv_2/Conv" output_port_id="/bbox_head/cls_convs.1/conv_2/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.1/conv_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_2/Reshape" output_port_id="/bbox_head/cls_convs.1/gn_2/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_2/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_4357" output_port_id="/bbox_head/cls_convs.1/gn_2/InstanceNormalization_output_0" />
+		<IR name="MVN_4357" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_2/Shape" output_port_id="/bbox_head/cls_convs.1/gn_2/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_2/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_2/Reshape_1" output_port_id="/bbox_head/cls_convs.1/gn_2/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_2/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_2/Mul" output_port_id="/bbox_head/cls_convs.1/gn_2/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_2/Add" output_port_id="/bbox_head/cls_convs.1/gn_2/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/activate_2/Relu" output_port_id="/bbox_head/cls_convs.1/activate_2/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.1/activate_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/conv_2/Conv" output_port_id="/bbox_head/cls_convs.2/conv_2/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.2/conv_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_2/Reshape" output_port_id="/bbox_head/cls_convs.2/gn_2/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_2/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_4466" output_port_id="/bbox_head/cls_convs.2/gn_2/InstanceNormalization_output_0" />
+		<IR name="MVN_4466" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_2/Shape" output_port_id="/bbox_head/cls_convs.2/gn_2/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_2/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_2/Reshape_1" output_port_id="/bbox_head/cls_convs.2/gn_2/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_2/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_2/Mul" output_port_id="/bbox_head/cls_convs.2/gn_2/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_2/Add" output_port_id="/bbox_head/cls_convs.2/gn_2/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/activate_2/Relu" output_port_id="/bbox_head/cls_convs.2/activate_2/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.2/activate_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_2/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_2/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_2/Add" output_port_id="/bbox_head/vfnet_cls_dconv_2/Add_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_2/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_2/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_2/Add_1" output_port_id="/bbox_head/vfnet_cls_dconv_2/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_2/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_2/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_2/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_2/Add_2" output_port_id="/bbox_head/vfnet_cls_dconv_2/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_2/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.0_2/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.1_2/Sigmoid" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.1_2/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.1_2/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_2/Mul" output_port_id="/bbox_head/vfnet_cls_dconv_2/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_2/Conv" output_port_id="/bbox_head/vfnet_cls_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_4" output_port_id="/Transpose_4_output_0" />
+		<IR name="/Transpose_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_12" output_port_id="/Reshape_12_output_0" />
+		<IR name="/Reshape_12" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Sigmoid_2" output_port_id="/Sigmoid_2_output_0" />
+		<IR name="/Sigmoid_2" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/ReduceMax_2" output_port_id="/ReduceMax_2_output_0" />
+		<IR name="/ReduceMax_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Shape_13" output_port_id="/Shape_13_output_0" />
+		<IR name="/Shape_13" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_17" output_port_id="/Add_8_output_0" />
+		<IR name="/Gather_17" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_17" output_port_id="/Gather_17_output_0" />
+		<IR name="/Gather_17" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Less_2" output_port_id="/Less_2_output_0" />
+		<IR name="/Less_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Where_2" output_port_id="/Where_2_output_0" />
+		<IR name="/Where_2" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_14" output_port_id="/Reshape_14_output_0" />
+		<IR name="/Reshape_14" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_2" output_port_id="/TopK_2_output_0" />
+		<IR name="/TopK_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_2" output_port_id="/Add_11_output_0" />
+		<IR name="/TopK_2" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/TopK_2" output_port_id="/TopK_2_output_1" />
+		<IR name="/TopK_2" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_24" output_port_id="/Gather_24_output_0" />
+		<IR name="/Gather_24" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_18" output_port_id="/Shape_18_output_0" />
+		<IR name="/Shape_18" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Concat_10" output_port_id="/Concat_10_output_0" />
+		<IR name="/Concat_10" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_17" output_port_id="/Reshape_17_output_0" />
+		<IR name="/Reshape_17" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Flatten_11" output_port_id="/Flatten_11_output_0" />
+		<IR name="/Flatten_11" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="neck.fpn_convs.3.conv.weight" output_port_id="neck.fpn_convs.3.conv.weight" />
+		<IR name="neck.fpn_convs.3.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/fpn_convs.3/conv/Conv" output_port_id="/neck/fpn_convs.3/conv/Conv_output_0" />
+		<IR name="/neck/fpn_convs.3/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/conv_3/Conv" output_port_id="/bbox_head/cls_convs.0/conv_3/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.0/conv_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_3/Reshape" output_port_id="/bbox_head/cls_convs.0/gn_3/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_3/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_5564" output_port_id="/bbox_head/cls_convs.0/gn_3/InstanceNormalization_output_0" />
+		<IR name="MVN_5564" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_3/Shape" output_port_id="/bbox_head/cls_convs.0/gn_3/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_3/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_3/Reshape_1" output_port_id="/bbox_head/cls_convs.0/gn_3/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_3/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_3/Mul" output_port_id="/bbox_head/cls_convs.0/gn_3/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_3/Add" output_port_id="/bbox_head/cls_convs.0/gn_3/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/activate_3/Relu" output_port_id="/bbox_head/cls_convs.0/activate_3/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.0/activate_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/conv_3/Conv" output_port_id="/bbox_head/cls_convs.1/conv_3/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.1/conv_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_3/Reshape" output_port_id="/bbox_head/cls_convs.1/gn_3/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_3/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_5673" output_port_id="/bbox_head/cls_convs.1/gn_3/InstanceNormalization_output_0" />
+		<IR name="MVN_5673" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_3/Shape" output_port_id="/bbox_head/cls_convs.1/gn_3/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_3/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_3/Reshape_1" output_port_id="/bbox_head/cls_convs.1/gn_3/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_3/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_3/Mul" output_port_id="/bbox_head/cls_convs.1/gn_3/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_3/Add" output_port_id="/bbox_head/cls_convs.1/gn_3/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/activate_3/Relu" output_port_id="/bbox_head/cls_convs.1/activate_3/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.1/activate_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/conv_3/Conv" output_port_id="/bbox_head/cls_convs.2/conv_3/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.2/conv_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_3/Reshape" output_port_id="/bbox_head/cls_convs.2/gn_3/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_3/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_5782" output_port_id="/bbox_head/cls_convs.2/gn_3/InstanceNormalization_output_0" />
+		<IR name="MVN_5782" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_3/Shape" output_port_id="/bbox_head/cls_convs.2/gn_3/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_3/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_3/Reshape_1" output_port_id="/bbox_head/cls_convs.2/gn_3/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_3/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_3/Mul" output_port_id="/bbox_head/cls_convs.2/gn_3/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_3/Add" output_port_id="/bbox_head/cls_convs.2/gn_3/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/activate_3/Relu" output_port_id="/bbox_head/cls_convs.2/activate_3/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.2/activate_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_3/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_3/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_3/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_3/Add" output_port_id="/bbox_head/vfnet_cls_dconv_3/Add_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_3/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_3/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_3/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_3/Add_1" output_port_id="/bbox_head/vfnet_cls_dconv_3/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_3/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_3/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_3/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_3/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_3/Add_2" output_port_id="/bbox_head/vfnet_cls_dconv_3/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_3/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.0_3/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.1_3/Sigmoid" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.1_3/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.1_3/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_3/Mul" output_port_id="/bbox_head/vfnet_cls_dconv_3/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_3/Conv" output_port_id="/bbox_head/vfnet_cls_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_6" output_port_id="/Transpose_6_output_0" />
+		<IR name="/Transpose_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_18" output_port_id="/Reshape_18_output_0" />
+		<IR name="/Reshape_18" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Sigmoid_3" output_port_id="/Sigmoid_3_output_0" />
+		<IR name="/Sigmoid_3" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/ReduceMax_3" output_port_id="/ReduceMax_3_output_0" />
+		<IR name="/ReduceMax_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Shape_19" output_port_id="/Shape_19_output_0" />
+		<IR name="/Shape_19" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_25" output_port_id="/Add_12_output_0" />
+		<IR name="/Gather_25" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_25" output_port_id="/Gather_25_output_0" />
+		<IR name="/Gather_25" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Less_3" output_port_id="/Less_3_output_0" />
+		<IR name="/Less_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Where_3" output_port_id="/Where_3_output_0" />
+		<IR name="/Where_3" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_20" output_port_id="/Reshape_20_output_0" />
+		<IR name="/Reshape_20" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_3" output_port_id="/TopK_3_output_0" />
+		<IR name="/TopK_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_3" output_port_id="/Add_15_output_0" />
+		<IR name="/TopK_3" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/TopK_3" output_port_id="/TopK_3_output_1" />
+		<IR name="/TopK_3" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_32" output_port_id="/Gather_32_output_0" />
+		<IR name="/Gather_32" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_24" output_port_id="/Shape_24_output_0" />
+		<IR name="/Shape_24" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Concat_13" output_port_id="/Concat_13_output_0" />
+		<IR name="/Concat_13" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_23" output_port_id="/Reshape_23_output_0" />
+		<IR name="/Reshape_23" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Flatten_14" output_port_id="/Flatten_14_output_0" />
+		<IR name="/Flatten_14" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/Relu" output_port_id="/neck/Relu_output_0" />
+		<IR name="/neck/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="neck.fpn_convs.4.conv.weight" output_port_id="neck.fpn_convs.4.conv.weight" />
+		<IR name="neck.fpn_convs.4.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/neck/fpn_convs.4/conv/Conv" output_port_id="/neck/fpn_convs.4/conv/Conv_output_0" />
+		<IR name="/neck/fpn_convs.4/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/conv_4/Conv" output_port_id="/bbox_head/cls_convs.0/conv_4/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.0/conv_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_4/Reshape" output_port_id="/bbox_head/cls_convs.0/gn_4/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_4/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_6880" output_port_id="/bbox_head/cls_convs.0/gn_4/InstanceNormalization_output_0" />
+		<IR name="MVN_6880" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_4/Shape" output_port_id="/bbox_head/cls_convs.0/gn_4/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_4/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_4/Reshape_1" output_port_id="/bbox_head/cls_convs.0/gn_4/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_4/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_4/Mul" output_port_id="/bbox_head/cls_convs.0/gn_4/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/gn_4/Add" output_port_id="/bbox_head/cls_convs.0/gn_4/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.0/gn_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.0/activate_4/Relu" output_port_id="/bbox_head/cls_convs.0/activate_4/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.0/activate_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/conv_4/Conv" output_port_id="/bbox_head/cls_convs.1/conv_4/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.1/conv_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_4/Reshape" output_port_id="/bbox_head/cls_convs.1/gn_4/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_4/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_6989" output_port_id="/bbox_head/cls_convs.1/gn_4/InstanceNormalization_output_0" />
+		<IR name="MVN_6989" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_4/Shape" output_port_id="/bbox_head/cls_convs.1/gn_4/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_4/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_4/Reshape_1" output_port_id="/bbox_head/cls_convs.1/gn_4/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_4/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_4/Mul" output_port_id="/bbox_head/cls_convs.1/gn_4/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/gn_4/Add" output_port_id="/bbox_head/cls_convs.1/gn_4/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.1/gn_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.1/activate_4/Relu" output_port_id="/bbox_head/cls_convs.1/activate_4/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.1/activate_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/conv_4/Conv" output_port_id="/bbox_head/cls_convs.2/conv_4/Conv_output_0" />
+		<IR name="/bbox_head/cls_convs.2/conv_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_4/Reshape" output_port_id="/bbox_head/cls_convs.2/gn_4/Reshape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_4/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_7098" output_port_id="/bbox_head/cls_convs.2/gn_4/InstanceNormalization_output_0" />
+		<IR name="MVN_7098" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_4/Shape" output_port_id="/bbox_head/cls_convs.2/gn_4/Shape_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_4/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_4/Reshape_1" output_port_id="/bbox_head/cls_convs.2/gn_4/Reshape_1_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_4/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_4/Mul" output_port_id="/bbox_head/cls_convs.2/gn_4/Mul_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/gn_4/Add" output_port_id="/bbox_head/cls_convs.2/gn_4/Add_output_0" />
+		<IR name="/bbox_head/cls_convs.2/gn_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/cls_convs.2/activate_4/Relu" output_port_id="/bbox_head/cls_convs.2/activate_4/Relu_output_0" />
+		<IR name="/bbox_head/cls_convs.2/activate_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_4/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_4/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_4/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.0/conv_blocks.0.2_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_4/Add" output_port_id="/bbox_head/vfnet_cls_dconv_4/Add_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_4/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_4/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_4/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.1/conv_blocks.1.2_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_4/Add_1" output_port_id="/bbox_head/vfnet_cls_dconv_4/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_4/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_4/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_4/Relu" output_port_id="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_4/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/conv_blocks.2/conv_blocks.2.2_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_4/Add_2" output_port_id="/bbox_head/vfnet_cls_dconv_4/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_4/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.0_4/Conv" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv/attention/attention.1_4/Sigmoid" output_port_id="/bbox_head/vfnet_cls_dconv/attention/attention.1_4/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv/attention/attention.1_4/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_dconv_4/Mul" output_port_id="/bbox_head/vfnet_cls_dconv_4/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_cls_dconv_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_cls_4/Conv" output_port_id="/bbox_head/vfnet_cls_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_cls_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_8" output_port_id="/Transpose_8_output_0" />
+		<IR name="/Transpose_8" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_24" output_port_id="/Reshape_24_output_0" />
+		<IR name="/Reshape_24" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Sigmoid_4" output_port_id="/Sigmoid_4_output_0" />
+		<IR name="/Sigmoid_4" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/ReduceMax_4" output_port_id="/ReduceMax_4_output_0" />
+		<IR name="/ReduceMax_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Shape_25" output_port_id="/Shape_25_output_0" />
+		<IR name="/Shape_25" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_33" output_port_id="/Add_16_output_0" />
+		<IR name="/Gather_33" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_33" output_port_id="/Gather_33_output_0" />
+		<IR name="/Gather_33" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Less_4" output_port_id="/Less_4_output_0" />
+		<IR name="/Less_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Where_4" output_port_id="/Where_4_output_0" />
+		<IR name="/Where_4" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_26" output_port_id="/Reshape_26_output_0" />
+		<IR name="/Reshape_26" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_4" output_port_id="/TopK_4_output_0" />
+		<IR name="/TopK_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_4" output_port_id="/Add_19_output_0" />
+		<IR name="/TopK_4" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/TopK_4" output_port_id="/TopK_4_output_1" />
+		<IR name="/TopK_4" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_40" output_port_id="/Gather_40_output_0" />
+		<IR name="/Gather_40" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_30" output_port_id="/Shape_30_output_0" />
+		<IR name="/Shape_30" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Concat_16" output_port_id="/Concat_16_output_0" />
+		<IR name="/Concat_16" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_29" output_port_id="/Reshape_29_output_0" />
+		<IR name="/Reshape_29" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Concat_19" output_port_id="/Concat_19_output_0" />
+		<IR name="/Concat_19" output_port_id="5" />
+	</map>
+	<map>
+		<framework name="/Constant" output_port_id="/Constant_output_0" />
+		<IR name="/Constant" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Gather_41" output_port_id="/Gather_41_output_0" />
+		<IR name="/Gather_41" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="bbox_head.reg_convs.0.conv.weight" output_port_id="bbox_head.reg_convs.0.conv.weight" />
+		<IR name="bbox_head.reg_convs.0.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/conv/Conv" output_port_id="/bbox_head/reg_convs.0/conv/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.0/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn/Reshape" output_port_id="/bbox_head/reg_convs.0/gn/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_1943" output_port_id="/bbox_head/reg_convs.0/gn/InstanceNormalization_output_0" />
+		<IR name="MVN_1943" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn/Shape" output_port_id="/bbox_head/reg_convs.0/gn/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn/Reshape_1" output_port_id="/bbox_head/reg_convs.0/gn/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn/Mul" output_port_id="/bbox_head/reg_convs.0/gn/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn/Add" output_port_id="/bbox_head/reg_convs.0/gn/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/activate/Relu" output_port_id="/bbox_head/reg_convs.0/activate/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.0/activate/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="bbox_head.reg_convs.1.conv.weight" output_port_id="bbox_head.reg_convs.1.conv.weight" />
+		<IR name="bbox_head.reg_convs.1.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/conv/Conv" output_port_id="/bbox_head/reg_convs.1/conv/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.1/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn/Reshape" output_port_id="/bbox_head/reg_convs.1/gn/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_2052" output_port_id="/bbox_head/reg_convs.1/gn/InstanceNormalization_output_0" />
+		<IR name="MVN_2052" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn/Shape" output_port_id="/bbox_head/reg_convs.1/gn/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn/Reshape_1" output_port_id="/bbox_head/reg_convs.1/gn/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn/Mul" output_port_id="/bbox_head/reg_convs.1/gn/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn/Add" output_port_id="/bbox_head/reg_convs.1/gn/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/activate/Relu" output_port_id="/bbox_head/reg_convs.1/activate/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.1/activate/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="bbox_head.reg_convs.2.conv.weight" output_port_id="bbox_head.reg_convs.2.conv.weight" />
+		<IR name="bbox_head.reg_convs.2.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/conv/Conv" output_port_id="/bbox_head/reg_convs.2/conv/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.2/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn/Reshape" output_port_id="/bbox_head/reg_convs.2/gn/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_2161" output_port_id="/bbox_head/reg_convs.2/gn/InstanceNormalization_output_0" />
+		<IR name="MVN_2161" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn/Shape" output_port_id="/bbox_head/reg_convs.2/gn/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn/Reshape_1" output_port_id="/bbox_head/reg_convs.2/gn/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn/Mul" output_port_id="/bbox_head/reg_convs.2/gn/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn/Add" output_port_id="/bbox_head/reg_convs.2/gn/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/activate/Relu" output_port_id="/bbox_head/reg_convs.2/activate/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.2/activate/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1568" output_port_id="onnx::Conv_1586" />
+		<IR name="onnx::Conv_1568" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1568" output_port_id="onnx::Conv_1622" />
+		<IR name="onnx::Conv_1568" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1568" output_port_id="onnx::Conv_1550" />
+		<IR name="onnx::Conv_1568" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1568" output_port_id="onnx::Conv_1604" />
+		<IR name="onnx::Conv_1568" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1568" output_port_id="onnx::Conv_1568" />
+		<IR name="onnx::Conv_1568" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/Add" output_port_id="/bbox_head/vfnet_reg_refine_dconv/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1571" output_port_id="onnx::Conv_1625" />
+		<IR name="onnx::Conv_1571" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1571" output_port_id="onnx::Conv_1553" />
+		<IR name="onnx::Conv_1571" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1571" output_port_id="onnx::Conv_1607" />
+		<IR name="onnx::Conv_1571" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1571" output_port_id="onnx::Conv_1589" />
+		<IR name="onnx::Conv_1571" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1571" output_port_id="onnx::Conv_1571" />
+		<IR name="onnx::Conv_1571" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/Add_1" output_port_id="/bbox_head/vfnet_reg_refine_dconv/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1574" output_port_id="onnx::Conv_1556" />
+		<IR name="onnx::Conv_1574" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1574" output_port_id="onnx::Conv_1610" />
+		<IR name="onnx::Conv_1574" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1574" output_port_id="onnx::Conv_1628" />
+		<IR name="onnx::Conv_1574" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1574" output_port_id="onnx::Conv_1574" />
+		<IR name="onnx::Conv_1574" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="onnx::Conv_1574" output_port_id="onnx::Conv_1592" />
+		<IR name="onnx::Conv_1574" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/Add_2" output_port_id="/bbox_head/vfnet_reg_refine_dconv/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="bbox_head.vfnet_reg_refine_dconv.attention.0.weight" output_port_id="bbox_head.vfnet_reg_refine_dconv.attention.0.weight" />
+		<IR name="bbox_head.vfnet_reg_refine_dconv.attention.0.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1/Sigmoid" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/Mul" output_port_id="/bbox_head/vfnet_reg_refine_dconv/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.0/Mul" output_port_id="/bbox_head/scales_refine.0/Mul_output_0" />
+		<IR name="/bbox_head/scales_refine.0/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.0/Mul" output_port_id="/bbox_head/Cast_1_output_0" />
+		<IR name="/bbox_head/scales_refine.0/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_1" output_port_id="/bbox_head/Exp_1_output_0" />
+		<IR name="/bbox_head/Exp_1" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="bbox_head.vfnet_reg_conv.conv.weight" output_port_id="bbox_head.vfnet_reg_conv.conv.weight" />
+		<IR name="bbox_head.vfnet_reg_conv.conv.weight" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/conv/Conv" output_port_id="/bbox_head/vfnet_reg_conv/conv/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/conv/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn/Reshape" output_port_id="/bbox_head/vfnet_reg_conv/gn/Reshape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_2270" output_port_id="/bbox_head/vfnet_reg_conv/gn/InstanceNormalization_output_0" />
+		<IR name="MVN_2270" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn/Shape" output_port_id="/bbox_head/vfnet_reg_conv/gn/Shape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn/Reshape_1" output_port_id="/bbox_head/vfnet_reg_conv/gn/Reshape_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn/Mul" output_port_id="/bbox_head/vfnet_reg_conv/gn/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn/Add" output_port_id="/bbox_head/vfnet_reg_conv/gn/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/activate/Relu" output_port_id="/bbox_head/vfnet_reg_conv/activate/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/activate/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.0/Mul" output_port_id="/bbox_head/scales.0/Mul_output_0" />
+		<IR name="/bbox_head/scales.0/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.0/Mul" output_port_id="/bbox_head/Cast_output_0" />
+		<IR name="/bbox_head/scales.0/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp" output_port_id="/bbox_head/Exp_output_0" />
+		<IR name="/bbox_head/Exp" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul" output_port_id="/bbox_head/Mul_output_0" />
+		<IR name="/bbox_head/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_1" output_port_id="/bbox_head/Mul_1_output_0" />
+		<IR name="/bbox_head/Mul_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_1" output_port_id="/Transpose_1_output_0" />
+		<IR name="/Transpose_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Constant_4" output_port_id="/Constant_4_output_0" />
+		<IR name="/Constant_4" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Concat_1" output_port_id="/Concat_1_output_0" />
+		<IR name="/Concat_1" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_1" output_port_id="/Reshape_1_output_0" />
+		<IR name="/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_8381" output_port_id="/Shape_2_output_0" />
+		<IR name="ShapeOf_8381" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten" output_port_id="/Flatten_output_0" />
+		<IR name="/Flatten" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather" output_port_id="/Cast_output_0" />
+		<IR name="/Gather" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather" output_port_id="/Gather_output_0" />
+		<IR name="/Gather" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Range" output_port_id="/Range_output_0" />
+		<IR name="/Range" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Unsqueeze_1" output_port_id="/Unsqueeze_1_output_0" />
+		<IR name="/Unsqueeze_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Constant_6" output_port_id="/Constant_6_output_0" />
+		<IR name="/Constant_6" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Gather_2" output_port_id="/Gather_2_output_0" />
+		<IR name="/Gather_2" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul" output_port_id="/Mul_output_0" />
+		<IR name="/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_1" output_port_id="/Add_1_output_0" />
+		<IR name="/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_4" output_port_id="/Gather_4_output_0" />
+		<IR name="/Gather_4" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_3" output_port_id="/Shape_3_output_0" />
+		<IR name="/Shape_3" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_3" output_port_id="/Gather_3_output_0" />
+		<IR name="/Gather_3" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_2" output_port_id="/Concat_2_output_0" />
+		<IR name="/Concat_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_3" output_port_id="/Reshape_3_output_0" />
+		<IR name="/Reshape_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/conv_1/Conv" output_port_id="/bbox_head/reg_convs.0/conv_1/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.0/conv_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_1/Reshape" output_port_id="/bbox_head/reg_convs.0/gn_1/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_1/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_3259" output_port_id="/bbox_head/reg_convs.0/gn_1/InstanceNormalization_output_0" />
+		<IR name="MVN_3259" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_1/Shape" output_port_id="/bbox_head/reg_convs.0/gn_1/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_1/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_1/Reshape_1" output_port_id="/bbox_head/reg_convs.0/gn_1/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_1/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_1/Mul" output_port_id="/bbox_head/reg_convs.0/gn_1/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_1/Add" output_port_id="/bbox_head/reg_convs.0/gn_1/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/activate_1/Relu" output_port_id="/bbox_head/reg_convs.0/activate_1/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.0/activate_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/conv_1/Conv" output_port_id="/bbox_head/reg_convs.1/conv_1/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.1/conv_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_1/Reshape" output_port_id="/bbox_head/reg_convs.1/gn_1/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_1/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_3368" output_port_id="/bbox_head/reg_convs.1/gn_1/InstanceNormalization_output_0" />
+		<IR name="MVN_3368" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_1/Shape" output_port_id="/bbox_head/reg_convs.1/gn_1/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_1/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_1/Reshape_1" output_port_id="/bbox_head/reg_convs.1/gn_1/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_1/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_1/Mul" output_port_id="/bbox_head/reg_convs.1/gn_1/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_1/Add" output_port_id="/bbox_head/reg_convs.1/gn_1/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/activate_1/Relu" output_port_id="/bbox_head/reg_convs.1/activate_1/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.1/activate_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/conv_1/Conv" output_port_id="/bbox_head/reg_convs.2/conv_1/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.2/conv_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_1/Reshape" output_port_id="/bbox_head/reg_convs.2/gn_1/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_1/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_3477" output_port_id="/bbox_head/reg_convs.2/gn_1/InstanceNormalization_output_0" />
+		<IR name="MVN_3477" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_1/Shape" output_port_id="/bbox_head/reg_convs.2/gn_1/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_1/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_1/Reshape_1" output_port_id="/bbox_head/reg_convs.2/gn_1/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_1/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_1/Mul" output_port_id="/bbox_head/reg_convs.2/gn_1/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_1/Add" output_port_id="/bbox_head/reg_convs.2/gn_1/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/activate_1/Relu" output_port_id="/bbox_head/reg_convs.2/activate_1/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.2/activate_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_1/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_1/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_1/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_1/Add" output_port_id="/bbox_head/vfnet_reg_refine_dconv_1/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_1/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_1/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_1/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_1/Add_1" output_port_id="/bbox_head/vfnet_reg_refine_dconv_1/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_1/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_1/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_1/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_1/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_1/Add_2" output_port_id="/bbox_head/vfnet_reg_refine_dconv_1/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_1/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_1/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_1/Sigmoid" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_1/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_1/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_1/Mul" output_port_id="/bbox_head/vfnet_reg_refine_dconv_1/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.1/Mul" output_port_id="/bbox_head/scales_refine.1/Mul_output_0" />
+		<IR name="/bbox_head/scales_refine.1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.1/Mul" output_port_id="/bbox_head/Cast_3_output_0" />
+		<IR name="/bbox_head/scales_refine.1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_3" output_port_id="/bbox_head/Exp_3_output_0" />
+		<IR name="/bbox_head/Exp_3" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/conv_1/Conv" output_port_id="/bbox_head/vfnet_reg_conv/conv_1/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/conv_1/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_1/Reshape" output_port_id="/bbox_head/vfnet_reg_conv/gn_1/Reshape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_1/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_3586" output_port_id="/bbox_head/vfnet_reg_conv/gn_1/InstanceNormalization_output_0" />
+		<IR name="MVN_3586" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_1/Shape" output_port_id="/bbox_head/vfnet_reg_conv/gn_1/Shape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_1/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_1/Reshape_1" output_port_id="/bbox_head/vfnet_reg_conv/gn_1/Reshape_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_1/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_1/Mul" output_port_id="/bbox_head/vfnet_reg_conv/gn_1/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_1/Add" output_port_id="/bbox_head/vfnet_reg_conv/gn_1/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_1/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/activate_1/Relu" output_port_id="/bbox_head/vfnet_reg_conv/activate_1/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/activate_1/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.1/Mul" output_port_id="/bbox_head/scales.1/Mul_output_0" />
+		<IR name="/bbox_head/scales.1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.1/Mul" output_port_id="/bbox_head/Cast_2_output_0" />
+		<IR name="/bbox_head/scales.1/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_2" output_port_id="/bbox_head/Exp_2_output_0" />
+		<IR name="/bbox_head/Exp_2" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_2" output_port_id="/bbox_head/Mul_2_output_0" />
+		<IR name="/bbox_head/Mul_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_3" output_port_id="/bbox_head/Mul_3_output_0" />
+		<IR name="/bbox_head/Mul_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_3" output_port_id="/Transpose_3_output_0" />
+		<IR name="/Transpose_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_7" output_port_id="/Reshape_7_output_0" />
+		<IR name="/Reshape_7" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_8717" output_port_id="/Shape_8_output_0" />
+		<IR name="ShapeOf_8717" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_3" output_port_id="/Flatten_3_output_0" />
+		<IR name="/Flatten_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_10" output_port_id="/Gather_10_output_0" />
+		<IR name="/Gather_10" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_2" output_port_id="/Mul_2_output_0" />
+		<IR name="/Mul_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_5" output_port_id="/Add_5_output_0" />
+		<IR name="/Add_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_12" output_port_id="/Gather_12_output_0" />
+		<IR name="/Gather_12" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_9" output_port_id="/Shape_9_output_0" />
+		<IR name="/Shape_9" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_11" output_port_id="/Gather_11_output_0" />
+		<IR name="/Gather_11" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_5" output_port_id="/Concat_5_output_0" />
+		<IR name="/Concat_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_9" output_port_id="/Reshape_9_output_0" />
+		<IR name="/Reshape_9" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/conv_2/Conv" output_port_id="/bbox_head/reg_convs.0/conv_2/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.0/conv_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_2/Reshape" output_port_id="/bbox_head/reg_convs.0/gn_2/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_2/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_4575" output_port_id="/bbox_head/reg_convs.0/gn_2/InstanceNormalization_output_0" />
+		<IR name="MVN_4575" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_2/Shape" output_port_id="/bbox_head/reg_convs.0/gn_2/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_2/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_2/Reshape_1" output_port_id="/bbox_head/reg_convs.0/gn_2/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_2/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_2/Mul" output_port_id="/bbox_head/reg_convs.0/gn_2/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_2/Add" output_port_id="/bbox_head/reg_convs.0/gn_2/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/activate_2/Relu" output_port_id="/bbox_head/reg_convs.0/activate_2/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.0/activate_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/conv_2/Conv" output_port_id="/bbox_head/reg_convs.1/conv_2/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.1/conv_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_2/Reshape" output_port_id="/bbox_head/reg_convs.1/gn_2/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_2/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_4684" output_port_id="/bbox_head/reg_convs.1/gn_2/InstanceNormalization_output_0" />
+		<IR name="MVN_4684" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_2/Shape" output_port_id="/bbox_head/reg_convs.1/gn_2/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_2/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_2/Reshape_1" output_port_id="/bbox_head/reg_convs.1/gn_2/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_2/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_2/Mul" output_port_id="/bbox_head/reg_convs.1/gn_2/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_2/Add" output_port_id="/bbox_head/reg_convs.1/gn_2/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/activate_2/Relu" output_port_id="/bbox_head/reg_convs.1/activate_2/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.1/activate_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/conv_2/Conv" output_port_id="/bbox_head/reg_convs.2/conv_2/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.2/conv_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_2/Reshape" output_port_id="/bbox_head/reg_convs.2/gn_2/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_2/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_4793" output_port_id="/bbox_head/reg_convs.2/gn_2/InstanceNormalization_output_0" />
+		<IR name="MVN_4793" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_2/Shape" output_port_id="/bbox_head/reg_convs.2/gn_2/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_2/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_2/Reshape_1" output_port_id="/bbox_head/reg_convs.2/gn_2/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_2/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_2/Mul" output_port_id="/bbox_head/reg_convs.2/gn_2/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_2/Add" output_port_id="/bbox_head/reg_convs.2/gn_2/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/activate_2/Relu" output_port_id="/bbox_head/reg_convs.2/activate_2/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.2/activate_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_2/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_2/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_2/Add" output_port_id="/bbox_head/vfnet_reg_refine_dconv_2/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_2/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_2/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_2/Add_1" output_port_id="/bbox_head/vfnet_reg_refine_dconv_2/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_2/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_2/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_2/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_2/Add_2" output_port_id="/bbox_head/vfnet_reg_refine_dconv_2/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_2/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_2/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_2/Sigmoid" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_2/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_2/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_2/Mul" output_port_id="/bbox_head/vfnet_reg_refine_dconv_2/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.2/Mul" output_port_id="/bbox_head/scales_refine.2/Mul_output_0" />
+		<IR name="/bbox_head/scales_refine.2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.2/Mul" output_port_id="/bbox_head/Cast_5_output_0" />
+		<IR name="/bbox_head/scales_refine.2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_5" output_port_id="/bbox_head/Exp_5_output_0" />
+		<IR name="/bbox_head/Exp_5" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/conv_2/Conv" output_port_id="/bbox_head/vfnet_reg_conv/conv_2/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/conv_2/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_2/Reshape" output_port_id="/bbox_head/vfnet_reg_conv/gn_2/Reshape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_2/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_4902" output_port_id="/bbox_head/vfnet_reg_conv/gn_2/InstanceNormalization_output_0" />
+		<IR name="MVN_4902" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_2/Shape" output_port_id="/bbox_head/vfnet_reg_conv/gn_2/Shape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_2/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_2/Reshape_1" output_port_id="/bbox_head/vfnet_reg_conv/gn_2/Reshape_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_2/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_2/Mul" output_port_id="/bbox_head/vfnet_reg_conv/gn_2/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_2/Add" output_port_id="/bbox_head/vfnet_reg_conv/gn_2/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_2/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/activate_2/Relu" output_port_id="/bbox_head/vfnet_reg_conv/activate_2/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/activate_2/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.2/Mul" output_port_id="/bbox_head/scales.2/Mul_output_0" />
+		<IR name="/bbox_head/scales.2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.2/Mul" output_port_id="/bbox_head/Cast_4_output_0" />
+		<IR name="/bbox_head/scales.2/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_4" output_port_id="/bbox_head/Exp_4_output_0" />
+		<IR name="/bbox_head/Exp_4" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_4" output_port_id="/bbox_head/Mul_4_output_0" />
+		<IR name="/bbox_head/Mul_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_5" output_port_id="/bbox_head/Mul_5_output_0" />
+		<IR name="/bbox_head/Mul_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_5" output_port_id="/Transpose_5_output_0" />
+		<IR name="/Transpose_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_13" output_port_id="/Reshape_13_output_0" />
+		<IR name="/Reshape_13" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_9051" output_port_id="/Shape_14_output_0" />
+		<IR name="ShapeOf_9051" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_6" output_port_id="/Flatten_6_output_0" />
+		<IR name="/Flatten_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_18" output_port_id="/Gather_18_output_0" />
+		<IR name="/Gather_18" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_4" output_port_id="/Mul_4_output_0" />
+		<IR name="/Mul_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_9" output_port_id="/Add_9_output_0" />
+		<IR name="/Add_9" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_20" output_port_id="/Gather_20_output_0" />
+		<IR name="/Gather_20" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_15" output_port_id="/Shape_15_output_0" />
+		<IR name="/Shape_15" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_19" output_port_id="/Gather_19_output_0" />
+		<IR name="/Gather_19" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_8" output_port_id="/Concat_8_output_0" />
+		<IR name="/Concat_8" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_15" output_port_id="/Reshape_15_output_0" />
+		<IR name="/Reshape_15" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/conv_3/Conv" output_port_id="/bbox_head/reg_convs.0/conv_3/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.0/conv_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_3/Reshape" output_port_id="/bbox_head/reg_convs.0/gn_3/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_3/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_5891" output_port_id="/bbox_head/reg_convs.0/gn_3/InstanceNormalization_output_0" />
+		<IR name="MVN_5891" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_3/Shape" output_port_id="/bbox_head/reg_convs.0/gn_3/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_3/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_3/Reshape_1" output_port_id="/bbox_head/reg_convs.0/gn_3/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_3/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_3/Mul" output_port_id="/bbox_head/reg_convs.0/gn_3/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_3/Add" output_port_id="/bbox_head/reg_convs.0/gn_3/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/activate_3/Relu" output_port_id="/bbox_head/reg_convs.0/activate_3/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.0/activate_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/conv_3/Conv" output_port_id="/bbox_head/reg_convs.1/conv_3/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.1/conv_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_3/Reshape" output_port_id="/bbox_head/reg_convs.1/gn_3/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_3/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_6000" output_port_id="/bbox_head/reg_convs.1/gn_3/InstanceNormalization_output_0" />
+		<IR name="MVN_6000" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_3/Shape" output_port_id="/bbox_head/reg_convs.1/gn_3/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_3/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_3/Reshape_1" output_port_id="/bbox_head/reg_convs.1/gn_3/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_3/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_3/Mul" output_port_id="/bbox_head/reg_convs.1/gn_3/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_3/Add" output_port_id="/bbox_head/reg_convs.1/gn_3/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/activate_3/Relu" output_port_id="/bbox_head/reg_convs.1/activate_3/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.1/activate_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/conv_3/Conv" output_port_id="/bbox_head/reg_convs.2/conv_3/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.2/conv_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_3/Reshape" output_port_id="/bbox_head/reg_convs.2/gn_3/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_3/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_6109" output_port_id="/bbox_head/reg_convs.2/gn_3/InstanceNormalization_output_0" />
+		<IR name="MVN_6109" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_3/Shape" output_port_id="/bbox_head/reg_convs.2/gn_3/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_3/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_3/Reshape_1" output_port_id="/bbox_head/reg_convs.2/gn_3/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_3/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_3/Mul" output_port_id="/bbox_head/reg_convs.2/gn_3/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_3/Add" output_port_id="/bbox_head/reg_convs.2/gn_3/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/activate_3/Relu" output_port_id="/bbox_head/reg_convs.2/activate_3/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.2/activate_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_3/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_3/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_3/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_3/Add" output_port_id="/bbox_head/vfnet_reg_refine_dconv_3/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_3/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_3/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_3/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_3/Add_1" output_port_id="/bbox_head/vfnet_reg_refine_dconv_3/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_3/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_3/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_3/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_3/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_3/Add_2" output_port_id="/bbox_head/vfnet_reg_refine_dconv_3/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_3/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_3/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_3/Sigmoid" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_3/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_3/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_3/Mul" output_port_id="/bbox_head/vfnet_reg_refine_dconv_3/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.3/Mul" output_port_id="/bbox_head/scales_refine.3/Mul_output_0" />
+		<IR name="/bbox_head/scales_refine.3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.3/Mul" output_port_id="/bbox_head/Cast_7_output_0" />
+		<IR name="/bbox_head/scales_refine.3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_7" output_port_id="/bbox_head/Exp_7_output_0" />
+		<IR name="/bbox_head/Exp_7" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/conv_3/Conv" output_port_id="/bbox_head/vfnet_reg_conv/conv_3/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/conv_3/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_3/Reshape" output_port_id="/bbox_head/vfnet_reg_conv/gn_3/Reshape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_3/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_6218" output_port_id="/bbox_head/vfnet_reg_conv/gn_3/InstanceNormalization_output_0" />
+		<IR name="MVN_6218" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_3/Shape" output_port_id="/bbox_head/vfnet_reg_conv/gn_3/Shape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_3/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_3/Reshape_1" output_port_id="/bbox_head/vfnet_reg_conv/gn_3/Reshape_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_3/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_3/Mul" output_port_id="/bbox_head/vfnet_reg_conv/gn_3/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_3/Add" output_port_id="/bbox_head/vfnet_reg_conv/gn_3/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_3/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/activate_3/Relu" output_port_id="/bbox_head/vfnet_reg_conv/activate_3/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/activate_3/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.3/Mul" output_port_id="/bbox_head/scales.3/Mul_output_0" />
+		<IR name="/bbox_head/scales.3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.3/Mul" output_port_id="/bbox_head/Cast_6_output_0" />
+		<IR name="/bbox_head/scales.3/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_6" output_port_id="/bbox_head/Exp_6_output_0" />
+		<IR name="/bbox_head/Exp_6" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_6" output_port_id="/bbox_head/Mul_6_output_0" />
+		<IR name="/bbox_head/Mul_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_7" output_port_id="/bbox_head/Mul_7_output_0" />
+		<IR name="/bbox_head/Mul_7" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_7" output_port_id="/Transpose_7_output_0" />
+		<IR name="/Transpose_7" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_19" output_port_id="/Reshape_19_output_0" />
+		<IR name="/Reshape_19" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_9385" output_port_id="/Shape_20_output_0" />
+		<IR name="ShapeOf_9385" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_9" output_port_id="/Flatten_9_output_0" />
+		<IR name="/Flatten_9" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_26" output_port_id="/Gather_26_output_0" />
+		<IR name="/Gather_26" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_6" output_port_id="/Mul_6_output_0" />
+		<IR name="/Mul_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_13" output_port_id="/Add_13_output_0" />
+		<IR name="/Add_13" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_28" output_port_id="/Gather_28_output_0" />
+		<IR name="/Gather_28" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_21" output_port_id="/Shape_21_output_0" />
+		<IR name="/Shape_21" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_27" output_port_id="/Gather_27_output_0" />
+		<IR name="/Gather_27" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_11" output_port_id="/Concat_11_output_0" />
+		<IR name="/Concat_11" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_21" output_port_id="/Reshape_21_output_0" />
+		<IR name="/Reshape_21" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/conv_4/Conv" output_port_id="/bbox_head/reg_convs.0/conv_4/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.0/conv_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_4/Reshape" output_port_id="/bbox_head/reg_convs.0/gn_4/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_4/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_7207" output_port_id="/bbox_head/reg_convs.0/gn_4/InstanceNormalization_output_0" />
+		<IR name="MVN_7207" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_4/Shape" output_port_id="/bbox_head/reg_convs.0/gn_4/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_4/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_4/Reshape_1" output_port_id="/bbox_head/reg_convs.0/gn_4/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_4/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_4/Mul" output_port_id="/bbox_head/reg_convs.0/gn_4/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/gn_4/Add" output_port_id="/bbox_head/reg_convs.0/gn_4/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.0/gn_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.0/activate_4/Relu" output_port_id="/bbox_head/reg_convs.0/activate_4/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.0/activate_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/conv_4/Conv" output_port_id="/bbox_head/reg_convs.1/conv_4/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.1/conv_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_4/Reshape" output_port_id="/bbox_head/reg_convs.1/gn_4/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_4/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_7316" output_port_id="/bbox_head/reg_convs.1/gn_4/InstanceNormalization_output_0" />
+		<IR name="MVN_7316" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_4/Shape" output_port_id="/bbox_head/reg_convs.1/gn_4/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_4/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_4/Reshape_1" output_port_id="/bbox_head/reg_convs.1/gn_4/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_4/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_4/Mul" output_port_id="/bbox_head/reg_convs.1/gn_4/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/gn_4/Add" output_port_id="/bbox_head/reg_convs.1/gn_4/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.1/gn_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.1/activate_4/Relu" output_port_id="/bbox_head/reg_convs.1/activate_4/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.1/activate_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/conv_4/Conv" output_port_id="/bbox_head/reg_convs.2/conv_4/Conv_output_0" />
+		<IR name="/bbox_head/reg_convs.2/conv_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_4/Reshape" output_port_id="/bbox_head/reg_convs.2/gn_4/Reshape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_4/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_7425" output_port_id="/bbox_head/reg_convs.2/gn_4/InstanceNormalization_output_0" />
+		<IR name="MVN_7425" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_4/Shape" output_port_id="/bbox_head/reg_convs.2/gn_4/Shape_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_4/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_4/Reshape_1" output_port_id="/bbox_head/reg_convs.2/gn_4/Reshape_1_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_4/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_4/Mul" output_port_id="/bbox_head/reg_convs.2/gn_4/Mul_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/gn_4/Add" output_port_id="/bbox_head/reg_convs.2/gn_4/Add_output_0" />
+		<IR name="/bbox_head/reg_convs.2/gn_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/reg_convs.2/activate_4/Relu" output_port_id="/bbox_head/reg_convs.2/activate_4/Relu_output_0" />
+		<IR name="/bbox_head/reg_convs.2/activate_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_4/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_4/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_4/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.0/conv_blocks.0.2_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_4/Add" output_port_id="/bbox_head/vfnet_reg_refine_dconv_4/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_4/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_4/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_4/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.1/conv_blocks.1.2_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_4/Add_1" output_port_id="/bbox_head/vfnet_reg_refine_dconv_4/Add_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_4/Add_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_4/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_4/Relu" output_port_id="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_4/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/conv_blocks.2/conv_blocks.2.2_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_4/Add_2" output_port_id="/bbox_head/vfnet_reg_refine_dconv_4/Add_2_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_4/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_4/Conv" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.0_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_4/Sigmoid" output_port_id="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_4/Sigmoid_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv/attention/attention.1_4/Sigmoid" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_refine_dconv_4/Mul" output_port_id="/bbox_head/vfnet_reg_refine_dconv_4/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_refine_dconv_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.4/Mul" output_port_id="/bbox_head/scales_refine.4/Mul_output_0" />
+		<IR name="/bbox_head/scales_refine.4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales_refine.4/Mul" output_port_id="/bbox_head/Cast_9_output_0" />
+		<IR name="/bbox_head/scales_refine.4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_9" output_port_id="/bbox_head/Exp_9_output_0" />
+		<IR name="/bbox_head/Exp_9" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/conv_4/Conv" output_port_id="/bbox_head/vfnet_reg_conv/conv_4/Conv_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/conv_4/Conv" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_4/Reshape" output_port_id="/bbox_head/vfnet_reg_conv/gn_4/Reshape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_4/Reshape" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="MVN_7534" output_port_id="/bbox_head/vfnet_reg_conv/gn_4/InstanceNormalization_output_0" />
+		<IR name="MVN_7534" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_4/Shape" output_port_id="/bbox_head/vfnet_reg_conv/gn_4/Shape_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_4/Shape" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_4/Reshape_1" output_port_id="/bbox_head/vfnet_reg_conv/gn_4/Reshape_1_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_4/Reshape_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_4/Mul" output_port_id="/bbox_head/vfnet_reg_conv/gn_4/Mul_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/gn_4/Add" output_port_id="/bbox_head/vfnet_reg_conv/gn_4/Add_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/gn_4/Add" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/vfnet_reg_conv/activate_4/Relu" output_port_id="/bbox_head/vfnet_reg_conv/activate_4/Relu_output_0" />
+		<IR name="/bbox_head/vfnet_reg_conv/activate_4/Relu" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.4/Mul" output_port_id="/bbox_head/scales.4/Mul_output_0" />
+		<IR name="/bbox_head/scales.4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/scales.4/Mul" output_port_id="/bbox_head/Cast_8_output_0" />
+		<IR name="/bbox_head/scales.4/Mul" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Exp_8" output_port_id="/bbox_head/Exp_8_output_0" />
+		<IR name="/bbox_head/Exp_8" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_8" output_port_id="/bbox_head/Mul_8_output_0" />
+		<IR name="/bbox_head/Mul_8" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/bbox_head/Mul_9" output_port_id="/bbox_head/Mul_9_output_0" />
+		<IR name="/bbox_head/Mul_9" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_9" output_port_id="/Transpose_9_output_0" />
+		<IR name="/Transpose_9" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_25" output_port_id="/Reshape_25_output_0" />
+		<IR name="/Reshape_25" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_9719" output_port_id="/Shape_26_output_0" />
+		<IR name="ShapeOf_9719" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_12" output_port_id="/Flatten_12_output_0" />
+		<IR name="/Flatten_12" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_34" output_port_id="/Gather_34_output_0" />
+		<IR name="/Gather_34" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_8" output_port_id="/Mul_8_output_0" />
+		<IR name="/Mul_8" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_17" output_port_id="/Add_17_output_0" />
+		<IR name="/Add_17" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_36" output_port_id="/Gather_36_output_0" />
+		<IR name="/Gather_36" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_27" output_port_id="/Shape_27_output_0" />
+		<IR name="/Shape_27" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_35" output_port_id="/Gather_35_output_0" />
+		<IR name="/Gather_35" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_14" output_port_id="/Concat_14_output_0" />
+		<IR name="/Concat_14" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_27" output_port_id="/Reshape_27_output_0" />
+		<IR name="/Reshape_27" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Concat_17" output_port_id="/Concat_17_output_0" />
+		<IR name="/Concat_17" output_port_id="5" />
+	</map>
+	<map>
+		<framework name="/Gather_42" output_port_id="/Gather_42_output_0" />
+		<IR name="/Gather_42" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Sub" output_port_id="/Sub_output_0" />
+		<IR name="/Sub" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Clip" output_port_id="/Clip_output_0" />
+		<IR name="/Clip" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Unsqueeze_2" output_port_id="/Unsqueeze_2_output_0" />
+		<IR name="/Unsqueeze_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_43" output_port_id="/Gather_43_output_0" />
+		<IR name="/Gather_43" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_44" output_port_id="/Gather_44_output_0" />
+		<IR name="/Gather_44" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Sub_1" output_port_id="/Sub_1_output_0" />
+		<IR name="/Sub_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Clip_1" output_port_id="/Clip_1_output_0" />
+		<IR name="/Clip_1" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Unsqueeze_3" output_port_id="/Unsqueeze_3_output_0" />
+		<IR name="/Unsqueeze_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/neck/Constant" output_port_id="/neck/Constant_output_0" />
+		<IR name="/neck/Constant" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Gather_45" output_port_id="/Gather_45_output_0" />
+		<IR name="/Gather_45" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Add_20" output_port_id="/Add_20_output_0" />
+		<IR name="/Add_20" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Clip_2" output_port_id="/Clip_2_output_0" />
+		<IR name="/Clip_2" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Unsqueeze_4" output_port_id="/Unsqueeze_4_output_0" />
+		<IR name="/Unsqueeze_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/neck/Constant_1" output_port_id="/neck/Constant_1_output_0" />
+		<IR name="/neck/Constant_1" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Gather_46" output_port_id="/Gather_46_output_0" />
+		<IR name="/Gather_46" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Add_21" output_port_id="/Add_21_output_0" />
+		<IR name="/Add_21" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Clip_3" output_port_id="/Clip_3_output_0" />
+		<IR name="/Clip_3" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Unsqueeze_5" output_port_id="/Unsqueeze_5_output_0" />
+		<IR name="/Unsqueeze_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Concat_20" output_port_id="/Concat_20_output_0" />
+		<IR name="/Concat_20" output_port_id="4" />
+	</map>
+	<map>
+		<framework name="ShapeOf_8467" output_port_id="/Shape_4_output_0" />
+		<IR name="ShapeOf_8467" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_1" output_port_id="/Flatten_1_output_0" />
+		<IR name="/Flatten_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_5" output_port_id="/Gather_5_output_0" />
+		<IR name="/Gather_5" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_1" output_port_id="/Mul_1_output_0" />
+		<IR name="/Mul_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_2" output_port_id="/Add_2_output_0" />
+		<IR name="/Add_2" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_7" output_port_id="/Gather_7_output_0" />
+		<IR name="/Gather_7" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_5" output_port_id="/Shape_5_output_0" />
+		<IR name="/Shape_5" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_6" output_port_id="/Gather_6_output_0" />
+		<IR name="/Gather_6" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_3" output_port_id="/Concat_3_output_0" />
+		<IR name="/Concat_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_4" output_port_id="/Reshape_4_output_0" />
+		<IR name="/Reshape_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_8803" output_port_id="/Shape_10_output_0" />
+		<IR name="ShapeOf_8803" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_4" output_port_id="/Flatten_4_output_0" />
+		<IR name="/Flatten_4" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_13" output_port_id="/Gather_13_output_0" />
+		<IR name="/Gather_13" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_3" output_port_id="/Mul_3_output_0" />
+		<IR name="/Mul_3" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_6" output_port_id="/Add_6_output_0" />
+		<IR name="/Add_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_15" output_port_id="/Gather_15_output_0" />
+		<IR name="/Gather_15" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_11" output_port_id="/Shape_11_output_0" />
+		<IR name="/Shape_11" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_14" output_port_id="/Gather_14_output_0" />
+		<IR name="/Gather_14" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_6" output_port_id="/Concat_6_output_0" />
+		<IR name="/Concat_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_10" output_port_id="/Reshape_10_output_0" />
+		<IR name="/Reshape_10" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_9137" output_port_id="/Shape_16_output_0" />
+		<IR name="ShapeOf_9137" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_7" output_port_id="/Flatten_7_output_0" />
+		<IR name="/Flatten_7" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_21" output_port_id="/Gather_21_output_0" />
+		<IR name="/Gather_21" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_5" output_port_id="/Mul_5_output_0" />
+		<IR name="/Mul_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_10" output_port_id="/Add_10_output_0" />
+		<IR name="/Add_10" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_23" output_port_id="/Gather_23_output_0" />
+		<IR name="/Gather_23" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_17" output_port_id="/Shape_17_output_0" />
+		<IR name="/Shape_17" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_22" output_port_id="/Gather_22_output_0" />
+		<IR name="/Gather_22" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_9" output_port_id="/Concat_9_output_0" />
+		<IR name="/Concat_9" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_16" output_port_id="/Reshape_16_output_0" />
+		<IR name="/Reshape_16" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_9471" output_port_id="/Shape_22_output_0" />
+		<IR name="ShapeOf_9471" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_10" output_port_id="/Flatten_10_output_0" />
+		<IR name="/Flatten_10" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_29" output_port_id="/Gather_29_output_0" />
+		<IR name="/Gather_29" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_7" output_port_id="/Mul_7_output_0" />
+		<IR name="/Mul_7" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_14" output_port_id="/Add_14_output_0" />
+		<IR name="/Add_14" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_31" output_port_id="/Gather_31_output_0" />
+		<IR name="/Gather_31" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_23" output_port_id="/Shape_23_output_0" />
+		<IR name="/Shape_23" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_30" output_port_id="/Gather_30_output_0" />
+		<IR name="/Gather_30" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_12" output_port_id="/Concat_12_output_0" />
+		<IR name="/Concat_12" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_22" output_port_id="/Reshape_22_output_0" />
+		<IR name="/Reshape_22" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="ShapeOf_9805" output_port_id="/Shape_28_output_0" />
+		<IR name="ShapeOf_9805" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Flatten_13" output_port_id="/Flatten_13_output_0" />
+		<IR name="/Flatten_13" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_37" output_port_id="/Gather_37_output_0" />
+		<IR name="/Gather_37" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_9" output_port_id="/Mul_9_output_0" />
+		<IR name="/Mul_9" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_18" output_port_id="/Add_18_output_0" />
+		<IR name="/Add_18" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_39" output_port_id="/Gather_39_output_0" />
+		<IR name="/Gather_39" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Shape_29" output_port_id="/Shape_29_output_0" />
+		<IR name="/Shape_29" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_38" output_port_id="/Gather_38_output_0" />
+		<IR name="/Gather_38" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_15" output_port_id="/Concat_15_output_0" />
+		<IR name="/Concat_15" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_28" output_port_id="/Reshape_28_output_0" />
+		<IR name="/Reshape_28" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Concat_18" output_port_id="/Concat_18_output_0" />
+		<IR name="/Concat_18" output_port_id="5" />
+	</map>
+	<map>
+		<framework name="/ReduceMax_5" output_port_id="/ReduceMax_5_output_0" />
+		<IR name="/ReduceMax_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Squeeze" output_port_id="/Squeeze_output_0" />
+		<IR name="/Squeeze" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="Constant_895" output_port_id="onnx::Where_1430" />
+		<IR name="Constant_895" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Shape_31" output_port_id="/Shape_31_output_0" />
+		<IR name="/Shape_31" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_47" output_port_id="/Add_22_output_0" />
+		<IR name="/Gather_47" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_47" output_port_id="/Gather_47_output_0" />
+		<IR name="/Gather_47" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Less_5" output_port_id="/Less_5_output_0" />
+		<IR name="/Less_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Where_5" output_port_id="/Where_5_output_0" />
+		<IR name="/Where_5" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_30" output_port_id="/Reshape_30_output_0" />
+		<IR name="/Reshape_30" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_5" output_port_id="/TopK_5_output_0" />
+		<IR name="/TopK_5" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_5" output_port_id="/TopK_5_output_1" />
+		<IR name="/TopK_5" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_48" output_port_id="/Gather_48_output_0" />
+		<IR name="/Gather_48" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_49" output_port_id="/Gather_49_output_0" />
+		<IR name="/Gather_49" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Transpose_10" output_port_id="/Transpose_10_output_0" />
+		<IR name="/Transpose_10" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Constant_16" output_port_id="/Constant_16_output_0" />
+		<IR name="/Constant_16" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/NonMaxSuppression" output_port_id="/NonMaxSuppression_output_0" />
+		<IR name="/NonMaxSuppression" output_port_id="5" />
+	</map>
+	<map>
+		<framework name="/Gather_50" output_port_id="/Gather_50_output_0" />
+		<IR name="/Gather_50" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Unsqueeze_7" output_port_id="/Unsqueeze_7_output_0" />
+		<IR name="/Unsqueeze_7" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Constant_9" output_port_id="/Constant_9_output_0" />
+		<IR name="/Constant_9" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Concat_25" output_port_id="/Concat_25_output_0" />
+		<IR name="/Concat_25" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_51" output_port_id="/Gather_51_output_0" />
+		<IR name="/Gather_51" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_55" output_port_id="/Gather_55_output_0" />
+		<IR name="/Gather_55" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Transpose_11" output_port_id="/Transpose_11_output_0" />
+		<IR name="/Transpose_11" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Flatten_15" output_port_id="/Flatten_15_output_0" />
+		<IR name="/Flatten_15" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Shape_32" output_port_id="/Shape_32_output_0" />
+		<IR name="/Shape_32" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_53" output_port_id="/Gather_53_output_0" />
+		<IR name="/Gather_53" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Mul_10" output_port_id="/Mul_10_output_0" />
+		<IR name="/Mul_10" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Add_23" output_port_id="/Add_23_output_0" />
+		<IR name="/Add_23" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Gather_54" output_port_id="/Gather_54_output_0" />
+		<IR name="/Gather_54" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_52" output_port_id="/Gather_52_output_0" />
+		<IR name="/Gather_52" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Concat_21" output_port_id="/Concat_21_output_0" />
+		<IR name="/Concat_21" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_31" output_port_id="/Reshape_31_output_0" />
+		<IR name="/Reshape_31" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Transpose_12" output_port_id="/Transpose_12_output_0" />
+		<IR name="/Transpose_12" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Shape_33" output_port_id="/Shape_33_output_0" />
+		<IR name="/Shape_33" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Concat_22" output_port_id="/Concat_22_output_0" />
+		<IR name="/Concat_22" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Reshape_32" output_port_id="/Reshape_32_output_0" />
+		<IR name="/Reshape_32" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Unsqueeze_6" output_port_id="/Unsqueeze_6_output_0" />
+		<IR name="/Unsqueeze_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Concat_23" output_port_id="/Concat_23_output_0" />
+		<IR name="/Concat_23" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Constant_17" output_port_id="/Constant_17_output_0" />
+		<IR name="/Constant_17" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Concat_24" output_port_id="/Concat_24_output_0" />
+		<IR name="/Concat_24" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Constant_1" output_port_id="/Constant_1_output_0" />
+		<IR name="/Constant_1" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Gather_56" output_port_id="/Gather_56_output_0" />
+		<IR name="/Gather_56" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="Constant_932" output_port_id="onnx::Where_1476" />
+		<IR name="Constant_932" output_port_id="0" />
+	</map>
+	<map>
+		<framework name="/Shape_34" output_port_id="/Shape_34_output_0" />
+		<IR name="/Shape_34" output_port_id="1" />
+	</map>
+	<map>
+		<framework name="/Gather_57" output_port_id="/Add_24_output_0" />
+		<IR name="/Gather_57" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Gather_57" output_port_id="/Gather_57_output_0" />
+		<IR name="/Gather_57" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Less_6" output_port_id="/Less_6_output_0" />
+		<IR name="/Less_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/Where_6" output_port_id="/Where_6_output_0" />
+		<IR name="/Where_6" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Reshape_33" output_port_id="/Reshape_33_output_0" />
+		<IR name="/Reshape_33" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_6" output_port_id="/TopK_6_output_0" />
+		<IR name="/TopK_6" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="/TopK_6" output_port_id="/TopK_6_output_1" />
+		<IR name="/TopK_6" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="/Squeeze_1" output_port_id="/Squeeze_1_output_0" />
+		<IR name="/Squeeze_1" output_port_id="2" />
+	</map>
+	<map>
+		<framework name="labels" output_port_id="labels" />
+		<IR name="labels" output_port_id="3" />
+	</map>
+	<map>
+		<framework name="dets" output_port_id="dets" />
+		<IR name="dets" output_port_id="3" />
+	</map>
+</mapping>

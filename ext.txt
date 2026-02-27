@@ -1,0 +1,14 @@
+# Add post-install hook for MMCV CUDA extensions
+[tool.pdm.scripts]
+install-mmcv = "pip install mmcv==2.1.0 -f https://download.openmmlab.com/mmcv/dist/cu110/torch1.12/index.html --force-reinstall"
+# Fix potential numpy/pandas binary incompatibility
+fix-numpy-pandas = "pip install --force-reinstall --no-deps numpy==1.26.4 pandas"
+# trainwake = "source scripts/train_wake.sh"
+# Auto-run post-install commands
+post-install = {composite = ["install-mmcv", "fix-numpy-pandas"]}
+
+
+    # MMDetection ecosystem - Fixed MMCV dependency
+    "mmengine>=0.8.0,<0.11.0",  # Compatible with older torch versions
+    "mmdet @ git+https://github.com/open-mmlab/mmdetection.git",
+    "mmcv @ git+https://github.com/open-mmlab/mmcv.git",

@@ -7,19 +7,25 @@ __pycache__/
 # Virtual environments
 .venv/
 .env/
-
 .buildenv/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-
 # Packaging
 build/
 dist/
 *.egg-info/
-
 # Jupyter
 .ipynb_checkpoints/
-
 # Project data and environment artifacts
 Data/
+*venv*
+*checkpoint*
+*ralph*
+.agents/
+.codex/
+.vscode/
+AGENTS.md
+notebooks/OpenVINO/apisonnx
+notebooks/OpenVINO/export/end2end.onnx
+notebooks/OpenVINO/weights.pth
