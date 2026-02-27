@@ -1,4 +1,4 @@
-# DetectionProject (MMDET)
+# SimpleDet
 
 [![PyPI](https://img.shields.io/pypi/v/simpledet.svg)](https://pypi.org/project/simpledet/)
 [![Python](https://img.shields.io/pypi/pyversions/simpledet.svg)](https://www.python.org/)
@@ -10,7 +10,7 @@
 
 ## Overview
 
-MMDET is a custom object-detection toolkit built on top of OpenMMLab components. It is designed for satellite and related computer-vision workloads where you need reproducible workflows for:
+SimpleDet is a custom object-detection toolkit built on top of OpenMMLab components. It is designed for satellite and related computer-vision workloads where you need reproducible workflows for:
 
 - training and fine-tuning detection models
 - inference and evaluation
