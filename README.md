@@ -6,7 +6,7 @@
 
 [![Install](https://img.shields.io/badge/Install-Quick%20Start-2ea44f?logo=python&logoColor=white)](#installation)
 [![Use](https://img.shields.io/badge/Usage-Training%20%26%20Inference-0a66c2?logo=python)](#quick-start)
-[![Publish](https://img.shields.io/badge/Release-Publish-ff9800?logo=python&logoColor=white)](#publishing)
+[![Publish](https://img.shields.io/badge/Release-0.1.0-brightgreen?logo=pypi&logoColor=white)](https://pypi.org/project/simpledet/0.1.0/)
 
 ## Overview
 
