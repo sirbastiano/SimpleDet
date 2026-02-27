@@ -32,4 +32,6 @@ studies/tta_study/*
 # Ignore AI-agent generated artifacts
 .agents/
 .codex/
+.apgents/
+.ralp/
 AGENTS.md
