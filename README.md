@@ -59,6 +59,14 @@ python -m simpledet --version
 - `simpledet.evaluate`: evaluation utilities
 - `simpledet.cli`: command-line checks and diagnostics
 
+### Repository structure
+
+- `simpledet/`: installable Python package (package code and model utilities)
+- `MyConfigs/`: dataset/model configuration sources used in experiments
+- `studies/`, `notebooks/`: exploratory analyses and research workflows
+- `runscripts/`: executable training/inference launch scripts
+- `build/`: generated build output (not intended for direct edits)
+
 ## Publishing
 
 Use the project Makefile for deterministic releases.
