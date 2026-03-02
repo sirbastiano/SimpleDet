@@ -142,14 +142,14 @@ class OpticalSystem:
         axes[0].set_xlabel('X-axis')
         axes[0].set_ylabel('Y-axis')
         # BEGIN: Add colorbar
-        cbar = fig.colorbar(axes[0].images[0], ax=axes[0], orientation='vertical')
+        fig.colorbar(axes[0].images[0], ax=axes[0], orientation='vertical')
         # Plot the MTF kernel
         axes[1].imshow(self.mtf_kernel, cmap='viridis', interpolation='nearest')
         axes[1].set_title("2D MTF Kernel")
         axes[1].set_xlabel('X-axis')
         axes[1].set_ylabel('Y-axis')
         # BEGIN: Add colorbar
-        cbar = fig.colorbar(axes[1].images[0], ax=axes[1], orientation='vertical')
+        fig.colorbar(axes[1].images[0], ax=axes[1], orientation='vertical')
         # END: Add colorbar
 
         plt.tight_layout()

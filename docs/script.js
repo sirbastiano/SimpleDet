@@ -1,5 +1,36 @@
 (() => {
+  const THEMES = ['theme-aurora', 'theme-midnight', 'theme-volcano'];
+  const DEFAULT_THEME = 'theme-aurora';
+  const STORAGE_THEME = 'mmdet-docs-theme';
   const path = window.location.pathname.split('/').pop() || 'index.html';
+
+  const body = document.body;
+  const storedTheme = window.localStorage ? window.localStorage.getItem(STORAGE_THEME) : null;
+  const hasStoredTheme = THEMES.includes(storedTheme || '');
+
+  const initTheme = hasStoredTheme ? storedTheme : DEFAULT_THEME;
+  THEMES.forEach((theme) => body.classList.remove(theme));
+  body.classList.add(initTheme);
+
+  document.querySelectorAll('.theme-btn').forEach((button) => {
+    if (button.dataset.theme === initTheme) {
+      button.classList.add('active');
+    }
+    button.addEventListener('click', () => {
+      const theme = button.dataset.theme;
+      if (!THEMES.includes(theme)) {
+        return;
+      }
+      THEMES.forEach((candidate) => body.classList.remove(candidate));
+      body.classList.add(theme);
+      document.querySelectorAll('.theme-btn').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+      if (window.localStorage) {
+        window.localStorage.setItem(STORAGE_THEME, theme);
+      }
+    });
+  });
+
   document.querySelectorAll('.nav-link').forEach((link) => {
     const target = new URL(link.href, window.location.origin).pathname.split('/').pop();
     if (target === path) {

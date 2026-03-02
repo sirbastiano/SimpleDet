@@ -73,7 +73,7 @@ def read_and_plot_bbox_map50(json_file_path: str, save_plot: bool = True) -> Non
     plt.show()
     
     # Print summary statistics
-    print(f'\nbbox_mAP_50 Summary:')
+    print('\nbbox_mAP_50 Summary:')
     print(f'Number of evaluation points: {len(bbox_map_50_values)}')
     print(f'Best mAP@0.5: {max(bbox_map_50_values):.3f} at step {steps[np.argmax(bbox_map_50_values)]}')
     print(f'Final mAP@0.5: {bbox_map_50_values[-1]:.3f}')
@@ -157,7 +157,7 @@ def read_and_plot_metrics(json_file_path: str, metrics_to_plot: Optional[List[st
     if 'coco/bbox_mAP_50' in metrics_data and metrics_data['coco/bbox_mAP_50']['values']:
         values = metrics_data['coco/bbox_mAP_50']['values']
         steps = metrics_data['coco/bbox_mAP_50']['steps']
-        print(f'\nbbox_mAP_50 Summary:')
+        print('\nbbox_mAP_50 Summary:')
         print(f'Best: {max(values):.3f} at step {steps[np.argmax(values)]}')
         print(f'Final: {values[-1]:.3f}')
         print(f'Improvement: {values[-1] - values[0]:.3f}')

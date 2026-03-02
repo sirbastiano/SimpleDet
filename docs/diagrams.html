@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MMDET Docs - Pipeline Diagrams</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">MMDET <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="installation.html">Installation</a>
+          <a class="nav-link" href="getting-started.html">Getting Started</a>
+          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
+          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <h1>Pipeline diagrams</h1>
+        <p class="subtle">Execution flows for train/evaluate and inference paths, rendered in Figma for easy sharing and review.</p>
+      </section>
+
+      <section class="content">
+        <div class="toc">
+          <strong>Quick map:</strong>
+          <a href="#legacy-api">Legacy API pipeline</a>
+          <a href="#api-train">Simple API training</a>
+          <a href="#inference">Inference flow</a>
+        </div>
+
+        <article class="section" id="legacy-api">
+          <h2>Legacy <code>ObjectDetectionPipeline</code> path</h2>
+          <p>From constructor and build to train/test/detect branches, this is the OpenMMLab-oriented path.</p>
+          <div class="gallery-grid">
+            <figure class="figure-card">
+              <h3>ObjectDetectionPipeline execution</h3>
+              <a href="https://www.figma.com/online-whiteboard/create-diagram/74dcecd5-355a-4dfe-b581-3748ee35bb22" target="_blank" rel="noopener">
+                <img src="https://s3-alpha.figma.com/thumbnails/cff6f30b-c687-46c5-a27e-7cb99cc6f45a?X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=AKIAQ4GOSFWCU23KU3XN%2F20260301%2Fus-west-2%2Fs3%2Faws4_request&amp;X-Amz-Date=20260301T104100Z&amp;X-Amz-Expires=604800&amp;X-Amz-SignedHeaders=host&amp;X-Amz-Signature=c5f0114aeef3f4956ced737155b84b1427989d954807b74fba450dc73f3fc316" alt="ObjectDetectionPipeline flow" />
+              </a>
+              <figcaption>Edit in Figma: <a href="https://www.figma.com/online-whiteboard/create-diagram/74dcecd5-355a-4dfe-b581-3748ee35bb22" target="_blank" rel="noopener">open source diagram</a>.</figcaption>
+            </figure>
+          </div>
+        </article>
+
+        <article class="section" id="api-train">
+          <h2>Simple API training flow</h2>
+          <p>Map this if you use <code>train(config=...)</code> and expect checkpoints + metrics output.</p>
+          <div class="gallery-grid">
+            <figure class="figure-card">
+              <h3>train(config) runtime path</h3>
+              <a href="https://www.figma.com/online-whiteboard/create-diagram/4f5d170b-dbc1-4173-8522-dce8cd704ef2" target="_blank" rel="noopener">
+                <img src="https://s3-alpha.figma.com/thumbnails/373e1769-eb00-4774-b362-ca37cf3b005b?X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=AKIAQ4GOSFWCU23KU3XN%2F20260301%2Fus-west-2%2Fs3%2Faws4_request&amp;X-Amz-Date=20260301T104049Z&amp;X-Amz-Expires=604800&amp;X-Amz-SignedHeaders=host&amp;X-Amz-Signature=3b8e856d384e5fb393ec8b954297817516e57a06858ffa843993820d7105ca44" alt="train(config) flow" />
+              </a>
+              <figcaption>Edit in Figma: <a href="https://www.figma.com/online-whiteboard/create-diagram/4f5d170b-dbc1-4173-8522-dce8cd704ef2" target="_blank" rel="noopener">open source diagram</a>.</figcaption>
+            </figure>
+          </div>
+        </article>
+
+        <article class="section" id="inference">
+          <h2>Inference execution path</h2>
+          <p>Visual path for loading checkpoints, preprocessing input, filtering predictions, and returning results.</p>
+          <div class="gallery-grid">
+            <figure class="figure-card">
+              <h3><code>load_model()</code> + <code>predict()</code></h3>
+              <a href="https://www.figma.com/online-whiteboard/create-diagram/7c5232fa-befc-44f0-a272-7c59fa06c92a" target="_blank" rel="noopener">
+                <img src="https://s3-alpha.figma.com/thumbnails/77d93d9a-4d70-48ed-b129-1dfa3b8de979?X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=AKIAQ4GOSFWCU23KU3XN%2F20260301%2Fus-west-2%2Fs3%2Faws4_request&amp;X-Amz-Date=20260301T104105Z&amp;X-Amz-Expires=604800&amp;X-Amz-SignedHeaders=host&amp;X-Amz-Signature=b722723cca3ca7c7009e9230d3a1390a43a2d4857adbfba094c57a266ab3fcf5" alt="inference flow" />
+              </a>
+              <figcaption>Edit in Figma: <a href="https://www.figma.com/online-whiteboard/create-diagram/7c5232fa-befc-44f0-a272-7c59fa06c92a" target="_blank" rel="noopener">open source diagram</a>.</figcaption>
+            </figure>
+          </div>
+        </article>
+
+        <article class="section">
+          <h2>How to reuse these diagrams</h2>
+          <ul>
+            <li>Open each card in Figma to export SVG/PNG for PR documentation or website embedding.</li>
+            <li>Use the exported images as a canonical reference in onboarding docs.</li>
+            <li>Regenerate from this page if training or inference logic changes.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <footer>MMDET documentation · Pipeline Diagrams</footer>
+  </body>
+</html>

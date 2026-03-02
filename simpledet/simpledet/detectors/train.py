@@ -133,7 +133,6 @@ def _build_torchvision_model(model_name: str, num_classes: int):
 
     # Keep imports lazy so import errors are surfaced only when the train path is used.
     require_dependency("torchvision", "train")
-    import torch
 
     model_factories = {
         "faster_rcnn_resnet50_fpn": torchvision.models.detection.fasterrcnn_resnet50_fpn,
@@ -240,6 +239,7 @@ def _train_minimal_flow(config: _ResolvedTrainConfig) -> dict[str, Any]:
     if requested_device.startswith("cuda") and not torch.cuda.is_available():
         requested_device = "cpu"
     device = torch.device(requested_device)
+    model_name = config.model_name
     model = _build_torchvision_model(model_name, num_classes=num_classes)
     model.to(device)
 
@@ -258,8 +258,6 @@ def _train_minimal_flow(config: _ResolvedTrainConfig) -> dict[str, Any]:
         num_workers=config.num_workers,
         collate_fn=lambda batch: tuple(zip(*batch)),
     )
-
-    model_name = config.model_name
 
     optimizer = _build_optimizer(model, config.learning_rate, config.optimizer, seed=config.seed)
 

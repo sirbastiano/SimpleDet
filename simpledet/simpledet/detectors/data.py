@@ -328,7 +328,6 @@ def _validate_generic_columns_present(
         if columns[canonical_col] not in row
     ]
     if missing:
-        missing_text = ", ".join(sorted(missing))
         raise ValueError(
             f"{source} file '{source_file}' row {row_no} missing required columns: "
             f"{', '.join(sorted(columns[col] for col in missing))}."

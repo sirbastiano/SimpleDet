@@ -1,6 +1,7 @@
 import argparse
 import logging
-import os, gc
+import os
+import gc
 import torch
 import numpy as np
 import random
@@ -9,7 +10,7 @@ import json
 # To set deterministic behaviour:
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # or ':16:8'
 
-from mmengine.config import Config, DictAction
+from mmengine.config import Config
 from mmengine.logging import print_log
 from mmengine.registry import RUNNERS
 from mmengine.runner import Runner
@@ -19,7 +20,6 @@ import timm
 
 from mmdet.utils import setup_cache_size_limit_of_dynamo
 
-import logging
 
 
 def set_logger(workdir):
@@ -167,7 +167,7 @@ def main(args):
 
     ## Dataloading Directories:
     data_root = '/Data_large/marine/Datasets/VDS2Raw/' if SENSOR == 'SENTINEL' else '/Data_large/marine/Datasets/VENuS' # where the images are stored
-    data_prefix = f'imgs/' if SENSOR == 'SENTINEL' else f'ds_L0/perfect/'
+    data_prefix = 'imgs/' if SENSOR == 'SENTINEL' else 'ds_L0/perfect/'
 
 
     optimizers =  {'SGD':{'type': 'OptimWrapper', 'optimizer': {'type': 'SGD', 'lr': LR, 'momentum': 0.9, 'weight_decay': 0.0001}},

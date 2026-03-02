@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MMDET Docs - Screenshots & GIFs</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">MMDET <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="installation.html">Installation</a>
+          <a class="nav-link" href="getting-started.html">Getting Started</a>
+          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
+          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <h1>Screenshots & GIFs</h1>
+        <p class="subtle">Visual reference for the most common workflows, with local static assets you can replace with your own captures.</p>
+      </section>
+
+      <section class="content">
+        <div class="gallery-grid">
+          <figure class="figure-card">
+            <h3>Install & bootstrap</h3>
+            <img src="assets/install-workflow.svg" alt="Install and bootstrap terminal flow" />
+            <figcaption>Expected terminal outputs for version check and OpenMMLab dependency validation.</figcaption>
+          </figure>
+          <figure class="figure-card">
+            <h3>Smoke training</h3>
+            <img src="assets/train-workflow.svg" alt="Smoke training workflow" />
+            <figcaption>Minimal one-epoch training run, then checkpoints in <code>results/</code>.</figcaption>
+          </figure>
+          <figure class="figure-card">
+            <h3>Inference run</h3>
+            <img src="assets/inference-workflow.svg" alt="Inference run" />
+            <figcaption>Load checkpoint then run inference and inspect boxes/class IDs and scores.</figcaption>
+          </figure>
+        </div>
+
+        <article class="section">
+          <h2>Pipeline diagram pack</h2>
+          <p>Prefer this for architecture-level flow:
+            <a href="diagrams.html">Open Figma pipeline diagrams</a>.
+          </p>
+
+          <h2>How to swap in real screenshots</h2>
+          <p>Drop new files to replace placeholders:</p>
+          <pre><code>docs/assets/install-workflow.svg
+# or convert images to any format and rename paths in this file</code></pre>
+        </article>
+      </section>
+    </main>
+
+    <footer>MMDET documentation · Screenshots & GIFs</footer>
+  </body>
+</html>

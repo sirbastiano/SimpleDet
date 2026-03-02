@@ -1,16 +1,16 @@
 import logging
-import os, sys
+import os
+import sys
 import torch
 import numpy as np
 import random
 import json
-import logging
 
 # To set deterministic behaviour:
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # or ':16:8'
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from mmengine.config import Config, DictAction
+from mmengine.config import Config
 from mmengine.logging import print_log
 from mmengine.registry import RUNNERS
 from mmengine.runner import Runner
@@ -64,7 +64,6 @@ class ObjectDetectionPipeline:
 
     def _construct_workdir(self):
         bands_names = ''.join([f'_b{x}' for x in self.band])
-        single_multi = 'Multi' if len(self.band) > 1 else 'Single'
         k_mode = {'SENTINEL': 'Sentinel', 'VENUS': 'VENuS'}
         workdir = (f'/Data_large/marine/PythonProjects/MMDET/Deploy_out/'
                    f'{k_mode[self.sensor]}/Export/BS_{self.batch_size}/'
@@ -210,7 +209,7 @@ class ObjectDetectionPipeline:
             runner = RUNNERS.build(self.cfg)
         
         self.runner = runner
-        self.logger.info(f'Pipeline built successfully.')
+        self.logger.info('Pipeline built successfully.')
 
     def train(self):
         self.runner.train()
@@ -227,7 +226,7 @@ class ObjectDetectionPipeline:
             json.dump(output_test_data, json_file, indent=4)
 
         self.logger.info(f"Data has been saved to {file_name}")
-        self.logger.info(f'Testing completed successfully.')
+        self.logger.info('Testing completed successfully.')
         self.logger.info(f'output_test_data: {output_test_data}')
 
 

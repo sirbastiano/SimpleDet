@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css" />
     <script src="script.js" defer></script>
   </head>
-  <body>
+  <body class="theme-aurora">
     <header class="topbar">
       <nav class="nav">
         <a class="brand" href="index.html">MMDET <span>Docs</span></a>
@@ -16,111 +16,161 @@
           <a class="nav-link" href="installation.html">Installation</a>
           <a class="nav-link" href="getting-started.html">Getting Started</a>
           <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
+          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
         </div>
       </nav>
     </header>
 
     <main class="main">
       <section class="hero">
-        <h1>Running / Getting started</h1>
-        <p class="subtle">Use these commands to validate your environment, launch a smoke run, and run basic inference.</p>
+        <h1>Getting started</h1>
+        <p class="subtle">Use this flow for your first run, then move to API or script workflows.</p>
       </section>
 
       <section class="content">
         <div class="toc">
           <strong>Quick map:</strong>
-          <a href="#prereq">Prerequisites</a>
-          <a href="#checks">Sanity checks</a>
-          <a href="#training">Training smoke test</a>
-          <a href="#inference">Inference</a>
-          <a href="#verify">Verify outputs</a>
+          <a href="#quick-ref">Quick reference</a>
+          <a href="#workflow">Repository workflow</a>
+          <a href="#examples">Examples</a>
+          <a href="#verify">Verify results</a>
         </div>
 
-        <article class="section" id="prereq">
-          <h2>Prerequisites</h2>
-          <p>Install first, then run CLI validation:</p>
-          <pre><code>python -m pip install -e .
+        <article class="section" id="quick-ref">
+          <h2>Quick reference (3-minute setup)</h2>
+          <pre><code># 1) editable install
+python -m pip install -e .
+
+# 2) check CLI
 python -m simpledet --version
-python -m simpledet --check-openmmlab</code></pre>
+python -m simpledet --check-openmmlab
+
+# 3) CUDA sanity
+python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+</code></pre>
+          <p>Core public surface in Python:</p>
+          <pre><code>from simpledet import train, detect, evaluate, Config, detectors</code></pre>
         </article>
 
-        <article class="section" id="checks">
-          <h2>Quick sanity checks</h2>
-          <pre><code>python -c "import torch; print(torch.__version__, torch.cuda.is_available())"</code></pre>
-          <pre><code>python - <<'PY'
-from pathlib import Path
-print('annotations exists:', Path('path/to/annotations.json').is_file())
-print('images exists:', Path('path/to/images').is_dir())
-PY</code></pre>
+        <article class="section" id="workflow">
+          <h2>Repository quick use map</h2>
+          <div class="grid">
+            <article class="card">
+              <h3>1. Install & check</h3>
+              <p>Use CLI diagnostics first, then choose your execution style.</p>
+            </article>
+            <article class="card">
+              <h3>2. Train</h3>
+              <p>Use script launchers or API training with <code>train(config={...})</code>.</p>
+            </article>
+            <article class="card">
+              <h3>3. Infer</h3>
+              <p>Use <code>load_model</code> + <code>predict</code> for reusable inference.</p>
+            </article>
+            <article class="card">
+              <h3>4. Evaluate</h3>
+              <p>Use <code>simpledet.evaluate</code> or pipeline-aware flow.</p>
+            </article>
+          </div>
+
+          <h3>Script flow (legacy launcher)</h3>
+          <pre><code>python runscripts/SenTrainer.py --batch_size 2 --band "[2,3,4,8]" --seed 54 --learning_rate 0.0005 --max_epochs 1 --sensor SENTINEL --AMP False
+python runscripts/VenTrainer.py --batch_size 2 --band "[10]" --seed 54 --learning_rate 0.0009 --max_epochs 1 --sensor VENUS --AMP False</code></pre>
         </article>
 
-        <article class="section" id="training">
-          <h2>Training smoke test</h2>
-          <p>Run a 1 epoch command first, then scale settings for production.</p>
-          <pre><code>python runscripts/SenTrainer.py \
-  --batch_size 2 \
-  --band "[5]" \
-  --seed 71 \
-  --learning_rate 0.001 \
-  --max_epochs 1 \
-  --sensor SENTINEL \
-  --AMP False</code></pre>
+        <article class="section" id="examples">
+          <h2>Examples (copyable snippets)</h2>
 
-          <p>Run a VENUS variant smoke test:</p>
-          <pre><code>python runscripts/VenTrainer.py \
-  --batch_size 2 \
-  --band "[10]" \
-  --seed 54 \
-  --learning_rate 0.0009 \
-  --max_epochs 1 \
-  --sensor VENUS</code></pre>
-
-          <h3>API usage</h3>
+          <h3>A) API training (minimal)</h3>
           <pre><code>from simpledet import train
 
-result = train(config={
-    "dataset": "path/to/annotations.json",
-    "output_dir": "runs/mmdet_smoke",
-    "model_name": "faster_rcnn_resnet50_fpn",
-    "epochs": 1,
-    "batch_size": 2,
-    "learning_rate": 0.001,
-    "dataset_path": "path/to/dataset_root",
-    "train_split": "train",
-    "device": "cuda",
-})
-print(result["checkpoint_path"])</code></pre>
-        </article>
+result = train(
+    config={
+        "dataset": "path/to/coco_or_root",
+        "output_dir": "results/mmdet_smoke",
+        "model_name": "faster_rcnn_resnet50_fpn",
+        "epochs": 1,
+        "batch_size": 2,
+        "learning_rate": 0.001,
+        "train_split": "train",
+        "num_workers": 4,
+        "device": "cuda",
+    }
+)
 
-        <article class="section" id="inference">
-          <h2>Inference</h2>
+print(result["checkpoint_path"])
+print(result["metrics_path"])
+</code></pre>
+
+          <h3>B) Build and run inference with a checkpoint</h3>
           <pre><code>from PIL import Image
 from simpledet.detectors.infer import load_model, predict
 
 model = load_model(
-    "runs/mmdet_smoke/epoch_001.pth",
+    checkpoint="results/mmdet_smoke/epoch_001.pth",
     device="cpu",
     score_threshold=0.2,
-    max_detections=200,
+    max_detections=128,
 )
 
-res = predict(Image.open("path/to/sample.tif"), model=model)
-print(res["boxes"][:5], res["scores"][:5], res["class_ids"][:5])</code></pre>
+result = predict(Image.open("path/to/sample.tif"), model=model)
+print(result["boxes"][:3])
+print(result["scores"][:3])
+print(result["class_ids"][:3])
+</code></pre>
+
+          <h3>C) Dataset format checks</h3>
+          <pre><code>from simpledet.detectors.data import list_formats, load_dataset
+
+print(list_formats())
+payload = load_dataset(path="path/to/dataset_root", format="coco")
+print(payload.keys())
+print(f"images: {len(payload.get('images', []))}")
+</code></pre>
+
+          <h3>D) Evaluate with an existing pipeline (legacy flow)</h3>
+          <pre><code>from simpledet.api import ObjectDetectionPipeline
+from simpledet import evaluate
+
+pipeline = ObjectDetectionPipeline(
+    model_cfg={},
+    batch_size=2,
+    max_epochs=1,
+    data_folder="/path/to/data",
+    annot_file_train="/path/to/train_annotations.json",
+    annot_file_val="/path/to/val_annotations.json",
+    annot_file_test="/path/to/test_annotations.json",
+    config_folder="./MyConfigs",
+    tif_channels_to_load=[1],
+    categories=("wake",),
+)
+
+result = evaluate(pipeline=pipeline)
+print("evaluate completed", result)
+</code></pre>
+
+          <h3>E) Detect API shortcut</h3>
+          <pre><code>from simpledet import detect
+# detect(pipeline=...) executes pipeline.test()
+</code></pre>
         </article>
 
         <article class="section" id="verify">
-          <h2>Verify training output</h2>
-          <pre><code>ls -R runs/mmdet_smoke
-
+          <h2>Verify outputs</h2>
+          <pre><code>ls -R results/mmdet_smoke
 python - <<'PY'
 import json
-with open("runs/mmdet_smoke/coco_metrics.json") as f:
-    m = json.load(f)
-print(m.keys())
+with open('results/mmdet_smoke/metrics.json') as f:
+    print(json.load(f).keys())
 PY</code></pre>
-          <p>Minimum expected files from the smoke run:</p>
-          <pre><code>ls runs/mmdet_smoke/*.pth
-python -c "import json;print(json.load(open('runs/mmdet_smoke/coco_metrics.json')).get('bbox_mAP', 'missing'))"</code></pre>
+          <p>Minimal API flow artifacts: <code>epoch_###.pth</code> and <code>metrics.json</code> in output directory.</p>
         </article>
       </section>
     </main>

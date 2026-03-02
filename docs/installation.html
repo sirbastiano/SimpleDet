@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css" />
     <script src="script.js" defer></script>
   </head>
-  <body>
+  <body class="theme-aurora">
     <header class="topbar">
       <nav class="nav">
         <a class="brand" href="index.html">MMDET <span>Docs</span></a>
@@ -16,6 +16,14 @@
           <a class="nav-link" href="installation.html">Installation</a>
           <a class="nav-link" href="getting-started.html">Getting Started</a>
           <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
+          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
         </div>
       </nav>
     </header>
@@ -23,7 +31,7 @@
     <main class="main">
       <section class="hero">
         <h1>Installation</h1>
-        <p class="subtle">Install for development, run a fast runtime check, then validate optional OpenMMLab dependencies.</p>
+        <p class="subtle">Install the package, verify entrypoints, and validate optional OpenMMLab tooling.</p>
       </section>
 
       <section class="content">
@@ -32,39 +40,47 @@
           <a href="#requirements">Requirements</a>
           <a href="#install">Install</a>
           <a href="#verification">Verification</a>
-          <a href="#troubleshooting">Troubleshooting</a>
+          <a href="#advanced">Advanced</a>
         </div>
 
         <article class="section" id="requirements">
           <h2>Requirements</h2>
-          <p>Python 3.10+ is recommended. You need a working CUDA-enabled setup only if you plan to train on GPU.</p>
+          <ul>
+            <li>Python 3.8+</li>
+            <li><code>torch</code> + <code>mmengine</code> + <code>mmdet</code> for API operations</li>
+            <li>CUDA/driver alignment if using GPU training</li>
+          </ul>
           <pre><code>python --version
 python -m pip --version</code></pre>
         </article>
 
         <article class="section" id="install">
-          <h2>Editable install</h2>
-          <p>Clone the repository and install the package in editable mode from project root:</p>
-          <pre><code>python -m pip install -e .</code></pre>
-          <p>Alternative package check:</p>
-          <pre><code>python -m simpledet --version</code></pre>
-          <p>From a new terminal, verify CLI launch works:</p>
-          <pre><code>simpledet --help</code></pre>
+          <h2>Editable install (recommended)</h2>
+          <pre><code>git clone https://github.com/sirbastiano/MDet.git
+cd MMDET
+python -m pip install -e .</code></pre>
+
+          <h3>Install with OpenMMLab extras</h3>
+          <p>If you need optional runtime tooling:</p>
+          <pre><code>python -m pip install -e .[openmmlab]</code></pre>
+
+          <h3>Verify CLI entrypoint</h3>
+          <pre><code>python -m simpledet --version
+simpledet --help</code></pre>
         </article>
 
         <article class="section" id="verification">
-          <h2>OpenMMLab dependency check</h2>
+          <h2>Runtime validation</h2>
           <pre><code>python -m simpledet --check-openmmlab</code></pre>
-          <p>If your environment is using CUDA, keep torch/cuda versions aligned with your GPU driver.</p>
+          <p>Check fails when <code>torch</code>, <code>numpy</code>, <code>torchvision</code>, <code>mmengine</code>, or <code>mmdet</code> is missing.</p>
         </article>
 
-        <article class="section" id="troubleshooting">
-          <h2>Troubleshooting</h2>
-          <ul>
-            <li><strong>CLI not found:</strong> ensure install succeeded and check active environment/bin path.</li>
-            <li><strong>Version mismatch:</strong> rerun your CUDA/torch install and then reinstall dependencies.</li>
-            <li><strong>Permission issues:</strong> avoid global installs; use virtual environments only.</li>
-          </ul>
+        <article class="section" id="advanced">
+          <h2>Script-first / environment helpers</h2>
+          <p>Repo helper scripts:</p>
+          <pre><code>./setup.sh
+./deploy.sh</code></pre>
+          <p>Use these only if your environment matches the script assumptions.</p>
         </article>
       </section>
     </main>

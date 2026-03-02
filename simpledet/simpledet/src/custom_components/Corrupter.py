@@ -1,19 +1,11 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-import warnings
-from typing import Optional
 
 from mmcv.transforms import BaseTransform
 from mmdet.registry import TRANSFORMS
 
-import mmcv
-import mmengine.fileio as fileio
-
-import rasterio as rio
-import numpy as np
 
 import numpy as np
-from scipy.ndimage import convolve
-from skimage import util
+
 
 from .aux import OpticalSystem
 

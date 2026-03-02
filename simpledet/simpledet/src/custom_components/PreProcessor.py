@@ -1,26 +1,21 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-import random
 from numbers import Number
 import math
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 # from mmengine.dist import barrier, broadcast, get_dist_info
-from mmengine.logging import MessageHub
 from mmengine.model import BaseDataPreprocessor #, ImgDataPreprocessor
 from mmengine.structures import PixelData
 from mmengine.utils import is_seq_of
 from mmengine.model.utils import  stack_batch
-from torch import Tensor
 
-from mmdet.models.utils import unfold_wo_center
 from mmdet.models.utils.misc import samplelist_boxtype2tensor
 from mmdet.registry import MODELS
 from mmdet.structures import DetDataSample
-from mmdet.structures.mask import BitmapMasks
 # from mmdet.utils import ConfigType
 
 try:

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css" />
     <script src="script.js" defer></script>
   </head>
-  <body>
+  <body class="theme-aurora">
     <header class="topbar">
       <nav class="nav">
         <a class="brand" href="index.html">MMDET <span>Docs</span></a>
@@ -16,6 +16,14 @@
           <a class="nav-link" href="installation.html">Installation</a>
           <a class="nav-link" href="getting-started.html">Getting Started</a>
           <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
+          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
         </div>
       </nav>
     </header>
@@ -23,36 +31,38 @@
     <main class="main">
       <section class="hero">
         <h1>MMDET documentation</h1>
-        <p class="subtle">A practical reference for setup, running experiments, and understanding the project architecture.</p>
+        <p class="subtle">Practical, concise docs for setup, training, inference, and workflow visual guides.</p>
         <div class="btn-row">
-          <a class="btn" href="https://github.com" target="_blank" rel="noopener">GitHub</a>
-          <a class="btn" href="installation.html">Install Guide</a>
-          <a class="btn" href="getting-started.html">Run your first smoke test</a>
-          <a class="btn" href="core-concepts.html">Understand the core</a>
+          <a class="btn" href="https://github.com/sirbastiano/MDet" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn" href="installation.html">Install</a>
+          <a class="btn" href="getting-started.html#quick-ref">Quick Reference</a>
+          <a class="btn" href="core-concepts.html">Architecture</a>
+          <a class="btn" href="diagrams.html">Pipeline diagrams</a>
+          <a class="btn" href="screenshots.html">Visual walkthroughs</a>
         </div>
       </section>
 
       <section class="content">
         <div class="grid">
           <article class="card">
-            <h3>Fast setup</h3>
-            <p>Get to working code with editable install and dependency checks in under two minutes.</p>
-            <a class="btn" href="installation.html">Open installation</a>
+            <h3>Repository quick start</h3>
+            <p>Editable install, CLI diagnostics, and a smoke run in the first minutes.</p>
+            <a class="btn" href="getting-started.html#quick-ref">Open quick ref</a>
           </article>
           <article class="card">
-            <h3>Run workflows</h3>
-            <p>Train, evaluate, and run inference with the CLI or Python API with reproducible smoke test commands.</p>
-            <a class="btn" href="getting-started.html">Open getting started</a>
+            <h3>Train, evaluate, infer</h3>
+            <p>Use <code>train</code>, <code>evaluate</code>, <code>simpledet.detect</code>, and checkpoint inference.</p>
+            <a class="btn" href="core-concepts.html#entrypoints">Open API map</a>
           </article>
           <article class="card">
-            <h3>Understand MMDET</h3>
-            <p>Learn where training, inference, and configuration live in the codebase before changing pipelines.</p>
-            <a class="btn" href="core-concepts.html">Open concepts</a>
+            <h3>Example snippets</h3>
+            <p>Copy-ready templates for dataset checks, smoke train, and batch inference.</p>
+            <a class="btn" href="getting-started.html#examples">Open examples</a>
           </article>
           <article class="card">
-            <h3>Ready-to-share</h3>
-            <p>Docs are static and GitHub-friendly with copy-ready command blocks for internal handoff and onboarding.</p>
-            <a class="btn" href="../README.md">Project README</a>
+            <h3>Visual runbooks</h3>
+            <p>Workflow screenshots and animated placeholders that match this docs navigation.</p>
+            <a class="btn" href="screenshots.html">Open visuals</a>
           </article>
         </div>
       </section>

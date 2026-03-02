@@ -1,5 +1,4 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-import warnings
 from typing import Optional
 
 from mmcv.transforms import BaseTransform
@@ -10,8 +9,6 @@ import mmengine.fileio as fileio
 
 import rasterio as rio
 import numpy as np
-from PIL import Image
-import cv2
 
 # Required by loader
 def read_tif(file_path, band_indices):

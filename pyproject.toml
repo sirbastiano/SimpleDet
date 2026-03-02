@@ -55,5 +55,5 @@ Source = "https://github.com/sirbastiano/MDet"
 simpledet = "simpledet.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["simpledet"]
 include = ["simpledet*"]

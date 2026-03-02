@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" role="img" aria-label="install workflow">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7fd1ff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#8dffc5" stop-opacity="0.25"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="420" fill="#050814"/>
+  <rect x="12" y="12" width="876" height="396" rx="14" fill="#0b1331" stroke="#6d8cc4"/>
+  <rect x="24" y="24" width="852" height="48" fill="#102051"/>
+  <text x="40" y="56" fill="#e8f0ff" font-family="monospace" font-size="20">$ python -m pip install -e .</text>
+  <text x="40" y="100" fill="#8fdcff" font-family="monospace" font-size="16">Collecting simpledet ...
+</text>
+  <text x="40" y="132" fill="#8fdcff" font-family="monospace" font-size="16">Successfully installed simpledet-0.1.0</text>
+  <text x="40" y="178" fill="#e8f0ff" font-family="monospace" font-size="20">$ python -m simpledet --check-openmmlab</text>
+  <text x="40" y="214" fill="#9cf7d6" font-family="monospace" font-size="16">Optional OpenMMLab runtime stack is available.</text>
+  <rect x="48" y="238" width="804" height="90" rx="12" fill="url(#g1)" stroke="#7fd1ff"/>
+  <text x="66" y="272" fill="#dbeaff" font-family="monospace" font-size="16">Tip: re-run when env changes or driver updates.</text>
+  <circle cx="840" cy="84" r="12" fill="#8dffc5">
+    <animate attributeName="r" values="10;14;10" dur="3s" repeatCount="indefinite" />
+  </circle>
+</svg>

@@ -9,7 +9,7 @@ import json
 # To set deterministic behaviour:
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # or ':16:8'
 
-from mmengine.config import Config, DictAction
+from mmengine.config import Config
 from mmengine.logging import print_log
 from mmengine.registry import RUNNERS
 from mmengine.runner import Runner
@@ -17,7 +17,6 @@ from mmdet.evaluation import DumpDetResults
 
 from mmdet.utils import setup_cache_size_limit_of_dynamo
 
-import logging
 
 def set_logger(workdir):
     """
@@ -128,7 +127,7 @@ def main(args):
 
     ## Testing:
     data_root = '/Data_large/marine/Datasets/VENuS/ds_L0/'
-    data_prefix = f'perfect/'
+    data_prefix = 'perfect/'
 
     # Deterministic Behaviour setting:
     SEED = args.seed

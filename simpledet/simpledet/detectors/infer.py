@@ -55,7 +55,6 @@ def _extract_state_dict(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[s
 
 def _build_torchvision_model(model_name: str, num_classes: int):
     require_dependency("torchvision", "infer")
-    import torch
     import torchvision
 
     model_factories = {

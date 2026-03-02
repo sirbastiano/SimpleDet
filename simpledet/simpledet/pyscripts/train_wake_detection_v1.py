@@ -21,12 +21,9 @@ import torch
 from dotenv import load_dotenv
 
 from mmengine.config import Config
-from mmengine.logging import MMLogger
-from mmengine.model import revert_sync_batchnorm
 from mmengine.runner import Runner
-from mmengine.utils import digit_version
 from mmengine.logging import print_log
-from mmengine.registry import RUNNERS, init_default_scope, MODELS
+from mmengine.registry import RUNNERS
 from mmdet.evaluation import DumpDetResults
 from mmdet.utils import setup_cache_size_limit_of_dynamo
 
@@ -144,7 +141,7 @@ class ObjectDetectionPipeline:
         self.std_vals = std_vals
         self.tif_channels_to_load = tif_channels_to_load
         assert self.tif_channels_to_load is not None, 'Channels to load from the tif file must be specified.'
-        assert type(self.tif_channels_to_load) == list, 'Channels to load from the tif file must be specified as a list.'
+        assert isinstance(self.tif_channels_to_load, list), 'Channels to load from the tif file must be specified as a list.'
         assert len(tif_channels_to_load) == self.in_channels, 'Number of channels to load from the tif file must be equal to the number of input channels.'
         self.categories = categories
         assert self.categories is not None, 'Categories must be specified.'
@@ -375,7 +372,7 @@ class ObjectDetectionPipeline:
             runner = RUNNERS.build(self.cfg)
         
         self.runner = runner
-        self.logger.info(f'Pipeline built successfully.')
+        self.logger.info('Pipeline built successfully.')
 
     def train(self) -> None:
         """Train the model."""
@@ -390,7 +387,7 @@ class ObjectDetectionPipeline:
             json.dump(output_test_data, json_file, indent=4)
 
         self.logger.info(f"Data has been saved to {self.outfile_metric}")
-        self.logger.info(f'Testing completed successfully.')
+        self.logger.info('Testing completed successfully.')
         self.logger.info(f'output_test_data: {output_test_data}')
 
 

@@ -1,12 +1,13 @@
 import numpy as np
 import torch
-import os, sys
-import torch
+import os
+import sys
 import random
 import json
 import logging
-import ast
 import time
+ 
+# ruff: noqa: F403,F405,F601
 
 
 sys.path.append('/Data_large/marine/PythonProjects/MMDET/notebooks/Tools')
@@ -15,13 +16,11 @@ sys.path.append('/Data_large/marine/PythonProjects/MMDET/MyConfigs')
 # To set deterministic behaviour:
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # or ':16:8'
 
-from mmengine.config import Config, DictAction
+from mmengine.config import Config
 from mmengine.logging import MMLogger
-from mmengine.model import revert_sync_batchnorm
 from mmengine.runner import Runner
-from mmengine.utils import digit_version
 from mmengine.logging import print_log
-from mmengine.registry import RUNNERS, init_default_scope, MODELS
+from mmengine.registry import RUNNERS
 from mmdet.evaluation import DumpDetResults
 
 
@@ -64,7 +63,6 @@ model_dict = {
     'fovea_r18': fovea_r18,
     'fovea_r34': fovea_r34,
     'fovea_r50': fovea_r50,
-    'fovea_r101': fovea_r101,
     'mask_rcnn_r101_fpn': mask_rcnn_r101_fpn,
     'mask_rcnn_r18_fpn': mask_rcnn_r18_fpn,
     'mask_rcnn_r34_fpn': mask_rcnn_r34_fpn,
@@ -165,7 +163,7 @@ class ObjectDetectionPipeline:
         self.std_vals = std_vals
         self.tif_channels_to_load = tif_channels_to_load
         assert self.tif_channels_to_load is not None, 'Channels to load from the tif file must be specified.'
-        assert type(self.tif_channels_to_load) == list, 'Channels to load from the tif file must be specified as a list.'
+        assert isinstance(self.tif_channels_to_load, list), 'Channels to load from the tif file must be specified as a list.'
         assert len(tif_channels_to_load) == self.in_channels, 'Number of channels to load from the tif file must be equal to the number of input channels.'
         self.categories = categories
         assert self.categories is not None, 'Categories must be specified.'
@@ -418,7 +416,7 @@ class ObjectDetectionPipeline:
             runner = RUNNERS.build(self.cfg)
         
         self.runner = runner
-        self.logger.info(f'Pipeline built successfully.')
+        self.logger.info('Pipeline built successfully.')
 
     def train(self):
         self.runner.train()
@@ -435,7 +433,7 @@ class ObjectDetectionPipeline:
             json.dump(output_test_data, json_file, indent=4)
 
         self.logger.info(f"Data has been saved to {file_name}")
-        self.logger.info(f'Testing completed successfully.')
+        self.logger.info('Testing completed successfully.')
         self.logger.info(f'output_test_data: {output_test_data}')
         
         

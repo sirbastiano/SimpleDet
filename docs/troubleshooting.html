@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MMDET Docs - Troubleshooting</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">MMDET <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="installation.html">Installation</a>
+          <a class="nav-link" href="getting-started.html">Getting Started</a>
+          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
+          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <h1>Troubleshooting</h1>
+        <p class="subtle">Issue-to-fix matrix for install, CLI, data, scripts, and API execution.</p>
+      </section>
+
+      <section class="content">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>Likely cause</th>
+                <th>How to resolve</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>python -m simpledet --check-openmmlab</code> returns missing dependency</td>
+                <td>Optional dependencies for runtime checks are not installed</td>
+                <td>Install required modules and retry: <code>python -m pip install -e .[openmmlab]</code>, then rerun the check.</td>
+              </tr>
+              <tr>
+                <td><code>simpledet --help</code> not found</td>
+                <td>CLI entrypoint not installed in current environment</td>
+                <td>Reactivate the environment and run <code>python -m pip install -e .</code> from repo root.</td>
+              </tr>
+              <tr>
+                <td>Script run exits with <code>KeyError/Model not configured</code></td>
+                <td>Legacy launcher expects expected data and annotation paths</td>
+                <td>Double-check <code>data_folder</code>, <code>annot_file_train</code>, <code>annot_file_val</code>, <code>annot_file_test</code>.</td>
+              </tr>
+              <tr>
+                <td>API training returns empty dataset / no samples</td>
+                <td>Wrong dataset path or unsupported format</td>
+                <td>Run <code>from simpledet.detectors.data import list_formats, load_dataset</code>; pass explicit <code>format='coco'</code>/<code>json</code>/<code>yolo</code>.</td>
+              </tr>
+              <tr>
+                <td>Checkpoint inference fails: unsupported format</td>
+                <td>Checkpoint extension must be <code>.pth</code>/<code>.pt</code>/<code>.ckpt</code></td>
+                <td>Use supported extension or call <code>load_model(checkpoint=...)</code> with a valid file path.</td>
+              </tr>
+              <tr>
+                <td>CUDA not used even if available</td>
+                <td>Config or launch command forces CPU</td>
+                <td>For API mode set <code>device='cuda'</code> and verify <code>torch.cuda.is_available()</code>.</td>
+              </tr>
+              <tr>
+                <td>`simpledet` commands time out on import</td>
+                <td>Heavy environment import from optional modules</td>
+                <td>Use script entrypoint only for checks; load modules lazily during model runs.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="section">
+          <h2>Emergency quick checks</h2>
+          <pre><code>python -m simpledet --version
+python -m simpledet --check-openmmlab
+python - <<'PY'
+from simpledet.detectors.data import list_formats
+print('formats:', list_formats())
+PY</code></pre>
+        </article>
+      </section>
+    </main>
+
+    <footer>MMDET documentation · Troubleshooting</footer>
+  </body>
+</html>

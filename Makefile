@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 PYTHON ?= python3
 PACKAGE ?= simpledet
 
-.PHONY: help install install-editable build sdist wheel check publish publish-test clean
+.PHONY: help install install-editable build sdist wheel check publish publish-test test clean docs-check docs-verify
 
 help:
 	@echo "Targets:"
@@ -12,7 +12,8 @@ help:
 	@echo "  make build          Build source distribution and wheel"
 	@echo "  make sdist           Build source distribution only"
 	@echo "  make wheel           Build wheel only"
-	@echo "  make check           Validate sdist/wheel metadata"
+	@echo "  make docs-check      Validate docs files and local links"
+	@echo "  make check           Run tests, docs checks, and twine metadata checks"
 	@echo "  make publish         Run bootstrap, build, check, then upload to PyPI"
 	@echo "  make publish-test    Run bootstrap, build, check, then upload to TestPyPI"
 	@echo "  make clean           Remove build artifacts"
@@ -35,14 +36,23 @@ sdist:
 wheel:
 	$(PYTHON) -m build --wheel
 
-check:
+check: test docs-check
 	$(PYTHON) -m twine check dist/*
+
+docs-check: docs-verify
+	@echo "Docs check complete."
+
+docs-verify:
+	$(PYTHON) scripts/verify_docs.py
 
 publish: bootstrap build check
 	$(PYTHON) -m twine upload dist/*
 
 publish-test: bootstrap build check
 	$(PYTHON) -m twine upload --repository testpypi dist/*
+
+test:
+	PYTHONPATH=simpledet $(PYTHON) -m unittest discover -s tests -p 'test*.py'
 
 clean:
 	rm -rf dist build .venv

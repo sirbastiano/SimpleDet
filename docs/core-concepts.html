@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css" />
     <script src="script.js" defer></script>
   </head>
-  <body>
+  <body class="theme-aurora">
     <header class="topbar">
       <nav class="nav">
         <a class="brand" href="index.html">MMDET <span>Docs</span></a>
@@ -16,6 +16,14 @@
           <a class="nav-link" href="installation.html">Installation</a>
           <a class="nav-link" href="getting-started.html">Getting Started</a>
           <a class="nav-link" href="core-concepts.html">Core Concepts</a>
+          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
+          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
         </div>
       </nav>
     </header>
@@ -23,79 +31,78 @@
     <main class="main">
       <section class="hero">
         <h1>Core concepts</h1>
-        <p class="subtle">What to understand before editing training scripts, adding datasets, or swapping detector backbones.</p>
+        <p class="subtle">Understand runtime execution before changing training scripts or configs.</p>
       </section>
 
       <section class="content">
         <div class="toc">
           <strong>Quick map:</strong>
           <a href="#architecture">Architecture</a>
-          <a href="#entrypoints">Execution paths</a>
-          <a href="#configs">Configuration model</a>
-          <a href="#outputs">Artifacts and outputs</a>
+          <a href="#entrypoints">Public entry points</a>
+          <a href="#data-model">Data model</a>
+          <a href="#outputs">Artifacts</a>
         </div>
 
         <article class="section" id="architecture">
           <h2>Architecture overview</h2>
           <ul>
-            <li><strong>simpledet package:</strong> core Python modules under <code>simpledet/</code> expose CLI, training, inference, and utilities.</li>
-            <li><strong>Detector backends:</strong> scripts and presets in <code>simpledet/detectors</code> and many model blueprints in <code>simpledet/src</code>.</li>
-            <li><strong>Configuration-centric:</strong> model behavior is primarily driven by config objects and run scripts.</li>
+            <li><strong>simpledet.cli</strong> – thin entrypoint for version and OpenMMLab checks.</li>
+            <li><strong>simpledet.api.ObjectDetectionPipeline</strong> – legacy OpenMMLab pipeline entry.</li>
+          <li><strong>simpledet.detectors</strong> – lightweight public API for train/infer/evaluate.</li>
+          <li><strong>simpledet.detectors.data</strong> – dataset format adapters and loading.</li>
+          <li><strong>runscripts/</strong> – script wrappers for preset training/inference flows.</li>
           </ul>
-          <pre><code>simpledet/
-  cli.py
-  __main__.py
-  api.py
-  detectors/
-    train.py
-    infer.py
-    evaluate.py
-  src/
-    configs/
-  simpledet/pyscripts/
-  runscripts/</code></pre>
+        </article>
+
+        <article class="section" id="pipeline-diagrams">
+          <h2>Pipeline diagrams</h2>
+          <p>For full visual guidance of execution flow, open the dedicated diagram page:</p>
+          <a class="btn" href="diagrams.html">Open pipeline diagrams</a>
         </article>
 
         <article class="section" id="entrypoints">
-          <h2>Execution paths</h2>
-          <h3>CLI-first flow</h3>
-          <p>Use entrypoint <code>python -m simpledet</code> or installed command <code>simpledet</code> for fast experiments and checks.</p>
-          <pre><code>simpledet --check-openmmlab</code></pre>
+          <h2>Public entry points</h2>
 
-          <h3>Script-first flow</h3>
-          <p>Use repo scripts for dataset-specific launch presets and repeatable runs.</p>
-          <pre><code>python runscripts/SenTrainer.py ...
-python runscripts/VenTrainer.py ...</code></pre>
+          <h3>CLI (`simpledet` / `python -m simpledet`)</h3>
+          <pre><code>python -m simpledet --version
+python -m simpledet --check-openmmlab</code></pre>
 
-          <h3>API-first flow</h3>
-          <p>Use <code>simpledet.train()</code> for programmatic integration in notebooks or services.</p>
-          <pre><code>from simpledet import train
-result = train(config={...})</code></pre>
+          <h3>Python API</h3>
+          <pre><code>from simpledet import train, detect, evaluate
+train(config={...})
+detect(pipeline=...)
+evaluate(pipeline=...)
+</code></pre>
+
+          <h3>Inference utilities</h3>
+          <pre><code>from simpledet.detectors.infer import load_model, predict
+
+model = load_model(checkpoint="path/to/checkpoint.pth", device="cpu")
+res = predict("image.tif", model=model)
+</code></pre>
         </article>
 
-        <article class="section" id="configs">
-          <h2>Configuration model</h2>
-          <p>Most experiment control comes from explicit parameters: datasets, model family, optimizers, run length, batch sizes, seeds, and sensor options.</p>
-          <pre><code>config = {
-  "dataset": "path/to/annotations.json",
-  "dataset_path": "path/to/dataset_root",
-  "model_name": "faster_rcnn_resnet50_fpn",
-  "epochs": 1,
-  "batch_size": 2,
-  "train_split": "train",
-  "device": "cuda",
-}</code></pre>
+        <article class="section" id="data-model">
+          <h2>Data model</h2>
+          <ul>
+            <li>API training config uses: <code>dataset</code>/<code>model_name</code>/<code>output_dir</code>/<code>epochs</code>/<code>batch_size</code>/<code>learning_rate</code>.</li>
+            <li>Dataset detection supports explicit and auto format selection.</li>
+            <li>Model names are validated before training.</li>
+          </ul>
         </article>
 
         <article class="section" id="outputs">
-          <h2>Artifacts and expected outputs</h2>
+          <h2>Artifacts and outputs</h2>
           <ul>
-            <li>Checkpoint files (<code>.pth</code>) in the selected output folder.</li>
-            <li>Metric reports like <code>coco_metrics.json</code> for post-run validation.</li>
-            <li>Log and scalar files useful for iteration comparison and debugging.</li>
+            <li><code>epoch_###.pth</code>: checkpoint file.</li>
+            <li><code>metrics.json</code>: training metrics and run summary.</li>
+            <li>Pipeline mode writes inference outputs in configured directories in `ObjectDetectionPipeline`.</li>
           </ul>
-          <pre><code>ls -R runs/mmdet_smoke
-python -c "import json;print(json.load(open('runs/mmdet_smoke/coco_metrics.json')).keys())"</code></pre>
+          <pre><code>ls -R results/mmdet_smoke
+python - <<'PY'
+import json
+print(json.load(open('results/mmdet_smoke/metrics.json')).get('history', []))
+PY</code></pre>
         </article>
       </section>
     </main>

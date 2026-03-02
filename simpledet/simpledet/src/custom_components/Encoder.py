@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 from mmdet.registry import MODELS
-from typing import List, Tuple
+from typing import List
 import timm
 
 

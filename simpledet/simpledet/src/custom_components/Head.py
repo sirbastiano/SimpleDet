@@ -1,11 +1,9 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from typing import List, Tuple, Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 from mmcv.cnn import ConvModule, Scale
-from mmcv.ops import DeformConv2d
 from torch import Tensor
 
 from mmdet.registry import MODELS, TASK_UTILS
