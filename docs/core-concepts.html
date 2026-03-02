@@ -48,9 +48,9 @@
           <ul>
             <li><strong>simpledet.cli</strong> – thin entrypoint for version and OpenMMLab checks.</li>
             <li><strong>simpledet.api.ObjectDetectionPipeline</strong> – legacy OpenMMLab pipeline entry.</li>
-          <li><strong>simpledet.detectors</strong> – lightweight public API for train/infer/evaluate.</li>
-          <li><strong>simpledet.detectors.data</strong> – dataset format adapters and loading.</li>
-          <li><strong>runscripts/</strong> – script wrappers for preset training/inference flows.</li>
+            <li><strong>simpledet.detectors</strong> – lightweight public API for train/infer/evaluate.</li>
+            <li><strong>simpledet.detectors.data</strong> – dataset format adapters and loading.</li>
+            <li><strong>runscripts/</strong> – script wrappers for preset training/inference flows.</li>
           </ul>
         </article>
 
@@ -65,7 +65,9 @@
 
           <h3>CLI (`simpledet` / `python -m simpledet`)</h3>
           <pre><code>python -m simpledet --version
-python -m simpledet --check-openmmlab</code></pre>
+python -m simpledet --check-openmmlab
+simpledet --help</code></pre>
+          <p><code>simpledet</code> is wired through <code>[project.scripts]</code> in <code>pyproject.toml</code>; fallback is always <code>python -m simpledet</code>.</p>
 
           <h3>Python API</h3>
           <pre><code>from simpledet import train, detect, evaluate
@@ -95,8 +97,8 @@ res = predict("image.tif", model=model)
           <h2>Artifacts and outputs</h2>
           <ul>
             <li><code>epoch_###.pth</code>: checkpoint file.</li>
-            <li><code>metrics.json</code>: training metrics and run summary.</li>
-            <li>Pipeline mode writes inference outputs in configured directories in `ObjectDetectionPipeline`.</li>
+            <li><code>metrics.json</code>: training metrics and run summary for public API mode.</li>
+            <li>Legacy pipeline mode writes <code>tests.pkl</code> and <code>metrics.pkl</code> in the configured work directory.</li>
           </ul>
           <pre><code>ls -R results/mmdet_smoke
 python - <<'PY'

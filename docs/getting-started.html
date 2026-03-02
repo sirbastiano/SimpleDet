@@ -55,6 +55,10 @@ python -m simpledet --check-openmmlab
 # 3) CUDA sanity
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 </code></pre>
+          <p>Expected minimum output:</p>
+          <pre><code>0.1.0
+Optional OpenMMLab runtime stack is available.
+torch 2.x.x cuda True|False</code></pre>
           <p>Core public surface in Python:</p>
           <pre><code>from simpledet import train, detect, evaluate, Config, detectors</code></pre>
         </article>
@@ -64,15 +68,15 @@ python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is
           <div class="grid">
             <article class="card">
               <h3>1. Install & check</h3>
-              <p>Use CLI diagnostics first, then choose your execution style.</p>
+              <p>Use CLI diagnostics first, then choose public API or legacy pipeline mode.</p>
             </article>
             <article class="card">
               <h3>2. Train</h3>
-              <p>Use script launchers or API training with <code>train(config={...})</code>.</p>
+              <p>Start with public API train for quick validation; move to script launchers for experiments.</p>
             </article>
             <article class="card">
               <h3>3. Infer</h3>
-              <p>Use <code>load_model</code> + <code>predict</code> for reusable inference.</p>
+              <p>Use <code>load_model</code> + <code>predict</code> for reusable inference wrappers.</p>
             </article>
             <article class="card">
               <h3>4. Evaluate</h3>
@@ -110,8 +114,7 @@ print(result["metrics_path"])
 </code></pre>
 
           <h3>B) Build and run inference with a checkpoint</h3>
-          <pre><code>from PIL import Image
-from simpledet.detectors.infer import load_model, predict
+          <pre><code>from simpledet.detectors.infer import load_model, predict
 
 model = load_model(
     checkpoint="results/mmdet_smoke/epoch_001.pth",
@@ -120,7 +123,7 @@ model = load_model(
     max_detections=128,
 )
 
-result = predict(Image.open("path/to/sample.tif"), model=model)
+result = predict("path/to/sample.tif", model=model)
 print(result["boxes"][:3])
 print(result["scores"][:3])
 print(result["class_ids"][:3])
@@ -135,12 +138,13 @@ print(payload.keys())
 print(f"images: {len(payload.get('images', []))}")
 </code></pre>
 
-          <h3>D) Evaluate with an existing pipeline (legacy flow)</h3>
+          <h3>D) Evaluate with existing pipeline (legacy flow)</h3>
           <pre><code>from simpledet.api import ObjectDetectionPipeline
 from simpledet import evaluate
 
 pipeline = ObjectDetectionPipeline(
-    model_cfg={},
+    model_cfg={"model":"RetinaNet"},
+    resize=768,
     batch_size=2,
     max_epochs=1,
     data_folder="/path/to/data",
@@ -155,6 +159,7 @@ pipeline = ObjectDetectionPipeline(
 result = evaluate(pipeline=pipeline)
 print("evaluate completed", result)
 </code></pre>
+          <p><strong>Note:</strong> This path depends on legacy scripts and requires the OpenMMLab stack.</p>
 
           <h3>E) Detect API shortcut</h3>
           <pre><code>from simpledet import detect
@@ -171,6 +176,7 @@ with open('results/mmdet_smoke/metrics.json') as f:
     print(json.load(f).keys())
 PY</code></pre>
           <p>Minimal API flow artifacts: <code>epoch_###.pth</code> and <code>metrics.json</code> in output directory.</p>
+          <p>Legacy pipeline flow artifacts are written via configured <code>result_folder</code> as <code>tests.pkl</code>/<code>metrics.pkl</code>.</p>
         </article>
       </section>
     </main>

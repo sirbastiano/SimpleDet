@@ -50,6 +50,7 @@
             <li><code>torch</code> + <code>mmengine</code> + <code>mmdet</code> for API operations</li>
             <li>CUDA/driver alignment if using GPU training</li>
           </ul>
+          <p>Optional extras add support for richer metrics and plotting workflows.</p>
           <pre><code>python --version
 python -m pip --version</code></pre>
         </article>
@@ -57,8 +58,10 @@ python -m pip --version</code></pre>
         <article class="section" id="install">
           <h2>Editable install (recommended)</h2>
           <pre><code>git clone https://github.com/sirbastiano/MDet.git
-cd MMDET
+cd MDet
 python -m pip install -e .</code></pre>
+          <p>For non-default clone folders, keep the final command in your repository root.</p>
+          <p>Expected output: <code>Successfully installed simpledet-0.1.0</code> (or equivalent version string).</p>
 
           <h3>Install with OpenMMLab extras</h3>
           <p>If you need optional runtime tooling:</p>
@@ -67,12 +70,15 @@ python -m pip install -e .</code></pre>
           <h3>Verify CLI entrypoint</h3>
           <pre><code>python -m simpledet --version
 simpledet --help</code></pre>
+          <p><code>simpledet --help</code> requires console-script installation; if not found, use <code>python -m simpledet --version</code> instead.</p>
         </article>
 
         <article class="section" id="verification">
           <h2>Runtime validation</h2>
           <pre><code>python -m simpledet --check-openmmlab</code></pre>
           <p>Check fails when <code>torch</code>, <code>numpy</code>, <code>torchvision</code>, <code>mmengine</code>, or <code>mmdet</code> is missing.</p>
+          <p>Smoke-run output example:</p>
+          <pre><code>Optional OpenMMLab runtime stack is available.</code></pre>
         </article>
 
         <article class="section" id="advanced">
@@ -80,7 +86,10 @@ simpledet --help</code></pre>
           <p>Repo helper scripts:</p>
           <pre><code>./setup.sh
 ./deploy.sh</code></pre>
-          <p>Use these only if your environment matches the script assumptions.</p>
+          <p>Use these only if your environment matches the script assumptions and after checking <code>python -m simpledet --version</code>.</p>
+          <p class="notice">
+            Script mode is legacy-oriented and has stricter path assumptions than the public API.
+          </p>
         </article>
       </section>
     </main>

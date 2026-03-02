@@ -53,7 +53,7 @@
               <tr>
                 <td><code>simpledet --help</code> not found</td>
                 <td>CLI entrypoint not installed in current environment</td>
-                <td>Reactivate the environment and run <code>python -m pip install -e .</code> from repo root.</td>
+                <td>Reactivate the environment and run <code>python -m pip install -e .</code> from repo root, then rerun <code>python -m simpledet --version</code>.</td>
               </tr>
               <tr>
                 <td>Script run exits with <code>KeyError/Model not configured</code></td>
@@ -76,6 +76,11 @@
                 <td>For API mode set <code>device='cuda'</code> and verify <code>torch.cuda.is_available()</code>.</td>
               </tr>
               <tr>
+                <td>Legacy pipeline fails during construction</td>
+                <td>OpenMMLab runtime path is stricter than API mode</td>
+                <td>Confirm all optional dependencies with <code>python -m simpledet --check-openmmlab</code>, then validate arguments before <code>ObjectDetectionPipeline(...)</code>.</td>
+              </tr>
+              <tr>
                 <td>`simpledet` commands time out on import</td>
                 <td>Heavy environment import from optional modules</td>
                 <td>Use script entrypoint only for checks; load modules lazily during model runs.</td>
@@ -92,6 +97,10 @@ python - <<'PY'
 from simpledet.detectors.data import list_formats
 print('formats:', list_formats())
 PY</code></pre>
+          <p>Expected outputs:</p>
+          <pre><code>0.1.0
+Optional OpenMMLab runtime stack is available.
+formats: ['coco', 'csv', 'json', 'voc', 'yolo']</code></pre>
         </article>
       </section>
     </main>
