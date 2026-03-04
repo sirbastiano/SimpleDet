@@ -29,3 +29,4 @@ AGENTS.md
 notebooks/OpenVINO/apisonnx
 notebooks/OpenVINO/export/end2end.onnx
 notebooks/OpenVINO/weights.pth
+runscripts/Deploy/mmdeploy/
