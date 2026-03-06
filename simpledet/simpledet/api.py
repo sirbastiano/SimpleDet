@@ -5,7 +5,21 @@ import random
 import json
 import logging
 import time
-from typing import Optional
+from typing import Any, Optional
+
+from ._model_resolution import (
+    apply_runtime_model_overrides,
+    list_available_encoders,
+    list_available_heads,
+    list_available_necks,
+    patch_backbone_input_channels,
+    patch_model_num_classes,
+    print_available_encoders,
+    print_available_heads,
+    print_available_necks,
+)
+from .suite.compiler import compile_detector_spec
+from .suite.specs import DetectorSpec
 
 _OPENMMLAB_ERROR: Optional[Exception] = None
 try:
@@ -97,7 +111,8 @@ class ObjectDetectionPipeline:
     
     def __init__(self, 
                 seed=71,
-                model_cfg=None, 
+                model_cfg=None,
+                detector_spec: DetectorSpec | dict[str, Any] | None = None,
                 resize=768, 
                 batch_size=2, 
                 learning_rate=0.001,
@@ -120,12 +135,19 @@ class ObjectDetectionPipeline:
                 scheduler_choice=None, # Scheduler choice: MultiStepLR, CosineAnnealingLR
                 val_interval=1, # Validation interval
                 skip_cfg=False, # Skip the original configuration of the model (useful when using custom models)
+                encoder_name=None, # timm encoder name used to replace or patch the backbone.
+                encoder_pretrained=True, # whether to load pretrained weights for the encoder.
+                encoder_in_chans=None, # explicit input channel count for timm encoders.
+                auto_patch_model=True, # automatically patch neck and head interfaces.
+                auto_patch_strict=True, # fail when a model cannot be patched safely.
                 segmentation=False, # whether to use segmentation or not for the OD model.
         ):
         # Training configuration        
         self.seed = seed
-        self.model_cfg = model_cfg
-        assert self.model_cfg is not None, 'Model configuration must be specified as a dict.'
+        if model_cfg is not None and detector_spec is not None:
+            raise TypeError("Use either `model_cfg` or `detector_spec`, not both.")
+        self.detector_spec = detector_spec
+        self.model_cfg = self._resolve_model_cfg(model_cfg=model_cfg, detector_spec=detector_spec)
         self.resize = resize
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -136,6 +158,11 @@ class ObjectDetectionPipeline:
         self.optimizer_choice = optimizer_choice
         self.scheduler_choice = scheduler_choice
         self.skip_cfg = skip_cfg # Freeze configuration of the model when it's not a standard model.
+        self.encoder_name = encoder_name
+        self.encoder_pretrained = encoder_pretrained
+        self.encoder_in_chans = encoder_in_chans
+        self.auto_patch_model = auto_patch_model
+        self.auto_patch_strict = auto_patch_strict
 
         # Additional asserts
         assert isinstance(self.model_cfg, dict), 'Model config must be an dict.'
@@ -149,6 +176,11 @@ class ObjectDetectionPipeline:
         assert isinstance(self.amp, bool), 'AMP must be a boolean.'
         assert isinstance(self.optimizer_choice, str), 'Optimizer choice must be a string.'
         assert self.scheduler_choice is None or isinstance(self.scheduler_choice, str), 'Scheduler choice must be None or a string.'
+        assert self.encoder_name is None or isinstance(self.encoder_name, str), 'Encoder name must be None or a string.'
+        assert isinstance(self.encoder_pretrained, bool), 'Encoder pretrained flag must be a boolean.'
+        assert self.encoder_in_chans is None or isinstance(self.encoder_in_chans, int), 'Encoder input channels must be None or an integer.'
+        assert isinstance(self.auto_patch_model, bool), 'Auto patch model must be a boolean.'
+        assert isinstance(self.auto_patch_strict, bool), 'Auto patch strict must be a boolean.'
 
 
         # Data configuration:
@@ -185,6 +217,7 @@ class ObjectDetectionPipeline:
         self.outfile_test = f"{self.workdir}/tests.pkl"
         self.outfile_metric = f"{self.workdir}/metrics.pkl"
         self.optimizers = self._get_optimizers()
+        self.model_patch_summary: list[dict[str, Any]] = []
         
         # Starting the pipeline:
         self.cfg = self._init_cfg()
@@ -202,6 +235,23 @@ class ObjectDetectionPipeline:
             f'Optimizer: {self.optimizer_choice}'
         )
 
+    @staticmethod
+    def _resolve_model_cfg(
+        *,
+        model_cfg: dict[str, Any] | None,
+        detector_spec: DetectorSpec | dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        if detector_spec is not None:
+            if isinstance(detector_spec, dict):
+                detector_spec = DetectorSpec(**detector_spec)
+            if not isinstance(detector_spec, DetectorSpec):
+                raise TypeError("`detector_spec` must be a DetectorSpec or mapping payload.")
+            return compile_detector_spec(detector_spec)
+
+        if model_cfg is None:
+            raise AssertionError('Model configuration must be specified as a dict.')
+        return model_cfg
+
     def _init_cfg(self):
         _ensure_openmmlab()
         print("Reading base config file:")
@@ -212,6 +262,18 @@ class ObjectDetectionPipeline:
         preprocessor = cfg.model["data_preprocessor"]
         self.model_cfg["data_preprocessor"] = preprocessor # Overwrite the preprocessor with the one from the base config.
         cfg.model = self.model_cfg
+
+        if self.auto_patch_model and self.encoder_name is not None:
+            self.model_patch_summary.extend(
+                apply_runtime_model_overrides(
+                    cfg.model,
+                    encoder_name=self.encoder_name,
+                    encoder_pretrained=self.encoder_pretrained,
+                    encoder_in_chans=self.encoder_in_chans or self.in_channels,
+                    num_classes=len(self.categories),
+                    strict=self.auto_patch_strict,
+                )
+            )
         
         cfg.work_dir = self.workdir
         
@@ -292,8 +354,13 @@ class ObjectDetectionPipeline:
 
         # Freeze configuration of the model when it's not a standard model.
         if not self.skip_cfg:
-            self.cfg.model.backbone.in_channels = self.in_channels
-            self.cfg.model.bbox_head.num_classes = len(self.categories)
+            if self.encoder_name is None:
+                self.model_patch_summary.extend(
+                    patch_backbone_input_channels(self.cfg.model, self.in_channels)
+                )
+            self.model_patch_summary.extend(
+                patch_model_num_classes(self.cfg.model, len(self.categories))
+            )
 
         # Dataloader directories and annotation files
         self.cfg.train_dataloader.dataset.ann_file = self.annot_file_train
@@ -388,6 +455,12 @@ class ObjectDetectionPipeline:
                 assert optim_wrapper == 'OptimWrapper', f'`--amp` is only supported when the optimizer wrapper type is `OptimWrapper` but got {optim_wrapper}.'
                 self.cfg.optim_wrapper.type = 'AmpOptimWrapper'
                 self.cfg.optim_wrapper.loss_scale = 'dynamic'
+
+        if self.model_patch_summary:
+            self.logger.info(
+                'Applied runtime model patches: %s',
+                json.dumps(self.model_patch_summary, default=str)
+            )
 
     def get_pth(self):
         """

@@ -10,6 +10,7 @@ from collections import Counter
 PACKAGE_ROOT = pathlib.Path(__file__).resolve().parents[1] / "simpledet" / "simpledet"
 SAFE_IMPORT_MODULES = [
     "simpledet",
+    "simpledet._model_resolution",
     "simpledet.api",
     "simpledet.cli",
     "simpledet.__main__",
@@ -21,6 +22,10 @@ SAFE_IMPORT_MODULES = [
     "simpledet.detectors.evaluate",
     "simpledet.detectors.infer",
     "simpledet.detectors.train",
+    "simpledet.suite",
+    "simpledet.suite.catalog",
+    "simpledet.suite.compiler",
+    "simpledet.suite.specs",
 ]
 OPTIONAL_DEPS = {
     "numpy",
@@ -29,6 +34,7 @@ OPTIONAL_DEPS = {
     "mmcv",
     "mmengine",
     "mmdet",
+    "timm",
     "cv2",
     "PIL",
     "onnxruntime",

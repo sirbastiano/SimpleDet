@@ -12,6 +12,7 @@ __all__ = [
     "evaluate",
     "Config",
     "detectors",
+    "suite",
 ]
 
 try:
@@ -24,6 +25,10 @@ def __getattr__(name: str):
     if name == "detectors":
         import simpledet.detectors as detectors
         return detectors
+
+    if name == "suite":
+        import simpledet.suite as suite
+        return suite
 
     if name == "train":
         from .detectors._deps import require_detector_runtime
