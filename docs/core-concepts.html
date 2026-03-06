@@ -34,7 +34,10 @@
     <main class="main">
       <section class="hero">
         <h1>Core concepts</h1>
-        <p class="subtle">SimpleDet is easiest to reason about as one detector authoring layer on top of one experiment runtime.</p>
+        <p class="subtle">
+          SimpleDet makes more sense if you separate three questions: what detector am I defining,
+          what runtime is going to execute it, and what artifacts should survive after the run finishes?
+        </p>
       </section>
 
       <section class="content">
@@ -48,6 +51,10 @@
 
         <article class="section" id="workflow">
           <h2>Workflow</h2>
+          <p class="section-lead">
+            The repository follows one main object-detection lifecycle. The model is defined first, then attached to a dataset and runtime,
+            then trained into a workdir that preserves checkpoints and evaluator outputs.
+          </p>
           <pre><code>dataset
   -&gt; detector_spec or model_cfg
   -&gt; ObjectDetectionPipeline
@@ -72,6 +79,9 @@ dataset file or folder
   -&gt; epoch_001.pth
   -&gt; load_model()
   -&gt; predict()</code></pre>
+          <p>
+            The recommended path is the first one. The lightweight path is intentionally smaller and compatible with fewer checkpoints and behaviors.
+          </p>
         </article>
 
         <article class="section" id="layers">
@@ -81,6 +91,24 @@ dataset file or folder
             <li><strong>Runtime layer:</strong> <code>ObjectDetectionPipeline</code> builds the MMEngine runner, wires data, and owns the workdir.</li>
             <li><strong>Compatibility helpers:</strong> <code>simpledet.detectors.*</code> covers lightweight training, inference, and dataset loading.</li>
           </ul>
+          <p>
+            The important boundary is this: <code>simpledet.suite</code> decides the detector structure, while
+            <code>ObjectDetectionPipeline</code> decides how that detector is executed in a full experiment.
+          </p>
+        </article>
+
+        <article class="section">
+          <h2>What gets compiled and what stays runtime-configured</h2>
+          <div class="callout-grid">
+            <article class="callout">
+              <h3>Compiled from the detector spec</h3>
+              <p>Backbone, neck, dense head, ROI head, transformer blocks, class count, and downstream channel interfaces.</p>
+            </article>
+            <article class="callout">
+              <h3>Configured by the pipeline</h3>
+              <p>Dataset paths, dataloaders, resize policy, optimizer and scheduler settings, hooks, workdir layout, and evaluator outputs.</p>
+            </article>
+          </div>
         </article>
 
         <article class="section" id="artifacts">
@@ -92,6 +120,10 @@ dataset file or folder
             <li><code>testSet*</code> result files for the configured evaluator</li>
           </ul>
           <p>In the lightweight path, the main artifacts are <code>epoch_001.pth</code> and <code>metrics.json</code>.</p>
+          <p>
+            This difference matters because a checkpoint from one path is not automatically interchangeable with the other.
+            The pipeline path is richer, but it assumes the MMDetection runtime and evaluator stack.
+          </p>
         </article>
 
         <article class="section" id="adaptation">
@@ -105,6 +137,10 @@ dataset file or folder
             <li>transformer embed dimensions and feature levels</li>
             <li><code>num_classes</code></li>
           </ul>
+          <p>
+            In practice, this means you can swap from one supported encoder to another without manually recalculating neck
+            input channels or editing several head sections by hand.
+          </p>
           <p class="notice">This covers <code>timm</code> encoders with usable feature metadata and custom backbones only when you provide <code>backbone_cfg</code> plus explicit <code>feature_channels</code>.</p>
         </article>
       </section>

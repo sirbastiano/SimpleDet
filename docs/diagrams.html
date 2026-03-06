@@ -29,10 +29,13 @@
       </nav>
     </header>
 
-    <main class="main">
+    <main class="main main-wide">
       <section class="hero">
         <h1>Pipeline diagrams</h1>
-        <p class="subtle">Static visual aids for the current workflow. Use these together with the conceptual pages, not as a replacement for the API reference.</p>
+        <p class="subtle">
+          These diagrams are full-width visual summaries of the current workflow. Read them together with the conceptual pages:
+          the diagrams show the shape of the process, while the docs explain the meaning of each step.
+        </p>
       </section>
 
       <section class="content">
@@ -56,23 +59,23 @@
   -&gt; predict()</code></pre>
         </article>
 
-        <div class="gallery-grid">
-          <figure class="figure-card">
-            <h3>Train workflow</h3>
-            <img src="assets/train-workflow.svg" alt="Training workflow diagram" />
-            <figcaption>Legacy visual asset retained as a supplemental training map.</figcaption>
-          </figure>
-          <figure class="figure-card">
-            <h3>Inference workflow</h3>
-            <img src="assets/inference-workflow.svg" alt="Inference workflow diagram" />
-            <figcaption>Use with the current inference page. The code examples there are the authoritative source.</figcaption>
-          </figure>
-          <figure class="figure-card">
-            <h3>Install workflow</h3>
-            <img src="assets/install-workflow.svg" alt="Install workflow diagram" />
-            <figcaption>Install the OpenMMLab runtime before using the suite and pipeline path.</figcaption>
-          </figure>
-        </div>
+        <figure class="page-figure">
+          <h3>Install workflow</h3>
+          <img src="assets/install-workflow.svg" alt="Install workflow diagram" />
+          <figcaption>Install the OpenMMLab runtime first so the suite and pipeline path can build and run correctly.</figcaption>
+        </figure>
+
+        <figure class="page-figure">
+          <h3>Training workflow</h3>
+          <img src="assets/train-workflow.svg" alt="Training workflow diagram" />
+          <figcaption>This visual shows the run-oriented side of the repo: verify the environment, launch training, then keep artifacts inside one workdir.</figcaption>
+        </figure>
+
+        <figure class="page-figure">
+          <h3>Inference workflow</h3>
+          <img src="assets/inference-workflow.svg" alt="Inference workflow diagram" />
+          <figcaption>This visual focuses on the lightweight prediction helper path. For evaluator-compatible testing, use the pipeline inference flow from the Inference and Evaluation pages.</figcaption>
+        </figure>
       </section>
     </main>
 

@@ -29,17 +29,27 @@
     <main class="main">
       <section class="hero">
         <h1>Quickstart</h1>
-        <p class="subtle">Build a detector with the suite API, inspect the compiled model, then launch training and evaluation through the pipeline.</p>
+        <p class="subtle">
+          This tutorial is the shortest path through the current repository. It explains not only what to run,
+          but why the repo is split into a detector-definition step and a pipeline-execution step.
+        </p>
       </section>
       <section class="content">
         <article class="section">
           <h2>1. Install and verify</h2>
+          <p class="section-lead">
+            The suite and pipeline path depend on the OpenMMLab runtime. Verify the environment first so you do not debug docs examples with a broken install.
+          </p>
           <pre><code>python -m pip install -e .
 python -m pip install ".[openmmlab]"
 python -m simpledet --check-openmmlab</code></pre>
         </article>
         <article class="section">
           <h2>2. Build a detector</h2>
+          <p class="section-lead">
+            A <code>DetectorSpec</code> is the repo’s high-level model description. It says which detector family you want, which backbone it should use,
+            and how many classes it must predict. The compiler then turns that high-level description into an MMDetection-style model dictionary.
+          </p>
           <pre><code>python - &lt;&lt;'PY'
 from pprint import pprint
 from simpledet.suite import build_detector, compile_detector_spec
@@ -62,9 +72,17 @@ PY</code></pre>
 {'type': 'TimmEncoder', ...}
 {'type': 'FPN', ...}
 {'type': 'RetinaHead', 'num_classes': 2, ...}</code></pre>
+          <p>
+            The key concept is that you are not writing the full <code>model</code> dictionary by hand.
+            SimpleDet inspects the backbone, infers feature channels, and patches the neck and head interfaces for you.
+          </p>
         </article>
         <article class="section">
           <h2>3. Train through the pipeline</h2>
+          <p class="section-lead">
+            The pipeline owns everything that is not intrinsic to the detector itself: dataset locations, annotation files,
+            image resize, logging, checkpointing, and evaluator outputs.
+          </p>
           <pre><code>from simpledet.api import ObjectDetectionPipeline
 from simpledet.suite import build_detector
 
@@ -95,9 +113,18 @@ pipeline = ObjectDetectionPipeline(
 
 pipeline.build()
 pipeline.train()</code></pre>
+          <p>
+            <code>build()</code> prepares the runtime configuration and runner. <code>train()</code> launches the actual experiment.
+            The detector spec becomes <code>cfg.model</code>, while the shared runtime config still controls dataloaders,
+            hooks, and evaluation setup.
+          </p>
         </article>
         <article class="section">
           <h2>4. Evaluate</h2>
+          <p class="section-lead">
+            Evaluation is not a standalone subsystem in this repo. It reuses the pipeline test path so the evaluator,
+            output files, and dataset metadata remain consistent with training.
+          </p>
           <pre><code>from simpledet import evaluate
 
 metrics = evaluate(pipeline=pipeline, build=False)
@@ -110,6 +137,23 @@ print(type(metrics).__name__)</code></pre>
             <li><code>metrics.pkl</code></li>
             <li><code>testSet*</code> evaluator outputs</li>
           </ul>
+        </article>
+        <article class="section">
+          <h2>What to remember</h2>
+          <div class="callout-grid">
+            <article class="callout">
+              <h3>DetectorSpec</h3>
+              <p>Describes the detector architecture you want to run.</p>
+            </article>
+            <article class="callout">
+              <h3>Compiled model config</h3>
+              <p>Is the low-level MMDetection model dictionary generated from that high-level spec.</p>
+            </article>
+            <article class="callout">
+              <h3>Pipeline</h3>
+              <p>Attaches runtime concerns such as datasets, workdir layout, hooks, and evaluators.</p>
+            </article>
+          </div>
         </article>
       </section>
     </main>

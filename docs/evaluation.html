@@ -27,11 +27,17 @@
     <main class="main">
       <section class="hero">
         <h1>Evaluation</h1>
-        <p class="subtle">Evaluation is tied to the pipeline test path. Reuse the same detector spec and dataset metadata you trained with.</p>
+        <p class="subtle">
+          Evaluation is not a separate engine in this repo. It is a controlled reuse of the pipeline test path,
+          which keeps dataset metadata, evaluator configuration, and output files aligned with the training run.
+        </p>
       </section>
       <section class="content">
         <article class="section">
           <h2>Entry point</h2>
+          <p class="section-lead">
+            Reuse the same detector spec and the same dataset metadata you trained with. That keeps class names, evaluator settings, and expected outputs consistent.
+          </p>
           <pre><code>from simpledet import evaluate
 from simpledet.suite import build_detector
 
@@ -60,6 +66,19 @@ metrics = evaluate(
             <li><code>tests.pkl</code></li>
             <li><code>metrics.pkl</code></li>
             <li><code>testSet*</code> files from the configured evaluator</li>
+          </ul>
+          <p>
+            In the current implementation, <code>metrics.pkl</code> is JSON text despite the suffix.
+            That behavior comes from the pipeline implementation and is worth remembering when you parse the artifact later.
+          </p>
+        </article>
+        <article class="section">
+          <h2>Conceptually, what evaluation means here</h2>
+          <ul>
+            <li>It is not an independent evaluator API.</li>
+            <li>It reuses <code>pipeline.test()</code>.</li>
+            <li>It depends on the evaluator configuration loaded by the runtime config.</li>
+            <li>It exists so testing stays coupled to the same pipeline assumptions used during training.</li>
           </ul>
         </article>
       </section>

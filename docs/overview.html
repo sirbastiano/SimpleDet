@@ -29,32 +29,59 @@
     <main class="main">
       <section class="hero">
         <h1>Overview</h1>
-        <p class="subtle">SimpleDet now has a clear split between detector authoring, experiment runtime, and lightweight compatibility helpers.</p>
+        <p class="subtle">
+          SimpleDet is structured to answer one practical question: how do you keep model definition,
+          runtime configuration, and experiment outputs understandable enough to rerun later?
+        </p>
       </section>
       <section class="content">
         <article class="section">
+          <h2>How to read this repository</h2>
+          <p class="section-lead">
+            The repo is intentionally split into layers. The model authoring layer says what detector you want.
+            The runtime layer says how to train and evaluate it on your dataset. The lightweight helpers exist for
+            small checks, but they are not the preferred surface for serious experiments.
+          </p>
+        </article>
+        <article class="section">
           <h2>1. Detector authoring layer</h2>
+          <p>This is where you describe the architecture itself: backbone, neck, head or decoder, and class count.</p>
           <ul>
             <li><code>simpledet.suite</code> defines <code>EncoderSpec</code>, <code>NeckSpec</code>, <code>HeadSpec</code>, <code>DecoderSpec</code>, and <code>DetectorSpec</code>.</li>
             <li>Supported families: dense, ROI, and transformer detectors.</li>
             <li>Backbone sources: <code>timm</code> encoders or explicit config-backed custom backbones.</li>
           </ul>
+          <p><strong>Start here if:</strong> you want to decide what detector to run without manually editing several MMDetection channel fields.</p>
         </article>
         <article class="section">
           <h2>2. Runtime pipeline layer</h2>
+          <p>This is where dataset paths, workdir layout, evaluators, logging, and training settings are attached to the detector.</p>
           <ul>
             <li><code>ObjectDetectionPipeline</code> is the canonical runtime path.</li>
             <li>Use <code>detector_spec=...</code> for the recommended flow.</li>
             <li>Use <code>model_cfg=...</code> only for direct legacy config usage.</li>
           </ul>
+          <p><strong>Start here if:</strong> you already know what model you want and need a reproducible experiment run with checkpoints and evaluation outputs.</p>
         </article>
         <article class="section">
           <h2>3. Lightweight helper layer</h2>
+          <p>This layer keeps a small <code>torchvision</code>-based path available, mostly for smoke testing.</p>
           <ul>
             <li><code>simpledet.detectors.train.train(config=...)</code> for a small <code>torchvision</code> training flow.</li>
             <li><code>simpledet.detectors.infer.load_model()</code> and <code>predict()</code> for lightweight inference.</li>
             <li><code>simpledet.detectors.data.load_dataset()</code> for generic dataset inspection.</li>
           </ul>
+          <p><strong>Start here if:</strong> you need a quick sanity check, not a fully managed MMDetection experiment.</p>
+        </article>
+        <article class="section">
+          <h2>One lifecycle example</h2>
+          <pre><code>choose architecture
+  -&gt; build a DetectorSpec
+  -&gt; compile it into a model definition
+  -&gt; pass it into ObjectDetectionPipeline
+  -&gt; train into one workdir
+  -&gt; keep the best checkpoint and evaluator outputs together</code></pre>
+          <p>This lifecycle is the main design choice behind the repo. It keeps the “what model is this?” question separate from the “how was this run?” question.</p>
         </article>
         <article class="section">
           <h2>Repository areas</h2>

@@ -28,11 +28,18 @@
     <main class="main">
       <section class="hero">
         <h1>Configuration guide</h1>
-        <p class="subtle">The canonical model interface is now <code>DetectorSpec</code>. Raw model dictionaries and minimal config mappings remain as compatibility layers.</p>
+        <p class="subtle">
+          The most important configuration idea in this repo is responsibility: model structure belongs in the detector spec,
+          runtime behavior belongs in the pipeline, and only advanced overrides should reach into raw MMDetection dictionaries.
+        </p>
       </section>
       <section class="content">
         <article class="section">
           <h2>DetectorSpec</h2>
+          <p class="section-lead">
+            Use a detector spec when you want to express intent instead of wiring every MMDetection field manually.
+            It is the recommended surface for new experiments.
+          </p>
           <pre><code>from simpledet.suite import build_decoder, build_detector, build_neck
 
 spec = build_detector(
@@ -43,12 +50,21 @@ spec = build_detector(
     num_classes=5,
     in_channels=3,
 )</code></pre>
+          <p>
+            In this example, <code>architecture</code> and <code>num_classes</code> describe the task,
+            <code>encoder</code> describes the backbone source, <code>neck</code> adapts features across scales,
+            and <code>decoder</code> is only needed because the detector family is transformer-based.
+          </p>
         </article>
         <article class="section">
           <h2>Compile to a model dictionary</h2>
           <pre><code>from simpledet.suite import compile_detector_spec
 model_cfg = compile_detector_spec(spec)</code></pre>
           <p>The compiler fills model sections such as <code>backbone</code>, <code>neck</code>, <code>bbox_head</code>, <code>roi_head</code>, <code>encoder</code>, and <code>decoder</code>.</p>
+          <p>
+            Compile when you need to inspect or override the exact MMDetection-style model definition.
+            In most user flows you do not need to edit this dictionary directly after compilation.
+          </p>
         </article>
         <article class="section">
           <h2>Custom backbones</h2>
@@ -65,6 +81,20 @@ custom_encoder = EncoderSpec(
         <article class="section">
           <h2>Runtime config</h2>
           <p><code>ObjectDetectionPipeline</code> still loads <code>simpledet/simpledet/src/base_config.py</code> and replaces <code>cfg.model</code> with the compiled detector definition. Dataloaders, evaluators, schedulers, and hooks continue to live in the runtime config.</p>
+          <div class="callout-grid">
+            <article class="callout">
+              <h3>Put it in the detector spec</h3>
+              <p>Architecture, backbone, neck, head, decoder, feature interfaces, class count.</p>
+            </article>
+            <article class="callout">
+              <h3>Put it in the pipeline</h3>
+              <p>Dataset paths, image size, batch size, optimizer settings, checkpoints, logging, evaluators.</p>
+            </article>
+            <article class="callout">
+              <h3>Use raw overrides sparingly</h3>
+              <p>Only when the public builders do not yet expose a field you genuinely need to change.</p>
+            </article>
+          </div>
         </article>
       </section>
     </main>

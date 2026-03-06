@@ -45,7 +45,8 @@
       <section class="hero">
         <h1>SimpleDet static documentation</h1>
         <p class="subtle">
-          Static HTML docs for the current SimpleDet codebase. The recommended workflow is:
+          SimpleDet is a thin object-detection framework that keeps MMDetection power while reducing how much
+          raw configuration a user has to write by hand. The main idea is simple:
           define detectors with <code>simpledet.suite</code>, run them with
           <code>ObjectDetectionPipeline(detector_spec=...)</code>, and keep
           experiments reproducible with one workdir per run.
@@ -84,6 +85,29 @@
         </div>
 
         <article class="section">
+          <h2>What problem this repo solves</h2>
+          <p class="section-lead">
+            Raw MMDetection config editing is flexible, but it is also easy to make inconsistent experiments:
+            backbone channels drift out of sync with the neck, class counts are duplicated in several places, and
+            project runtime settings end up mixed into model definition. SimpleDet separates those concerns.
+          </p>
+          <div class="callout-grid">
+            <article class="callout">
+              <h3>For researchers</h3>
+              <p>Use the suite API to swap backbones and detector families quickly, then compare runs through one reproducible pipeline layout.</p>
+            </article>
+            <article class="callout">
+              <h3>For engineers</h3>
+              <p>Use the pipeline path when you want stable artifacts, explicit dataset wiring, and a clear handoff from model definition to runtime execution.</p>
+            </article>
+            <article class="callout">
+              <h3>For quick checks</h3>
+              <p>Use the lightweight <code>simpledet.detectors.*</code> helpers only when you want a small smoke test without the full experiment stack.</p>
+            </article>
+          </div>
+        </article>
+
+        <article class="section">
           <h2>Start here</h2>
           <ol>
             <li>Install the runtime in <a href="installation.html">Installation</a>.</li>
@@ -102,6 +126,9 @@
             <li><code>simpledet.api.ObjectDetectionPipeline</code> for training, testing, and evaluation.</li>
             <li><code>simpledet.detectors.*</code> for lightweight training, inference, and generic dataset loading.</li>
           </ul>
+          <p class="section-lead">
+            If you are new to the repository, read these in order: Overview, Quickstart, Core Concepts, then Configuration Guide.
+          </p>
         </article>
       </section>
     </main>

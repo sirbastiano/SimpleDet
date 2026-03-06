@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" role="img" aria-label="inference workflow">
   <rect width="900" height="420" fill="#100c1f"/>
   <rect x="12" y="12" width="876" height="396" rx="14" fill="#19102f" stroke="#a58eff"/>
-  <text x="38" y="56" fill="#f0ebff" font-family="monospace" font-size="18">$ python - <<'PY'
+  <text x="38" y="56" fill="#f0ebff" font-family="monospace" font-size="18">$ python - &lt;&lt;'PY'
 </text>
   <text x="38" y="84" fill="#9ce7ff" font-family="monospace" font-size="14">from simpledet.detectors.infer import load_model, predict</text>
   <text x="38" y="108" fill="#9ce7ff" font-family="monospace" font-size="14">model = load_model('results/mmdet_smoke/epoch_001.pth')</text>

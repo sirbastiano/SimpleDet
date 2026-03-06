@@ -27,11 +27,17 @@
     <main class="main">
       <section class="hero">
         <h1>Inference</h1>
-        <p class="subtle">Choose the inference path that matches the checkpoint and runtime you actually trained with.</p>
+        <p class="subtle">
+          Inference means two different things in this repository: MMDetection-style test-time execution through the pipeline,
+          and lightweight prediction from a <code>torchvision</code>-compatible checkpoint. Pick the path that matches the checkpoint you have.
+        </p>
       </section>
       <section class="content">
         <article class="section">
           <h2>Pipeline inference</h2>
+          <p class="section-lead">
+            Use this when the checkpoint belongs to the pipeline path and you want evaluator-compatible test-time outputs.
+          </p>
           <pre><code>from simpledet import detect
 from simpledet.suite import build_detector
 
@@ -53,10 +59,13 @@ outputs = detect(
     in_channels=3,
     categories=("a", "b", "c", "d"),
 )</code></pre>
-          <p>This is the same test-time path used by the pipeline during evaluation.</p>
+          <p>This is the same test-time path used during evaluation. It is the right choice when you want the pipeline to write <code>tests.pkl</code>, <code>metrics.pkl</code>, and evaluator result files.</p>
         </article>
         <article class="section">
           <h2>Lightweight inference</h2>
+          <p class="section-lead">
+            Use this only for checkpoints created by the lightweight training flow or other compatible <code>torchvision</code> detector checkpoints.
+          </p>
           <pre><code>from simpledet.detectors.infer import load_model, predict
 
 model = load_model(
@@ -68,6 +77,22 @@ model = load_model(
 
 single = predict("sample.png", model=model)
 batch = predict(["a.png", "b.png"], model=model)</code></pre>
+          <p>
+            This path returns Python dictionaries directly. It is useful for ad hoc prediction, but it does not reproduce the pipeline evaluator behavior.
+          </p>
+        </article>
+        <article class="section">
+          <h2>Which one should you use?</h2>
+          <div class="callout-grid">
+            <article class="callout">
+              <h3>Use <code>detect()</code></h3>
+              <p>When you want pipeline-managed testing against the configured dataset and evaluator stack.</p>
+            </article>
+            <article class="callout">
+              <h3>Use <code>predict()</code></h3>
+              <p>When you want direct predictions from a compatible lightweight checkpoint in Python code.</p>
+            </article>
+          </div>
         </article>
       </section>
     </main>

@@ -27,11 +27,17 @@
     <main class="main">
       <section class="hero">
         <h1>Training</h1>
-        <p class="subtle">Use the suite plus pipeline path for real experiments. The lightweight path is still available for quick local smoke tests.</p>
+        <p class="subtle">
+          Training is where the detector definition becomes an experiment record. The important idea is that
+          <code>build()</code> prepares the runtime, while <code>train()</code> executes the run and writes the workdir artifacts.
+        </p>
       </section>
       <section class="content">
         <article class="section">
           <h2>Recommended training path</h2>
+          <p class="section-lead">
+            Use the pipeline path when you want consistent checkpoints, logs, evaluator outputs, and one place to rerun the experiment later.
+          </p>
           <pre><code>from simpledet.api import ObjectDetectionPipeline
 from simpledet.suite import build_detector, build_neck
 
@@ -63,6 +69,11 @@ pipeline = ObjectDetectionPipeline(
 
 pipeline.build()
 pipeline.train()</code></pre>
+          <p>
+            The detector spec controls <em>what model is trained</em>. The pipeline arguments control <em>how and where it is trained</em>.
+            In particular, <code>categories</code> must match the semantic class list expected by the run, while
+            <code>num_classes</code> on the detector spec controls the size of the prediction heads.
+          </p>
         </article>
         <article class="section">
           <h2>What the pipeline injects</h2>
@@ -72,9 +83,24 @@ pipeline.train()</code></pre>
             <li>optimizer and schedule choices</li>
             <li>workdir, logging, and evaluator wiring</li>
           </ul>
+          <p>
+            This is why the pipeline path is better for benchmarkable work: the resulting workdir keeps the model definition,
+            runtime configuration, checkpointing, and evaluation outputs aligned.
+          </p>
+        </article>
+        <article class="section">
+          <h2>What gets written</h2>
+          <ul>
+            <li><code>pipeline.log</code> for the run log</li>
+            <li><code>best_*.pth</code> for the retained best checkpoint</li>
+            <li>MMEngine metadata and hook outputs in the workdir</li>
+          </ul>
         </article>
         <article class="section">
           <h2>Compatibility path</h2>
+          <p class="section-lead">
+            Use the lightweight path only when you want a fast local check without the full OpenMMLab experiment stack.
+          </p>
           <pre><code>from simpledet.detectors.train import train
 
 result = train(config={
