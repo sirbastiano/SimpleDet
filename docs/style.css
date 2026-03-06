@@ -237,6 +237,15 @@ body.theme-volcano {
   justify-content: center;
 }
 
+.hero-kicker {
+  margin: 0 0 0.7rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
 .hero::before,
 .content::before {
   content: '';
@@ -281,6 +290,12 @@ body.theme-volcano {
   max-width: 76ch;
 }
 
+.hero-context {
+  margin: 1rem 0 0;
+  color: #d8e6ff;
+  max-width: 76ch;
+}
+
 h2 {
   margin-top: 0;
 }
@@ -292,6 +307,10 @@ h2 {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1.2rem;
+}
+
+.hero .btn-row {
+  max-width: 100%;
 }
 
 .btn {
