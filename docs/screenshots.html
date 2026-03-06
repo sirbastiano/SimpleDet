@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SimpleDet Docs - Screenshots & GIFs</title>
+    <title>SimpleDet Docs - Visuals</title>
     <link rel="stylesheet" href="style.css" />
     <script src="script.js" defer></script>
   </head>
@@ -13,12 +13,10 @@
         <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
         <div class="nav-links">
           <a class="nav-link" href="index.html">Home</a>
-          <a class="nav-link" href="installation.html">Installation</a>
-          <a class="nav-link" href="getting-started.html">Getting Started</a>
-          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
-          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
-          <a class="nav-link" href="diagrams.html">Pipelines</a>
-          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="examples.html">Examples</a>
+          <a class="nav-link" href="diagrams.html">Diagrams</a>
+          <a class="nav-link" href="screenshots.html">Visuals</a>
         </div>
         <div class="theme-switcher" aria-label="Theme switcher">
           <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
@@ -30,43 +28,45 @@
 
     <main class="main">
       <section class="hero">
-        <h1>Screenshots & GIFs</h1>
-        <p class="subtle">Visual reference for the most common workflows, with local static assets you can replace with your own captures.</p>
+        <h1>Notebook and visual guide</h1>
+        <p class="subtle">The repository ships notebooks instead of screenshot-heavy walkthroughs. Use this page as the static HTML entry point to those assets.</p>
       </section>
 
       <section class="content">
-        <div class="gallery-grid">
-          <figure class="figure-card">
-            <h3>Install & bootstrap</h3>
-            <img src="assets/install-workflow.svg" alt="Install and bootstrap terminal flow" />
-            <figcaption>Expected terminal outputs for version check and OpenMMLab dependency validation.</figcaption>
-          </figure>
-          <figure class="figure-card">
-            <h3>Smoke training</h3>
-            <img src="assets/train-workflow.svg" alt="Smoke training workflow" />
-            <figcaption>Minimal one-epoch training run, then checkpoints in <code>results/</code>.</figcaption>
-          </figure>
-          <figure class="figure-card">
-            <h3>Inference run</h3>
-            <img src="assets/inference-workflow.svg" alt="Inference run" />
-            <figcaption>Load checkpoint then run inference and inspect boxes/class IDs and scores.</figcaption>
-          </figure>
+        <div class="grid">
+          <article class="card">
+            <h3>Backbone catalog</h3>
+            <p><code>notebooks/Tools/suite_00_backbone_catalog.ipynb</code> explores encoder discovery and compiled configs.</p>
+          </article>
+          <article class="card">
+            <h3>Dense detectors</h3>
+            <p><code>notebooks/Tools/suite_01_dense_detector.ipynb</code> shows backbone swapping and dense head adaptation.</p>
+          </article>
+          <article class="card">
+            <h3>ROI detectors</h3>
+            <p><code>notebooks/Tools/suite_02_roi_detector.ipynb</code> shows Mask R-CNN style assembly and ROI channel patching.</p>
+          </article>
+          <article class="card">
+            <h3>Transformer detectors</h3>
+            <p><code>notebooks/Tools/suite_03_transformer_detector.ipynb</code> covers ChannelMapper and decoder embed-dimension adaptation.</p>
+          </article>
+          <article class="card">
+            <h3>Training</h3>
+            <p><code>notebooks/Tools/suite_04_pipeline_training.ipynb</code> shows the canonical training entry point.</p>
+          </article>
+          <article class="card">
+            <h3>Inference and evaluation</h3>
+            <p><code>notebooks/Tools/suite_05_inference_evaluation.ipynb</code> keeps one detector spec across the whole lifecycle.</p>
+          </article>
         </div>
 
         <article class="section">
-          <h2>Pipeline diagram pack</h2>
-          <p>Prefer this for architecture-level flow:
-            <a href="diagrams.html">Open Figma pipeline diagrams</a>.
-          </p>
-
-          <h2>How to swap in real screenshots</h2>
-          <p>Drop new files to replace placeholders:</p>
-          <pre><code>docs/assets/install-workflow.svg
-# or convert images to any format and rename paths in this file</code></pre>
+          <h2>Supplemental SVG assets</h2>
+          <p>The repository also keeps simple SVG workflow assets under <code>docs/assets/</code>. These are useful for presentations, but the HTML pages and notebooks are the authoritative docs surface.</p>
         </article>
       </section>
     </main>
 
-    <footer>SimpleDet documentation · Screenshots & GIFs</footer>
+    <footer>SimpleDet documentation · Visuals</footer>
   </body>
 </html>

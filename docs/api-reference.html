@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - API Reference</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="api-reference.html">API</a>
+          <a class="nav-link" href="cli-reference.html">CLI</a>
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>API reference</h1>
+        <p class="subtle">Public modules that matter when using or extending the current codebase.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Top-level exports</h2>
+          <ul>
+            <li><code>simpledet.__version__</code></li>
+            <li><code>simpledet.train</code>, <code>simpledet.detect</code>, <code>simpledet.evaluate</code></li>
+            <li><code>simpledet.detectors</code></li>
+            <li><code>simpledet.suite</code></li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2><code>simpledet.suite</code></h2>
+          <pre><code>EncoderSpec
+NeckSpec
+HeadSpec
+DecoderSpec
+DetectorSpec
+
+build_encoder(...)
+build_neck(...)
+build_head(...)
+build_decoder(...)
+build_detector(...)
+compile_detector_spec(spec)</code></pre>
+        </article>
+        <article class="section">
+          <h2><code>simpledet.api.ObjectDetectionPipeline</code></h2>
+          <ul>
+            <li><code>build()</code></li>
+            <li><code>train()</code></li>
+            <li><code>test()</code></li>
+            <li><code>get_pth()</code></li>
+          </ul>
+          <p>Important constructor inputs include <code>detector_spec</code>, <code>model_cfg</code>, dataset paths, <code>categories</code>, and runtime settings.</p>
+        </article>
+        <article class="section">
+          <h2><code>simpledet._model_resolution</code></h2>
+          <ul>
+            <li><code>list_available_encoders()</code></li>
+            <li><code>list_available_heads()</code></li>
+            <li><code>list_available_necks()</code></li>
+            <li><code>apply_runtime_model_overrides()</code></li>
+            <li><code>patch_backbone_input_channels()</code></li>
+            <li><code>patch_model_num_classes()</code></li>
+          </ul>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · API reference</footer>
+  </body>
+</html>

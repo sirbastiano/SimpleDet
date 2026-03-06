@@ -13,11 +13,17 @@
         <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
         <div class="nav-links">
           <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="overview.html">Overview</a>
           <a class="nav-link" href="installation.html">Installation</a>
-          <a class="nav-link" href="getting-started.html">Getting Started</a>
-          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
-          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
-          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="core-concepts.html">Concepts</a>
+          <a class="nav-link" href="cli-reference.html">CLI</a>
+          <a class="nav-link" href="configuration-guide.html">Config</a>
+          <a class="nav-link" href="datasets.html">Datasets</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="inference.html">Inference</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="developer-guide.html">Developer</a>
           <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
         </div>
         <div class="theme-switcher" aria-label="Theme switcher">
@@ -31,65 +37,66 @@
     <main class="main">
       <section class="hero">
         <h1>Installation</h1>
-        <p class="subtle">Install the package, verify entrypoints, and validate optional OpenMMLab tooling.</p>
+        <p class="subtle">Install the package from source, add the OpenMMLab runtime, then verify the suite and pipeline entry points.</p>
       </section>
 
       <section class="content">
         <div class="toc">
-          <strong>Quick map:</strong>
+          <strong>On this page:</strong>
           <a href="#requirements">Requirements</a>
-          <a href="#install">Install</a>
-          <a href="#verification">Verification</a>
-          <a href="#advanced">Advanced</a>
+          <a href="#source-install">Install from source</a>
+          <a href="#verify">Verify</a>
+          <a href="#notes">Notes</a>
         </div>
 
         <article class="section" id="requirements">
           <h2>Requirements</h2>
           <ul>
-            <li>Python 3.8+</li>
-            <li><code>torch</code> + <code>mmengine</code> + <code>mmdet</code> for API operations</li>
-            <li>CUDA/driver alignment if using GPU training</li>
+            <li>Python <code>&gt;=3.8</code></li>
+            <li>PyTorch runtime compatible with your CPU or CUDA environment</li>
+            <li><code>mmengine</code>, <code>mmdet</code>, and <code>mmcv==2.1.0</code> for the pipeline path</li>
+            <li><code>timm</code> if you want suite-driven backbone swapping</li>
           </ul>
-          <p>Optional extras add support for richer metrics and plotting workflows.</p>
-          <pre><code>python --version
-python -m pip --version</code></pre>
         </article>
 
-        <article class="section" id="install">
-          <h2>Editable install (recommended)</h2>
-          <pre><code>git clone https://github.com/sirbastiano/MDet.git
-cd MDet
-python -m pip install -e .</code></pre>
-          <p>For non-default clone folders, keep the final command in your repository root.</p>
-          <p>Expected output: <code>Successfully installed simpledet-0.1.0</code> (or equivalent version string).</p>
+        <article class="section" id="source-install">
+          <h2>Install from source</h2>
+          <pre><code>git clone https://github.com/sirbastiano/SimpleDet.git
+cd SimpleDet
+python -m pip install -e .
+python -m pip install ".[openmmlab]"</code></pre>
 
-          <h3>Install with OpenMMLab extras</h3>
-          <p>If you need optional runtime tooling:</p>
-          <pre><code>python -m pip install -e .[openmmlab]</code></pre>
+          <p>The optional extra currently includes <code>openmim</code>, <code>mmcv==2.1.0</code>, <code>timm</code>, and plotting or data utilities used by the repository.</p>
+        </article>
 
-          <h3>Verify CLI entrypoint</h3>
+        <article class="section" id="verify">
+          <h2>Verify the runtime</h2>
           <pre><code>python -m simpledet --version
-simpledet --help</code></pre>
-          <p><code>simpledet --help</code> requires console-script installation; if not found, use <code>python -m simpledet --version</code> instead.</p>
+python -m simpledet --check-openmmlab
+python - &lt;&lt;'PY'
+from simpledet.detectors.data import list_formats
+from simpledet.suite import build_detector, compile_detector_spec
+
+print(list_formats())
+spec = build_detector("retinanet", encoder="resnet18.a1_in1k", num_classes=2, in_channels=3)
+print(compile_detector_spec(spec)["backbone"]["type"])
+PY</code></pre>
+
+          <p>Expected output shape:</p>
+          <pre><code>0.1.0
+Optional OpenMMLab runtime stack is available.
+['coco', 'csv', 'json', 'voc', 'yolo', ...]
+TimmEncoder</code></pre>
         </article>
 
-        <article class="section" id="verification">
-          <h2>Runtime validation</h2>
-          <pre><code>python -m simpledet --check-openmmlab</code></pre>
-          <p>Check fails when <code>torch</code>, <code>numpy</code>, <code>torchvision</code>, <code>mmengine</code>, or <code>mmdet</code> is missing.</p>
-          <p>Smoke-run output example:</p>
-          <pre><code>Optional OpenMMLab runtime stack is available.</code></pre>
-        </article>
-
-        <article class="section" id="advanced">
-          <h2>Script-first / environment helpers</h2>
-          <p>Repo helper scripts:</p>
-          <pre><code>./setup.sh
-./deploy.sh</code></pre>
-          <p>Use these only if your environment matches the script assumptions and after checking <code>python -m simpledet --version</code>.</p>
-          <p class="notice">
-            Script mode is legacy-oriented and has stricter path assumptions than the public API.
-          </p>
+        <article class="section" id="notes">
+          <h2>Notes</h2>
+          <ul>
+            <li>The lightweight <code>torchvision</code> helpers can run without the full OpenMMLab stack.</li>
+            <li>The suite plus pipeline workflow depends on the OpenMMLab runtime.</li>
+            <li><code>device="auto"</code> in the lightweight inference helper currently resolves to CPU.</li>
+          </ul>
+          <p class="notice">If <code>python -m simpledet --check-openmmlab</code> fails, fix the environment before debugging pipeline code.</p>
         </article>
       </section>
     </main>

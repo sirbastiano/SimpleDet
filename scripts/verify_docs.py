@@ -10,11 +10,26 @@ import re
 def main() -> None:
     docs_dir = Path("docs")
     required_pages = {
-        "index",
-        "getting-started",
+        "api-reference",
+        "cli-reference",
+        "configuration-guide",
         "core-concepts",
+        "datasets",
+        "developer-guide",
+        "diagrams",
+        "evaluation",
+        "examples",
+        "experiments-reproducibility",
+        "faq",
+        "getting-started",
+        "index",
         "installation",
+        "inference",
+        "overview",
+        "quickstart",
+        "roadmap-changelog",
         "screenshots",
+        "training",
         "diagrams",
         "troubleshooting",
     }
@@ -25,6 +40,13 @@ def main() -> None:
     if missing_pages:
         raise SystemExit(
             f"Missing required docs pages: {', '.join(sorted(missing_pages))}"
+        )
+
+    markdown_pages = sorted(path.name for path in docs_dir.glob("*.md"))
+    if markdown_pages:
+        raise SystemExit(
+            "Markdown docs should not be present in the static site: "
+            + ", ".join(markdown_pages)
         )
 
     href_re = re.compile(r'''href\s*=\s*["']([^"']+)["']''', re.IGNORECASE)

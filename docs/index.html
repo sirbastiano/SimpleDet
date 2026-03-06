@@ -13,12 +13,25 @@
         <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
         <div class="nav-links">
           <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="overview.html">Overview</a>
           <a class="nav-link" href="installation.html">Installation</a>
-          <a class="nav-link" href="getting-started.html">Getting Started</a>
-          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
-          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
-          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="core-concepts.html">Concepts</a>
+          <a class="nav-link" href="cli-reference.html">CLI</a>
+          <a class="nav-link" href="configuration-guide.html">Config</a>
+          <a class="nav-link" href="datasets.html">Datasets</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="inference.html">Inference</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="experiments-reproducibility.html">Repro</a>
+          <a class="nav-link" href="examples.html">Examples</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+          <a class="nav-link" href="faq.html">FAQ</a>
           <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+          <a class="nav-link" href="roadmap-changelog.html">Roadmap</a>
+          <a class="nav-link" href="diagrams.html">Diagrams</a>
+          <a class="nav-link" href="screenshots.html">Visuals</a>
         </div>
         <div class="theme-switcher" aria-label="Theme switcher">
           <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
@@ -30,44 +43,69 @@
 
     <main class="main">
       <section class="hero">
-        <h1>SimpleDet documentation</h1>
-        <p class="subtle">Practical, concise docs for setup, training, inference, and workflow visual guides.</p>
+        <h1>SimpleDet static documentation</h1>
+        <p class="subtle">
+          Static HTML docs for the current SimpleDet codebase. The recommended workflow is:
+          define detectors with <code>simpledet.suite</code>, run them with
+          <code>ObjectDetectionPipeline(detector_spec=...)</code>, and keep
+          experiments reproducible with one workdir per run.
+        </p>
         <div class="btn-row">
-          <a class="btn" href="https://github.com/sirbastiano/MDet" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn" href="https://github.com/sirbastiano/SimpleDet" target="_blank" rel="noopener">GitHub</a>
           <a class="btn" href="installation.html">Install</a>
-          <a class="btn" href="getting-started.html#quick-ref">Quick Reference</a>
-          <a class="btn" href="core-concepts.html">Architecture</a>
-          <a class="btn" href="diagrams.html">Pipeline diagrams</a>
-          <a class="btn" href="screenshots.html">Visual walkthroughs</a>
+          <a class="btn" href="quickstart.html">Quickstart</a>
+          <a class="btn" href="examples.html">Examples</a>
+          <a class="btn" href="api-reference.html">API Reference</a>
         </div>
       </section>
 
       <section class="content">
         <div class="grid">
           <article class="card">
-            <h3>Repository quick start</h3>
-            <p>Editable install, CLI diagnostics, and a smoke run in the first minutes.</p>
-            <a class="btn" href="getting-started.html#quick-ref">Open quick ref</a>
+            <h3>Suite-first workflow</h3>
+            <p>Build dense, ROI, or transformer detectors with a small Python API instead of hand-editing model dicts.</p>
+            <a class="btn" href="overview.html">Open overview</a>
           </article>
           <article class="card">
-            <h3>Train, evaluate, infer</h3>
-            <p>Use <code>train</code>, <code>evaluate</code>, <code>simpledet.detect</code>, and checkpoint inference.</p>
-            <a class="btn" href="core-concepts.html#entrypoints">Open API map</a>
+            <h3>Backbone auto-adaptation</h3>
+            <p>Swap to any supported <code>timm</code> backbone and let SimpleDet patch necks, heads, ROI extractors, and transformer blocks.</p>
+            <a class="btn" href="core-concepts.html">Open concepts</a>
           </article>
           <article class="card">
-            <h3>Example snippets</h3>
-            <p>Copy-ready templates for dataset checks, smoke train, and batch inference.</p>
-            <a class="btn" href="getting-started.html#examples">Open examples</a>
+            <h3>Reproducible experiments</h3>
+            <p>Keep detector specs, dataset paths, checkpoints, logs, and evaluation outputs together in one pipeline workdir.</p>
+            <a class="btn" href="experiments-reproducibility.html">Open reproducibility</a>
           </article>
           <article class="card">
-            <h3>Visual runbooks</h3>
-            <p>Workflow screenshots and animated placeholders that match this docs navigation.</p>
-            <a class="btn" href="screenshots.html">Open visuals</a>
+            <h3>Notebook walkthroughs</h3>
+            <p>Use the shipped notebooks for backbone discovery, dense and ROI detector assembly, training, inference, and evaluation.</p>
+            <a class="btn" href="screenshots.html">Open notebook map</a>
           </article>
         </div>
+
+        <article class="section">
+          <h2>Start here</h2>
+          <ol>
+            <li>Install the runtime in <a href="installation.html">Installation</a>.</li>
+            <li>Build and inspect your first detector in <a href="quickstart.html">Quickstart</a>.</li>
+            <li>Understand the runtime model in <a href="core-concepts.html">Core Concepts</a>.</li>
+            <li>Choose a detector family from <a href="examples.html">Examples</a>.</li>
+            <li>Use <a href="developer-guide.html">Developer Guide</a> when extending the suite.</li>
+          </ol>
+        </article>
+
+        <article class="section">
+          <h2>Current public surface</h2>
+          <ul>
+            <li><code>simpledet --version</code> and <code>python -m simpledet --check-openmmlab</code> for diagnostics.</li>
+            <li><code>simpledet.suite</code> for <code>DetectorSpec</code>, builders, and compilation.</li>
+            <li><code>simpledet.api.ObjectDetectionPipeline</code> for training, testing, and evaluation.</li>
+            <li><code>simpledet.detectors.*</code> for lightweight training, inference, and generic dataset loading.</li>
+          </ul>
+        </article>
       </section>
     </main>
 
-    <footer>SimpleDet documentation · Version 0.1.0</footer>
+    <footer>SimpleDet documentation · Static HTML site</footer>
   </body>
 </html>

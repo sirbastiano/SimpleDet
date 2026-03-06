@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Roadmap and Changelog</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="roadmap-changelog.html">Roadmap</a>
+          <a class="nav-link" href="overview.html">Overview</a>
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Roadmap and changelog</h1>
+        <p class="subtle">The repository does not yet maintain a formal changelog file, so this page records the current direction instead of pretending the process is more mature than it is.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Current state</h2>
+          <ul>
+            <li>Static HTML docs replaced the transient Markdown docs tree.</li>
+            <li><code>simpledet.suite</code> is the canonical model-authoring layer.</li>
+            <li><code>ObjectDetectionPipeline(detector_spec=...)</code> is the canonical runtime path.</li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2>Near-term gaps</h2>
+          <ul>
+            <li>Formal changelog discipline is still missing.</li>
+            <li>Notebook execution is not yet covered end-to-end in CI.</li>
+            <li>The config layout between <code>MyConfigs/</code> and packaged templates can still be simplified.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Roadmap and changelog</footer>
+  </body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Datasets</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="datasets.html">Datasets</a>
+          <a class="nav-link" href="configuration-guide.html">Config</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Datasets</h1>
+        <p class="subtle">SimpleDet can inspect several dataset formats, but the suite plus pipeline workflow is still centered on COCO-style annotations.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Supported loader formats</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Format</th><th>Status</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>coco</code></td><td>Implemented</td><td>Best aligned with the training pipeline</td></tr>
+                <tr><td><code>csv</code></td><td>Implemented</td><td>Flat annotation tables for exploration</td></tr>
+                <tr><td><code>json</code> / <code>jsonl</code> / <code>ndjson</code></td><td>Implemented</td><td>Line-delimited records</td></tr>
+                <tr><td><code>yolo</code></td><td>Implemented</td><td>Use for loading, not for the pipeline runtime</td></tr>
+                <tr><td><code>voc</code></td><td>Implemented</td><td>Pascal VOC XML support</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+        <article class="section">
+          <h2>Recommended layout</h2>
+          <pre><code>dataset_root/
+  annotations/
+    train.json
+    val.json
+    test.json
+  imgs/
+    image_0001.tif
+    image_0002.tif</code></pre>
+        </article>
+        <article class="section">
+          <h2>COCO example</h2>
+          <pre><code>{
+  "images": [{"id": 1, "file_name": "image_0001.png", "width": 1024, "height": 1024}],
+  "annotations": [{"id": 1, "image_id": 1, "category_id": 0, "bbox": [100, 120, 50, 80], "area": 4000, "iscrowd": 0}],
+  "categories": [{"id": 0, "name": "vessel"}]
+}</code></pre>
+        </article>
+        <article class="section">
+          <h2>Practical rule</h2>
+          <p>Use generic loaders for data exploration and the lightweight helpers. Convert to COCO JSON before using <code>ObjectDetectionPipeline(detector_spec=...)</code>.</p>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Datasets</footer>
+  </body>
+</html>

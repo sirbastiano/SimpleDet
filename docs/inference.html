@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Inference</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="inference.html">Inference</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="cli-reference.html">CLI</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Inference</h1>
+        <p class="subtle">Choose the inference path that matches the checkpoint and runtime you actually trained with.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Pipeline inference</h2>
+          <pre><code>from simpledet import detect
+from simpledet.suite import build_detector
+
+outputs = detect(
+    build=True,
+    detector_spec=build_detector(
+        "mask_rcnn",
+        encoder="swin_tiny_patch4_window7_224.ms_in22k_ft_in1k",
+        num_classes=4,
+        in_channels=3,
+    ),
+    data_folder="/data/project",
+    result_folder="results/project",
+    config_folder="simpledet/simpledet/src",
+    annot_file_train="/data/project/annotations/train.json",
+    annot_file_val="/data/project/annotations/val.json",
+    annot_file_test="/data/project/annotations/test.json",
+    tif_channels_to_load=[1, 1, 1],
+    in_channels=3,
+    categories=("a", "b", "c", "d"),
+)</code></pre>
+          <p>This is the same test-time path used by the pipeline during evaluation.</p>
+        </article>
+        <article class="section">
+          <h2>Lightweight inference</h2>
+          <pre><code>from simpledet.detectors.infer import load_model, predict
+
+model = load_model(
+    "runs/exp001/epoch_001.pth",
+    device="cpu",
+    score_threshold=0.10,
+    max_detections=50,
+)
+
+single = predict("sample.png", model=model)
+batch = predict(["a.png", "b.png"], model=model)</code></pre>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Inference</footer>
+  </body>
+</html>

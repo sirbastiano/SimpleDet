@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Configuration Guide</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="overview.html">Overview</a>
+          <a class="nav-link" href="configuration-guide.html">Config</a>
+          <a class="nav-link" href="datasets.html">Datasets</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Configuration guide</h1>
+        <p class="subtle">The canonical model interface is now <code>DetectorSpec</code>. Raw model dictionaries and minimal config mappings remain as compatibility layers.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>DetectorSpec</h2>
+          <pre><code>from simpledet.suite import build_decoder, build_detector, build_neck
+
+spec = build_detector(
+    "deformable_detr",
+    encoder="convnext_tiny.in12k_ft_in1k",
+    neck=build_neck(name="ChannelMapper", out_channels=192, num_outs=4),
+    decoder=build_decoder(embed_dims=192, num_queries=300),
+    num_classes=5,
+    in_channels=3,
+)</code></pre>
+        </article>
+        <article class="section">
+          <h2>Compile to a model dictionary</h2>
+          <pre><code>from simpledet.suite import compile_detector_spec
+model_cfg = compile_detector_spec(spec)</code></pre>
+          <p>The compiler fills model sections such as <code>backbone</code>, <code>neck</code>, <code>bbox_head</code>, <code>roi_head</code>, <code>encoder</code>, and <code>decoder</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Custom backbones</h2>
+          <pre><code>from simpledet.suite import EncoderSpec
+
+custom_encoder = EncoderSpec(
+    source="config",
+    name="custom-backbone",
+    backbone_cfg={"type": "MyBackbone", "depth": 18},
+    feature_channels=(64, 128, 256, 512),
+)</code></pre>
+          <p>Use this path when the backbone is not coming from <code>timm</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Runtime config</h2>
+          <p><code>ObjectDetectionPipeline</code> still loads <code>simpledet/simpledet/src/base_config.py</code> and replaces <code>cfg.model</code> with the compiled detector definition. Dataloaders, evaluators, schedulers, and hooks continue to live in the runtime config.</p>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Configuration guide</footer>
+  </body>
+</html>

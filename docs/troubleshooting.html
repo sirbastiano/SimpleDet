@@ -14,10 +14,11 @@
         <div class="nav-links">
           <a class="nav-link" href="index.html">Home</a>
           <a class="nav-link" href="installation.html">Installation</a>
-          <a class="nav-link" href="getting-started.html">Getting Started</a>
-          <a class="nav-link" href="core-concepts.html">Core Concepts</a>
-          <a class="nav-link" href="screenshots.html">Screenshots & GIFs</a>
-          <a class="nav-link" href="diagrams.html">Pipelines</a>
+          <a class="nav-link" href="datasets.html">Datasets</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="inference.html">Inference</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="faq.html">FAQ</a>
           <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
         </div>
         <div class="theme-switcher" aria-label="Theme switcher">
@@ -31,7 +32,7 @@
     <main class="main">
       <section class="hero">
         <h1>Troubleshooting</h1>
-        <p class="subtle">Issue-to-fix matrix for install, CLI, data, scripts, and API execution.</p>
+        <p class="subtle">Common install, dataset, runtime, and auto-adaptation failures in the current SimpleDet repository.</p>
       </section>
 
       <section class="content">
@@ -39,68 +40,53 @@
           <table>
             <thead>
               <tr>
-                <th>Issue</th>
+                <th>Problem</th>
                 <th>Likely cause</th>
-                <th>How to resolve</th>
+                <th>Fix</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><code>python -m simpledet --check-openmmlab</code> returns missing dependency</td>
-                <td>Optional dependencies for runtime checks are not installed</td>
-                <td>Install required modules and retry: <code>python -m pip install -e .[openmmlab]</code>, then rerun the check.</td>
+                <td><code>python -m simpledet --check-openmmlab</code> fails</td>
+                <td>Missing or incompatible OpenMMLab runtime packages</td>
+                <td>Reinstall with <code>python -m pip install ".[openmmlab]"</code> and verify PyTorch, <code>mmcv</code>, <code>mmengine</code>, and <code>mmdet</code> versions together.</td>
               </tr>
               <tr>
-                <td><code>simpledet --help</code> not found</td>
-                <td>CLI entrypoint not installed in current environment</td>
-                <td>Reactivate the environment and run <code>python -m pip install -e .</code> from repo root, then rerun <code>python -m simpledet --version</code>.</td>
+                <td>Backbone swap raises <code>ModelPatchError</code></td>
+                <td>The encoder does not expose usable feature metadata, or the detector family cannot infer the expected feature levels</td>
+                <td>Prefer a supported <code>timm</code> encoder, keep <code>strict_auto_adapt=True</code>, or provide explicit <code>backbone_cfg</code> and <code>feature_channels</code>.</td>
               </tr>
               <tr>
-                <td>Script run exits with <code>KeyError/Model not configured</code></td>
-                <td>Legacy launcher expects expected data and annotation paths</td>
-                <td>Double-check <code>data_folder</code>, <code>annot_file_train</code>, <code>annot_file_val</code>, <code>annot_file_test</code>.</td>
+                <td>Pipeline training crashes before the first iteration</td>
+                <td>Missing annotation file, wrong dataset root, wrong <code>tif_channels_to_load</code>, or category count mismatch</td>
+                <td>Check <code>data_folder</code>, annotation paths, channel count, and that <code>categories</code> matches the intended class count.</td>
               </tr>
               <tr>
-                <td>API training returns empty dataset / no samples</td>
-                <td>Wrong dataset path or unsupported format</td>
-                <td>Run <code>from simpledet.detectors.data import list_formats, load_dataset</code>; pass explicit <code>format='coco'</code>/<code>json</code>/<code>yolo</code>.</td>
+                <td>Dataset format errors during exploration</td>
+                <td>Auto-detection is ambiguous or the dataset is not COCO-compatible for the pipeline path</td>
+                <td>Pass an explicit <code>format=</code> to <code>load_dataset()</code> and convert to COCO JSON before using the pipeline.</td>
               </tr>
               <tr>
-                <td>Checkpoint inference fails: unsupported format</td>
-                <td>Checkpoint extension must be <code>.pth</code>/<code>.pt</code>/<code>.ckpt</code></td>
-                <td>Use supported extension or call <code>load_model(checkpoint=...)</code> with a valid file path.</td>
+                <td>CUDA is available but the lightweight helper still runs on CPU</td>
+                <td><code>device="auto"</code> currently resolves to CPU in the lightweight inference path</td>
+                <td>Pass <code>device="cuda:0"</code> explicitly and verify your PyTorch CUDA build separately.</td>
               </tr>
               <tr>
-                <td>CUDA not used even if available</td>
-                <td>Config or launch command forces CPU</td>
-                <td>For API mode set <code>device='cuda'</code> and verify <code>torch.cuda.is_available()</code>.</td>
-              </tr>
-              <tr>
-                <td>Legacy pipeline fails during construction</td>
-                <td>OpenMMLab runtime path is stricter than API mode</td>
-                <td>Confirm all optional dependencies with <code>python -m simpledet --check-openmmlab</code>, then validate arguments before <code>ObjectDetectionPipeline(...)</code>.</td>
-              </tr>
-              <tr>
-                <td>`simpledet` commands time out on import</td>
-                <td>Heavy environment import from optional modules</td>
-                <td>Use script entrypoint only for checks; load modules lazily during model runs.</td>
+                <td><code>metrics.pkl</code> does not deserialize as a pickle</td>
+                <td>The current pipeline writes JSON text to a file ending in <code>.pkl</code></td>
+                <td>Read it as JSON text. The suffix is historical, not authoritative.</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <article class="section">
-          <h2>Emergency quick checks</h2>
-          <pre><code>python -m simpledet --version
-python -m simpledet --check-openmmlab
-python - <<'PY'
-from simpledet.detectors.data import list_formats
-print('formats:', list_formats())
+          <h2>Useful checks</h2>
+          <pre><code>python -m simpledet --check-openmmlab
+python - &lt;&lt;'PY'
+from simpledet._model_resolution import list_available_encoders
+print(list_available_encoders(pattern="resnet*")[:10])
 PY</code></pre>
-          <p>Expected outputs:</p>
-          <pre><code>0.1.0
-Optional OpenMMLab runtime stack is available.
-formats: ['coco', 'csv', 'json', 'voc', 'yolo']</code></pre>
         </article>
       </section>
     </main>

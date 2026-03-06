@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Examples</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="examples.html">Examples</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="screenshots.html">Visuals</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Examples</h1>
+        <p class="subtle">Three practical detector patterns that match the current suite plus pipeline API.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Satellite imagery vessel detection</h2>
+          <pre><code>from simpledet.suite import build_detector, build_neck
+
+detector_spec = build_detector(
+    "vfnet",
+    encoder="convnext_tiny.in12k_ft_in1k",
+    neck=build_neck(name="FPN", out_channels=192, num_outs=5),
+    num_classes=1,
+    in_channels=4,
+)</code></pre>
+          <p>Notebook starting point: <code>notebooks/Tools/suite_01_dense_detector.ipynb</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Building detection</h2>
+          <pre><code>from simpledet.suite import build_detector, build_neck
+
+detector_spec = build_detector(
+    "mask_rcnn",
+    encoder="swin_tiny_patch4_window7_224.ms_in22k_ft_in1k",
+    neck=build_neck(name="FPN", out_channels=192),
+    num_classes=1,
+    in_channels=3,
+)</code></pre>
+          <p>Notebook starting point: <code>notebooks/Tools/suite_02_roi_detector.ipynb</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Ship detection with a transformer detector</h2>
+          <pre><code>from simpledet.suite import build_decoder, build_detector, build_neck
+
+detector_spec = build_detector(
+    "deformable_detr",
+    encoder="convnext_tiny.in12k_ft_in1k",
+    neck=build_neck(name="ChannelMapper", out_channels=192, num_outs=4),
+    decoder=build_decoder(embed_dims=192, num_queries=300),
+    num_classes=1,
+    in_channels=3,
+)</code></pre>
+          <p>Notebook starting point: <code>notebooks/Tools/suite_03_transformer_detector.ipynb</code>.</p>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Examples</footer>
+  </body>
+</html>

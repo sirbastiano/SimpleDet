@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Experiments & Reproducibility</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="experiments-reproducibility.html">Repro</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Experiments and reproducibility</h1>
+        <p class="subtle">Treat the detector spec, runtime config, data paths, and outputs as one experiment record.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Standard workflow</h2>
+          <ol>
+            <li>Create the detector spec.</li>
+            <li>Record dataset root and annotation files.</li>
+            <li>Fix the random seed and runtime parameters.</li>
+            <li>Launch training into a dedicated result folder.</li>
+            <li>Keep the checkpoint and evaluator outputs together.</li>
+          </ol>
+        </article>
+        <article class="section">
+          <h2>Pipeline layout</h2>
+          <pre><code>results/project/
+  BS_2_LR_0.001_IMG_768_71_Optim_SGD/
+    pipeline.log
+    best_*.pth
+    tests.pkl
+    metrics.pkl
+    testSet*</code></pre>
+        </article>
+        <article class="section">
+          <h2>Checklist</h2>
+          <ul>
+            <li>detector spec or compiled model config</li>
+            <li>shared runtime config path</li>
+            <li>dataset root and annotation files</li>
+            <li><code>seed</code>, <code>resize</code>, <code>batch_size</code>, and <code>learning_rate</code></li>
+            <li>exact checkpoint used for evaluation</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Experiments and reproducibility</footer>
+  </body>
+</html>

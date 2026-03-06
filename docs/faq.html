@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - FAQ</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="faq.html">FAQ</a>
+          <a class="nav-link" href="troubleshooting.html">Troubleshooting</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>FAQ</h1>
+        <p class="subtle">Short answers to the questions that come up most often when onboarding to the current codebase.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Is <code>simpledet.train</code> a shell command?</h2>
+          <p>No. It is a public Python callable.</p>
+        </article>
+        <article class="section">
+          <h2>Which workflow should I start with?</h2>
+          <p>Use <code>simpledet.suite</code> plus <code>ObjectDetectionPipeline</code> for any real experiment. Use the lightweight path only for smoke tests.</p>
+        </article>
+        <article class="section">
+          <h2>Can I use any backbone?</h2>
+          <p>You can use any <code>timm</code> backbone that exposes usable feature metadata. For non-<code>timm</code> backbones, provide <code>backbone_cfg</code> and <code>feature_channels</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Which dataset format should I standardize on?</h2>
+          <p>COCO JSON for the suite and pipeline workflow.</p>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · FAQ</footer>
+  </body>
+</html>

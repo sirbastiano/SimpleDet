@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Quickstart</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="installation.html">Installation</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="screenshots.html">Visuals</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Quickstart</h1>
+        <p class="subtle">Build a detector with the suite API, inspect the compiled model, then launch training and evaluation through the pipeline.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>1. Install and verify</h2>
+          <pre><code>python -m pip install -e .
+python -m pip install ".[openmmlab]"
+python -m simpledet --check-openmmlab</code></pre>
+        </article>
+        <article class="section">
+          <h2>2. Build a detector</h2>
+          <pre><code>python - &lt;&lt;'PY'
+from pprint import pprint
+from simpledet.suite import build_detector, compile_detector_spec
+
+spec = build_detector(
+    "retinanet",
+    encoder="resnet18.a1_in1k",
+    num_classes=2,
+    in_channels=3,
+)
+model_cfg = compile_detector_spec(spec)
+
+print(spec.family)
+pprint(model_cfg["backbone"])
+pprint(model_cfg["neck"])
+pprint(model_cfg["bbox_head"])
+PY</code></pre>
+          <p>Expected output shape:</p>
+          <pre><code>dense
+{'type': 'TimmEncoder', ...}
+{'type': 'FPN', ...}
+{'type': 'RetinaHead', 'num_classes': 2, ...}</code></pre>
+        </article>
+        <article class="section">
+          <h2>3. Train through the pipeline</h2>
+          <pre><code>from simpledet.api import ObjectDetectionPipeline
+from simpledet.suite import build_detector
+
+detector_spec = build_detector(
+    "retinanet",
+    encoder="resnet18.a1_in1k",
+    num_classes=2,
+    in_channels=3,
+)
+
+pipeline = ObjectDetectionPipeline(
+    detector_spec=detector_spec,
+    data_folder="/path/to/dataset_root",
+    result_folder="/path/to/results",
+    config_folder="simpledet/simpledet/src",
+    data_prefix="imgs/",
+    annot_file_train="/path/to/annotations/train.json",
+    annot_file_val="/path/to/annotations/val.json",
+    annot_file_test="/path/to/annotations/test.json",
+    tif_channels_to_load=[1, 1, 1],
+    in_channels=3,
+    categories=("object_a", "object_b"),
+    resize=768,
+    batch_size=2,
+    learning_rate=0.001,
+    max_epochs=10,
+)
+
+pipeline.build()
+pipeline.train()</code></pre>
+        </article>
+        <article class="section">
+          <h2>4. Evaluate</h2>
+          <pre><code>from simpledet import evaluate
+
+metrics = evaluate(pipeline=pipeline, build=False)
+print(type(metrics).__name__)</code></pre>
+          <p>Expected artifacts:</p>
+          <ul>
+            <li><code>pipeline.log</code></li>
+            <li><code>best_*.pth</code></li>
+            <li><code>tests.pkl</code></li>
+            <li><code>metrics.pkl</code></li>
+            <li><code>testSet*</code> evaluator outputs</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Quickstart</footer>
+  </body>
+</html>

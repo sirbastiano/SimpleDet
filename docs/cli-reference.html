@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - CLI Reference</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="cli-reference.html">CLI</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="inference.html">Inference</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>CLI reference</h1>
+        <p class="subtle">SimpleDet installs one console script and several public Python workflow callables.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Installed console script</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Command</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>simpledet --version</code></td><td>Print the installed package version</td></tr>
+                <tr><td><code>python -m simpledet --check-openmmlab</code></td><td>Verify the optional runtime stack used by the pipeline</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+        <article class="section">
+          <h2><code>simpledet.train</code></h2>
+          <p>Public Python callable, not a shell executable.</p>
+          <pre><code>train(*, config=None, pipeline=None, build=True, **pipeline_kwargs)</code></pre>
+          <ul>
+            <li><code>config=...</code> uses the lightweight <code>torchvision</code> path</li>
+            <li><code>pipeline=...</code> or forwarded constructor kwargs use <code>ObjectDetectionPipeline</code></li>
+            <li><code>detector_spec=...</code> is supported through forwarded pipeline kwargs</li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2><code>simpledet.detect</code></h2>
+          <pre><code>detect(*, pipeline=None, build=True, **pipeline_kwargs)</code></pre>
+          <p>Runs <code>pipeline.test()</code> through the OpenMMLab path. This is not the same as <code>load_model()</code> plus <code>predict()</code>.</p>
+        </article>
+        <article class="section">
+          <h2><code>simpledet.evaluate</code></h2>
+          <pre><code>evaluate(*, pipeline=None, build=True, **pipeline_kwargs)</code></pre>
+          <p>Currently a thin wrapper around the same pipeline <code>test()</code> path used by <code>detect()</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Lightweight inference helpers</h2>
+          <pre><code>load_model(checkpoint, *, device="cpu", model_name=None, num_classes=None, score_threshold=0.05, max_detections=None)
+predict(image, *, model=None, score_threshold=None)</code></pre>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · CLI reference</footer>
+  </body>
+</html>

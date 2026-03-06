@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Developer Guide</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+          <a class="nav-link" href="experiments-reproducibility.html">Repro</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Developer guide</h1>
+        <p class="subtle">Repository structure, module responsibilities, extension points, and documentation workflow for the current suite-based architecture.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Repository structure</h2>
+          <ul>
+            <li><code>simpledet/simpledet/suite/</code> for specs, builders, and compiler</li>
+            <li><code>simpledet/simpledet/_model_resolution.py</code> for runtime adaptation</li>
+            <li><code>simpledet/simpledet/api.py</code> for the pipeline wrapper</li>
+            <li><code>simpledet/simpledet/detectors/</code> for compatibility helpers</li>
+            <li><code>tests/</code> for unit tests and repo audit</li>
+            <li><code>docs/</code> for this static HTML site</li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2>How to add a new detector family</h2>
+          <ol>
+            <li>Add the architecture and family mapping in <code>suite/catalog.py</code>.</li>
+            <li>Add the template mapping in <code>suite/compiler.py</code>.</li>
+            <li>Extend compiler logic only if the family needs custom adaptation rules.</li>
+            <li>Add coverage in <code>tests/test_suite.py</code>.</li>
+          </ol>
+        </article>
+        <article class="section">
+          <h2>Testing</h2>
+          <pre><code>PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'
+python3 scripts/verify_docs.py</code></pre>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Developer guide</footer>
+  </body>
+</html>

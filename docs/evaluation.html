@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Evaluation</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="inference.html">Inference</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="experiments-reproducibility.html">Repro</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Evaluation</h1>
+        <p class="subtle">Evaluation is tied to the pipeline test path. Reuse the same detector spec and dataset metadata you trained with.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Entry point</h2>
+          <pre><code>from simpledet import evaluate
+from simpledet.suite import build_detector
+
+metrics = evaluate(
+    build=True,
+    detector_spec=build_detector(
+        "deformable_detr",
+        encoder="convnext_tiny.in12k_ft_in1k",
+        num_classes=3,
+        in_channels=3,
+    ),
+    data_folder="/data/project",
+    result_folder="results/project",
+    config_folder="simpledet/simpledet/src",
+    annot_file_train="/data/project/annotations/train.json",
+    annot_file_val="/data/project/annotations/val.json",
+    annot_file_test="/data/project/annotations/test.json",
+    tif_channels_to_load=[1, 1, 1],
+    in_channels=3,
+    categories=("object_a", "object_b", "object_c"),
+)</code></pre>
+        </article>
+        <article class="section">
+          <h2>Outputs</h2>
+          <ul>
+            <li><code>tests.pkl</code></li>
+            <li><code>metrics.pkl</code></li>
+            <li><code>testSet*</code> files from the configured evaluator</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Evaluation</footer>
+  </body>
+</html>

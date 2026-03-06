@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Overview</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="overview.html">Overview</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="core-concepts.html">Concepts</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Overview</h1>
+        <p class="subtle">SimpleDet now has a clear split between detector authoring, experiment runtime, and lightweight compatibility helpers.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>1. Detector authoring layer</h2>
+          <ul>
+            <li><code>simpledet.suite</code> defines <code>EncoderSpec</code>, <code>NeckSpec</code>, <code>HeadSpec</code>, <code>DecoderSpec</code>, and <code>DetectorSpec</code>.</li>
+            <li>Supported families: dense, ROI, and transformer detectors.</li>
+            <li>Backbone sources: <code>timm</code> encoders or explicit config-backed custom backbones.</li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2>2. Runtime pipeline layer</h2>
+          <ul>
+            <li><code>ObjectDetectionPipeline</code> is the canonical runtime path.</li>
+            <li>Use <code>detector_spec=...</code> for the recommended flow.</li>
+            <li>Use <code>model_cfg=...</code> only for direct legacy config usage.</li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2>3. Lightweight helper layer</h2>
+          <ul>
+            <li><code>simpledet.detectors.train.train(config=...)</code> for a small <code>torchvision</code> training flow.</li>
+            <li><code>simpledet.detectors.infer.load_model()</code> and <code>predict()</code> for lightweight inference.</li>
+            <li><code>simpledet.detectors.data.load_dataset()</code> for generic dataset inspection.</li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2>Repository areas</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Path</th><th>Purpose</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>simpledet/simpledet/suite/</code></td><td>Canonical detector specs, builders, and compiler</td></tr>
+                <tr><td><code>simpledet/simpledet/api.py</code></td><td>MMEngine pipeline wrapper</td></tr>
+                <tr><td><code>simpledet/simpledet/_model_resolution.py</code></td><td>Runtime backbone inspection and model adaptation</td></tr>
+                <tr><td><code>simpledet/simpledet/detectors/</code></td><td>Lightweight training, inference, evaluation, and dataset helpers</td></tr>
+                <tr><td><code>MyConfigs/</code></td><td>Experiment config workspace</td></tr>
+                <tr><td><code>notebooks/Tools/</code></td><td>Static example notebooks</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Overview</footer>
+  </body>
+</html>

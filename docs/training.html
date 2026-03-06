@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Training</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="training.html">Training</a>
+          <a class="nav-link" href="evaluation.html">Evaluation</a>
+          <a class="nav-link" href="experiments-reproducibility.html">Repro</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <h1>Training</h1>
+        <p class="subtle">Use the suite plus pipeline path for real experiments. The lightweight path is still available for quick local smoke tests.</p>
+      </section>
+      <section class="content">
+        <article class="section">
+          <h2>Recommended training path</h2>
+          <pre><code>from simpledet.api import ObjectDetectionPipeline
+from simpledet.suite import build_detector, build_neck
+
+detector_spec = build_detector(
+    "vfnet",
+    encoder="convnext_tiny.in12k_ft_in1k",
+    neck=build_neck(name="FPN", out_channels=192, num_outs=5),
+    num_classes=3,
+    in_channels=3,
+)
+
+pipeline = ObjectDetectionPipeline(
+    detector_spec=detector_spec,
+    data_folder="/data/project",
+    result_folder="results/project",
+    config_folder="simpledet/simpledet/src",
+    data_prefix="imgs/",
+    annot_file_train="/data/project/annotations/train.json",
+    annot_file_val="/data/project/annotations/val.json",
+    annot_file_test="/data/project/annotations/test.json",
+    tif_channels_to_load=[1, 1, 1],
+    in_channels=3,
+    categories=("car", "building", "ship"),
+    resize=768,
+    batch_size=2,
+    learning_rate=0.001,
+    max_epochs=30,
+)
+
+pipeline.build()
+pipeline.train()</code></pre>
+        </article>
+        <article class="section">
+          <h2>What the pipeline injects</h2>
+          <ul>
+            <li>dataset roots and annotation paths</li>
+            <li>resize and dataloader settings</li>
+            <li>optimizer and schedule choices</li>
+            <li>workdir, logging, and evaluator wiring</li>
+          </ul>
+        </article>
+        <article class="section">
+          <h2>Compatibility path</h2>
+          <pre><code>from simpledet.detectors.train import train
+
+result = train(config={
+    "dataset": "data/instances_train.json",
+    "format": "coco",
+    "output_dir": "runs/exp001",
+    "model_name": "faster_rcnn_resnet50_fpn",
+    "epochs": 2,
+})</code></pre>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation · Training</footer>
+  </body>
+</html>
