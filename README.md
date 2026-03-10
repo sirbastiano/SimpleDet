@@ -4,74 +4,88 @@
 [![Python](https://img.shields.io/pypi/pyversions/simpledet.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-[![Install](https://img.shields.io/badge/Install-Quick%20Start-2ea44f?logo=python&logoColor=white)](#installation)
-[![Use](https://img.shields.io/badge/Usage-Training%20%26%20Inference-0a66c2?logo=python)](#quick-start)
-[![Publish](https://img.shields.io/badge/Release-0.1.0-brightgreen?logo=pypi&logoColor=white)](https://pypi.org/project/simpledet/0.1.0/)
-
-## Overview
-
-SimpleDet is a custom object-detection toolkit built on top of OpenMMLab components. It is designed for satellite and related computer-vision workloads where you need reproducible workflows for:
-
-- training and fine-tuning detection models
-- inference and evaluation
-- experiment-friendly project-level packaging
+SimpleDet is a custom object-detection toolkit built around MMDetection/OpenMMLab workflows for training, inference, evaluation, and experiment packaging.
 
 ## Installation
 
-From source:
-
-```bash
-git clone https://github.com/sirbastiano/MDet.git
-cd MDet
-python -m pip install .
-```
-
-For OpenMMLab runtime extras:
-
-```bash
-python -m pip install ".[openmmlab]"
-```
-
-Install directly from PyPI:
+Base package only:
 
 ```bash
 python -m pip install simpledet
 ```
 
-## Quick Start
-
-Install in editable mode while iterating:
+Supported CPU runtime for the public detection APIs:
 
 ```bash
-python -m pip install -e .
+python -m pip install "simpledet[cpu]"
 ```
 
-Sanity check:
+Backward-compatible alias:
+
+```bash
+python -m pip install "simpledet[openmmlab]"
+```
+
+Optional workflow extras:
+
+```bash
+python -m pip install "simpledet[geo,plots]"
+```
+
+From source while iterating locally:
+
+```bash
+git clone https://github.com/sirbastiano/MDet.git
+cd MDet
+python -m pip install -e ".[cpu]"
+```
+
+Sanity checks:
 
 ```bash
 python -m simpledet --version
+python -m simpledet --check-openmmlab
 ```
 
-### Core entry points
+## Supported Publish Matrix
 
-- `simpledet.train`: training entry points
-- `simpledet.detect`: inference entry points
-- `simpledet.evaluate`: evaluation utilities
-- `simpledet.cli`: command-line checks and diagnostics
+The package is published as a pure-Python wheel. The supported runtime contract is:
 
-### Repository structure
+- Linux, macOS, and Windows
+- Python 3.10, 3.11, and 3.12
+- CPU-only dependency stack for `simpledet[cpu]`
+- wheel-only dependency resolution for release verification
 
-- `simpledet/`: installable Python package (package code and model utilities)
-- `MyConfigs/`: dataset/model configuration sources used in experiments
-- `studies/`, `notebooks/`: exploratory analyses and research workflows
-- `runscripts/`: executable training/inference launch scripts
-- `build/`: generated build output (not intended for direct edits)
+If a dependency cannot be installed from wheels on a claimed platform/Python pair, that matrix entry is not considered supported.
 
-## Contributing
+## Repository Shortcuts
 
-1. Create a branch.
-2. Make your changes.
-3. Open a PR with a clear summary.
+```bash
+make venv
+make sync
+make sync-cpu
+make build
+make check
+```
+
+## Package Layout
+
+- `simpledet/`: installable package
+- `simpledet/src/`: packaged configs and custom model components
+- `tests/`: unit and packaging checks
+- `docs/`: project documentation site sources
+
+## Publishing
+
+Local release verification:
+
+```bash
+python3 -m build
+python3 -m twine check dist/*
+PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'
+```
+
+The CI release workflow builds the sdist/wheel, runs the test suite, and verifies wheel-only installation of the built artifacts on Linux, macOS, and Windows for Python 3.10-3.12.
 
 ## License
 

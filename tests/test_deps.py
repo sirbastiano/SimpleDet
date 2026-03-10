@@ -18,7 +18,7 @@ class TestDeps(unittest.TestCase):
             )
 
     def test_require_detector_runtime_and_config_dependency_use_import_module(self):
-        with patch("simpledet.detectors._deps.import_module", side_effect=[None, None, None]):
+        with patch("simpledet.detectors._deps.import_module", side_effect=[None, None, None, None]):
             deps.require_detector_runtime()
 
         with patch("simpledet.detectors._deps.import_module", side_effect=[None]):

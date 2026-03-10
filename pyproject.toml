@@ -1,7 +1,7 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-  "setuptools>=69.0",
+  "setuptools>=77.0",
   "wheel",
 ]
 
@@ -10,40 +10,66 @@ name = "simpledet"
 version = "0.1.0"
 description = "Custom MMDetection toolkit for object detection workflows"
 readme = "README.md"
-requires-python = ">=3.8"
-license = { text = "MIT" }
+requires-python = ">=3.10,<3.13"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Roberto Del Prete", email = "roberto.delprete@ext.esa.int" }
 ]
+keywords = ["object-detection", "mmdetection", "openmmlab", "remote-sensing"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
-dependencies = [
-  "torch",
-  "mmengine",
-  "mmdet",
-]
+dependencies = []
 
 [project.optional-dependencies]
+cpu = [
+  "torch>=2.4,<2.11",
+  "torchvision>=0.19,<0.26",
+  "mmengine>=0.10.0,<1",
+  "mmdet>=3.3.0,<3.4",
+  "mmcv-lite>=2.1.0,<2.2",
+  "numpy>=1.26,<3",
+  "scipy>=1.12,<2",
+  "shapely>=2,<3",
+  "pycocotools>=2.0.11,<3",
+  "terminaltables>=3.1.10,<4",
+  "timm>=1.0,<2",
+  "matplotlib>=3.8,<4",
+]
 openmmlab = [
-  "openmim",
-  "mmcv==2.1.0",
-  "timm",
-  "SciencePlots",
-  "pandas>=1.4,<2",
-  "numpy",
+  "torch>=2.4,<2.11",
+  "torchvision>=0.19,<0.26",
+  "mmengine>=0.10.0,<1",
+  "mmdet>=3.3.0,<3.4",
+  "mmcv-lite>=2.1.0,<2.2",
+  "numpy>=1.26,<3",
+  "scipy>=1.12,<2",
+  "shapely>=2,<3",
+  "pycocotools>=2.0.11,<3",
+  "terminaltables>=3.1.10,<4",
+  "timm>=1.0,<2",
+  "matplotlib>=3.8,<4",
+]
+geo = [
+  "pandas>=2.2,<3",
+  "rasterio>=1.4,<2",
+  "geopandas>=1.0,<2",
+]
+plots = [
+  "SciencePlots>=2.1,<3",
   "matplotlib",
-  "rasterio",
-  "geopandas",
 ]
 dev = [
   "build",
+  "coverage",
+  "tomli>=2.0.1; python_version < '3.11'",
   "twine",
   "ruff",
 ]
@@ -51,10 +77,25 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/sirbastiano/MDet"
 Source = "https://github.com/sirbastiano/MDet"
+Documentation = "https://github.com/sirbastiano/MDet/tree/main/docs"
 
 [project.scripts]
 simpledet = "simpledet.cli:main"
 
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.package-dir]
+"" = "simpledet"
+
 [tool.setuptools.packages.find]
 where = ["simpledet"]
 include = ["simpledet*"]
+exclude = [
+  "simpledet.pyscripts*",
+  "simpledet.src.flops_n_latency*",
+]
+namespaces = true
+
+[tool.setuptools.exclude-package-data]
+simpledet = ["src/flops_n_latency/*.py"]

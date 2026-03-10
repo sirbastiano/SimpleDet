@@ -20,10 +20,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Print package version and exit.",
     )
     parser.add_argument(
+        "--check-runtime",
         "--check-openmmlab",
+        dest="check_runtime",
         action="store_true",
         help=(
-            "Validate optional OpenMMLab runtime dependency resolution used by "
+            "Validate optional runtime dependency resolution used by "
             "simpledet.api."
         ),
     )
@@ -37,10 +39,12 @@ def _check_openmmlab() -> int:
         api._ensure_openmmlab()
     except ModuleNotFoundError as exc:
         dependency = getattr(exc, "name", "")
-        if dependency in {"torch", "numpy", "torchvision", "mmengine", "mmdet"}:
+        if dependency in {"torch", "numpy", "torchvision", "mmcv", "mmengine", "mmdet"}:
             print(
                 "simpledet.api requires optional runtime dependencies. "
-                "Install required dependencies before running this check."
+                "Install the supported CPU runtime with "
+                "\"simpledet[cpu]\" (or the compatibility alias "
+                "\"simpledet[openmmlab]\") before running this check."
             )
             if dependency:
                 print(f"Missing dependency: {dependency}")
@@ -48,7 +52,7 @@ def _check_openmmlab() -> int:
             print(str(exc))
         return 1
 
-    print("Optional OpenMMLab runtime stack is available.")
+    print("Optional SimpleDet CPU runtime stack is available.")
     return 0
 
 
@@ -61,7 +65,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(__version__)
         return 0
 
-    if args.check_openmmlab:
+    if args.check_runtime:
         return _check_openmmlab()
 
     parser.print_help()

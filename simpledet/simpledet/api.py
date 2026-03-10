@@ -5,6 +5,7 @@ import random
 import json
 import logging
 import time
+from pathlib import Path
 from typing import Any, Optional
 
 from ._model_resolution import (
@@ -22,6 +23,8 @@ from .suite.compiler import compile_detector_spec
 from .suite.specs import DetectorSpec
 
 _OPENMMLAB_ERROR: Optional[Exception] = None
+_PACKAGE_ROOT = Path(__file__).resolve().parent
+_DEFAULT_CONFIG_FOLDER = _PACKAGE_ROOT / "src"
 try:
     from mmengine.config import Config, DictAction
     from mmengine.logging import MMLogger
@@ -45,8 +48,9 @@ def _ensure_openmmlab() -> None:
     if _OPENMMLAB_ERROR is not None:
         raise ModuleNotFoundError(
             "simpledet.api requires mmengine and mmdet runtime dependencies. "
-            "Install them (for example via scripts/install_simpledet_env.sh) before "
-            "running API features."
+            "Install them with `pip install \"simpledet[cpu]\"` (or the "
+            "compatibility alias `simpledet[openmmlab]`) before running "
+            "API features."
         ) from _OPENMMLAB_ERROR
 
 
@@ -120,7 +124,7 @@ class ObjectDetectionPipeline:
                 max_epochs=1,
                 data_folder=None, # where the data is stored
                 result_folder=None, # where the results are stored
-                config_folder="./src", # where the config files are stored.
+                config_folder=None, # where the config files are stored.
                 data_prefix='imgs/', # prefix for the data files where images are stored.
                 mean_vals=[0.485, 0.485, 0.485], # mean values for normalization expressed as list for each channel.
                 std_vals=[1.0, 1.0, 1.0], # mean values for normalization expressed as list for each channel.
@@ -185,7 +189,11 @@ class ObjectDetectionPipeline:
 
         # Data configuration:
         self.base_folder = "."
-        self.config_folder = config_folder
+        self.config_folder = (
+            str(Path(config_folder).expanduser())
+            if config_folder is not None
+            else str(_DEFAULT_CONFIG_FOLDER)
+        )
         self.data_root = data_folder
         self.annot_file_train = annot_file_train
         self.annot_file_val = annot_file_val

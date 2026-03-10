@@ -30,3 +30,10 @@ class TestCli(unittest.TestCase):
 
         self.assertEqual(exit_code, 7)
         patched.assert_called_once()
+
+    def test_main_forwards_check_runtime_alias_to_checker(self):
+        with patch("simpledet.cli._check_openmmlab", return_value=3) as patched:
+            exit_code = main(["--check-runtime"])
+
+        self.assertEqual(exit_code, 3)
+        patched.assert_called_once()
