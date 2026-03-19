@@ -5,7 +5,7 @@ UV ?= uv
 UVX ?= uvx
 UV_SYNC_FLAGS ?=
 
-.PHONY: help venv sync sync-cpu install install-runtime install-editable build sdist wheel verify-dist check publish publish-test test clean docs-check docs-verify
+.PHONY: help venv sync sync-cpu install install-runtime install-editable build sdist wheel verify-dist check publish publish-test test clean docs-check docs-audit docs-verify
 
 help:
 	@echo "Targets:"
@@ -19,6 +19,7 @@ help:
 	@echo "  make build          Build source distribution and wheel"
 	@echo "  make sdist           Build source distribution only"
 	@echo "  make wheel           Build wheel only"
+	@echo "  make docs-audit      Run comprehensive docs audit (links + HTML health checks)"
 	@echo "  make docs-check      Validate docs files and local links"
 	@echo "  make verify-dist     Audit built wheel and sdist contents"
 	@echo "  make check           Run tests, docs checks, artifact audits, and twine metadata checks"
@@ -63,8 +64,12 @@ verify-dist:
 check: test docs-check verify-dist
 	$(UVX) twine check dist/*
 
-docs-check: docs-verify
+docs-check: docs-audit
 	@echo "Docs check complete."
+
+docs-audit: docs-verify
+	$(PYTHON) scripts/docs_audit.py
+	@echo "Docs audit passed."
 
 docs-verify:
 	$(PYTHON) scripts/verify_docs.py

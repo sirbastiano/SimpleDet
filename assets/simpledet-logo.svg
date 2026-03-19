@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="180" viewBox="0 0 760 180" role="img" aria-label="SimpleDet logo">
+  <defs>
+    <linearGradient id="sbg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="760" height="180" rx="24" fill="url(#sbg)"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="38" y="40" width="100" height="100" rx="18" fill="#ffffff"/>
+    <rect x="60" y="62" width="56" height="56" rx="10" fill="none" stroke="#1d4ed8" stroke-width="10"/>
+    <circle cx="88" cy="90" r="22" fill="none" stroke="#2563eb" stroke-width="10" opacity="0.8"/>
+    <path d="M58 96h60" stroke="#1e293b" stroke-width="8"/>
+  </g>
+  <text x="170" y="103" fill="#f8fafc" font-family="Arial, 'Segoe UI', Helvetica, sans-serif" font-size="62" font-weight="700" letter-spacing="2">
+    SimpleDet
+  </text>
+  <text x="170" y="136" fill="#bfdbfe" font-family="Arial, 'Segoe UI', Helvetica, sans-serif" font-size="20" font-weight="500" letter-spacing="1">
+    Native object detection toolkit
+  </text>
+</svg>
