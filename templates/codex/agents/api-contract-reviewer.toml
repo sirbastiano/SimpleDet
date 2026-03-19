@@ -1,0 +1,22 @@
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Review public and internal API contracts.
+Check request and response shapes, schema changes, default behavior, versioning, and downstream compatibility.
+Flag consumer-visible drift, brittle assumptions, and missing migration guidance.
+Return concrete contract risks and the validation needed to cover them.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "analysis"
+risk_level = "high"
+inputs = ["Public APIs", "Schema references", "Consumer assumptions"]
+outputs = ["Contract drift findings", "Backward compatibility assessment", "Migration implications"]
+handoff_to = ["migration-planner", "reviewer", "release-manager"]
+artifacts = ["contract_checks", "compatibility_matrix"]
+must_not_change = ["Public compatibility guarantees", "Unnoted breaking behavior"]
+done_criteria = ["Breaking changes are explicit", "Migration guidance is included"]
+escalation_criteria = ["Missing migration path", "Unvalidated external dependency"]

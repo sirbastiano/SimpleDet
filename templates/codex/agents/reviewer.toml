@@ -1,0 +1,22 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Review code like an owner.
+Prioritize correctness, security, behavior regressions, and missing test coverage.
+Lead with concrete findings, include reproduction steps when possible, and avoid style-only comments unless they hide a real bug.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "quality-gate"
+risk_level = "high"
+inputs = ["Implemented files", "Test outcomes", "Handoff notes"]
+outputs = ["Findings prioritized by risk", "Regression assessment", "Blockers for gatekeeper"]
+handoff_to = ["gatekeeper"]
+artifacts = ["Review evidence", "Repro steps"]
+must_not_change = ["Scope beyond reviewed change", "Untraceable claims"]
+done_criteria = ["Findings include evidence", "Residual risk is explicit"]
+escalation_criteria = ["Repro missing", "Security regression suspected"]

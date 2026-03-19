@@ -7,7 +7,8 @@ from difflib import get_close_matches
 import json
 from pathlib import Path
 import inspect
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from ._deps import require_dependency, require_detector_runtime
 from .data import load_dataset
@@ -110,6 +111,63 @@ def _validate_model_name(model_name: str) -> str:
         f"Unknown model '{model_name}'. Supported models: {', '.join(candidates)}."
         f"{suggestion_text}"
     )
+
+
+def _coerce_categories(raw: Any) -> tuple[str, ...]:
+    if raw is None:
+        raise TypeError("`pipeline_kwargs` must define `categories` for native mode.")
+    if isinstance(raw, str):
+        return (raw,)
+    try:
+        normalized = tuple(str(item) for item in raw)
+    except TypeError as exc:
+        raise TypeError("`categories` must be a sequence of class names.") from exc
+    if not normalized:
+        raise TypeError("`categories` must contain at least one value.")
+    return normalized
+
+
+def _coerce_in_channels(in_channels: Any, *, tif_channels_to_load: Any = None) -> int:
+    if in_channels is None:
+        if tif_channels_to_load is None:
+            raise TypeError(
+                "Provide `in_channels` or `tif_channels_to_load` for native training mode."
+            )
+        try:
+            in_channels = len(tif_channels_to_load)
+        except TypeError as exc:
+            raise TypeError("`tif_channels_to_load` must be an iterable.") from exc
+    value = int(in_channels)
+    if value <= 0:
+        raise TypeError("`in_channels` must be a positive integer.")
+    return value
+
+
+def _run_native_training_from_kwargs(pipeline_kwargs: Mapping[str, Any]) -> dict[str, Any]:
+    dataset_root = (
+        pipeline_kwargs.get("data_root")
+        or pipeline_kwargs.get("dataset_root")
+        or pipeline_kwargs.get("data_folder")
+    )
+    if dataset_root is None:
+        raise TypeError(
+            "When using `pipeline_kwargs`, pass `data_root` (or legacy `data_folder`) "
+            "for native training."
+        )
+
+    from simpledet.api import run_native_training
+
+    resolved_kwargs = dict(pipeline_kwargs)
+    resolved_kwargs["data_root"] = str(dataset_root)
+    resolved_kwargs["categories"] = _coerce_categories(pipeline_kwargs.get("categories"))
+    resolved_kwargs["in_channels"] = _coerce_in_channels(
+        pipeline_kwargs.get("in_channels"),
+        tif_channels_to_load=pipeline_kwargs.get("tif_channels_to_load"),
+    )
+    resolved_kwargs.pop("dataset_root", None)
+    resolved_kwargs.pop("data_folder", None)
+
+    return run_native_training(**resolved_kwargs)
 
 
 def _build_optimizer(model: Any, learning_rate: float, optimizer: str, *, seed: int):
@@ -342,8 +400,7 @@ def train(
     build:
         Build the pipeline before training.
     pipeline_kwargs:
-        Forwarded directly to ``ObjectDetectionPipeline`` when ``pipeline`` is not
-        provided.
+        Forwarded to native training when ``pipeline`` is not provided.
     """
 
     if config is not None:
@@ -357,20 +414,20 @@ def train(
         require_dependency("torch", "train")
         return _train_minimal_flow(resolved)
 
-    require_detector_runtime("train")
-
-    from simpledet.api import ObjectDetectionPipeline
-
     if pipeline is None:
         if not pipeline_kwargs:
             raise TypeError(
-                "Provide either `config`, `pipeline`, or the constructor keyword "
-                "arguments required by ObjectDetectionPipeline."
+                "Provide either `config` or `pipeline`/`pipeline_kwargs`."
+                " In this build, pipeline keyword arguments are routed to native training."
             )
-        pipeline = ObjectDetectionPipeline(**pipeline_kwargs)
+        return _run_native_training_from_kwargs(pipeline_kwargs)
 
     if build:
+        if not hasattr(pipeline, "build"):
+            raise TypeError("`pipeline` does not expose build().")
         pipeline.build()
+    if not hasattr(pipeline, "train"):
+        raise TypeError("`pipeline` does not expose train().")
 
     pipeline.train()
     return pipeline

@@ -1,597 +1,584 @@
-import numpy as np
-import torch
-import os
-import random
-import json
-import logging
-import time
-from pathlib import Path
-from typing import Any, Optional
+"""Native-only public API for SimpleDet."""
 
-from ._model_resolution import (
-    apply_runtime_model_overrides,
-    list_available_encoders,
-    list_available_heads,
-    list_available_necks,
-    patch_backbone_input_channels,
-    patch_model_num_classes,
-    print_available_encoders,
-    print_available_heads,
-    print_available_necks,
-)
-from .suite.compiler import compile_detector_spec
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Optional, Sequence
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover
+    import tomli as tomllib
+
 from .suite.specs import DetectorSpec
 
-_OPENMMLAB_ERROR: Optional[Exception] = None
-_PACKAGE_ROOT = Path(__file__).resolve().parent
-_DEFAULT_CONFIG_FOLDER = _PACKAGE_ROOT / "src"
-try:
-    from mmengine.config import Config, DictAction
-    from mmengine.logging import MMLogger
-    from mmengine.model import revert_sync_batchnorm
-    from mmengine.runner import Runner
-    from mmengine.logging import print_log
-    from mmengine.registry import RUNNERS, init_default_scope, MODELS
-    from mmdet.evaluation import DumpDetResults
-    from mmdet.utils import setup_cache_size_limit_of_dynamo
-except Exception as _exc:  # pragma: no cover - optional dependency path
-    _OPENMMLAB_ERROR = _exc
-    Config = DictAction = MMLogger = revert_sync_batchnorm = None
-    Runner = print_log = None
-    RUNNERS = init_default_scope = MODELS = None
-    DumpDetResults = None
-    setup_cache_size_limit_of_dynamo = None
+DEFAULT_IMAGE_SUBDIR = "imgs"
+DEFAULT_ANNOTATION_SUBDIR = "Annotations"
+DEFAULT_SPLIT_FILENAMES = {
+    "train": "train_annotations.json",
+    "val": "val_annotations.json",
+    "test": "test_annotations.json",
+}
 
 
-def _ensure_openmmlab() -> None:
-    """Raise a clearer dependency error when OpenMMLab modules are unavailable."""
-    if _OPENMMLAB_ERROR is not None:
-        raise ModuleNotFoundError(
-            "simpledet.api requires mmengine and mmdet runtime dependencies. "
-            "Install them with `pip install \"simpledet[cpu]\"` (or the "
-            "compatibility alias `simpledet[openmmlab]`) before running "
-            "API features."
-        ) from _OPENMMLAB_ERROR
+@dataclass(frozen=True)
+class ProjectLayout:
+    """Convention-based dataset layout for a native detector project."""
+
+    dataset_root: str
+    result_folder: Optional[str] = None
+    image_subdir: str = DEFAULT_IMAGE_SUBDIR
+    annotation_subdir: str = DEFAULT_ANNOTATION_SUBDIR
+    train_filename: str = DEFAULT_SPLIT_FILENAMES["train"]
+    val_filename: str = DEFAULT_SPLIT_FILENAMES["val"]
+    test_filename: str = DEFAULT_SPLIT_FILENAMES["test"]
+
+    @property
+    def root_path(self) -> Path:
+        return Path(self.dataset_root).expanduser()
+
+    @property
+    def images_path(self) -> Path:
+        return self.root_path / self.image_subdir
+
+    @property
+    def annotations_path(self) -> Path:
+        return self.root_path / self.annotation_subdir
+
+    @property
+    def train_annotations(self) -> Path:
+        return self.annotations_path / self.train_filename
+
+    @property
+    def val_annotations(self) -> Path:
+        return self.annotations_path / self.val_filename
+
+    @property
+    def test_annotations(self) -> Path:
+        return self.annotations_path / self.test_filename
+
+    @property
+    def resolved_result_folder(self) -> Path:
+        if self.result_folder is not None:
+            return Path(self.result_folder).expanduser()
+        return self.root_path / "runs" / "simpledet"
+
+    def validation_report(self) -> dict[str, Any]:
+        checks = {
+            "dataset_root": self.root_path,
+            "images": self.images_path,
+            "annotations_dir": self.annotations_path,
+            "train_annotations": self.train_annotations,
+            "val_annotations": self.val_annotations,
+            "test_annotations": self.test_annotations,
+        }
+        return {
+            "paths": {name: str(path) for name, path in checks.items()},
+            "exists": {name: path.exists() for name, path in checks.items()},
+        }
 
 
-if setup_cache_size_limit_of_dynamo is not None:
-    setup_cache_size_limit_of_dynamo()
+@dataclass(frozen=True)
+class DatasetConfig:
+    """Dataset and label paths for native detector execution."""
 
+    data_root: str
+    annot_file_train: str
+    annot_file_val: str
+    annot_file_test: str
+    data_prefix: str = f"{DEFAULT_IMAGE_SUBDIR}/"
+    categories: Sequence[str] = ("wake",)
+    in_channels: int = 3
+    tif_channels_to_load: Optional[Sequence[int]] = None
 
-# ---------- Helpers ----------
-model = dict(
-    type='FOVEA',
-    data_preprocessor=dict(
-        type='DetDataPreprocessor',
-        mean=[105.380424],
-        std=[55.741932],
-        bgr_to_rgb=True,
-        pad_size_divisor=1),
-    backbone=dict(
-        type='Backbone',
-        in_channels=3,
-        base_channels=64,
-        depths=[4, 4, 12, 4],
-        num_angles=90,
-        drop_path_rate=0.1,
-        out_indices=(1, 2, 3),
-        frozen_stages=-1,
-        ),
-    neck=dict(
-        type='FPN',
-        in_channels=[128, 256, 512],
-        out_channels=256,
-        start_level=1,
-        add_extra_convs='on_input',
-        num_outs=5),
-    bbox_head=dict(
-        type='FoveaHead',
-        num_classes=1,
-        in_channels=256,
-        stacked_convs=4,
-        feat_channels=256,
-        strides=[8, 16, 32, 64, 128],
-        base_edge_list=[16, 32, 64, 128, 256],
-        scale_ranges=((1, 64), (32, 128), (64, 256), (128, 512), (256, 2048)),
-        sigma=0.4,
-        with_deform=False,
-        loss_cls=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
-            gamma=1.50,
-            alpha=0.4,
-            loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0)),
-    # training and testing settings
-    train_cfg=dict(),
-    test_cfg=dict(
-        nms_pre=1000,
-        score_thr=0.05,
-        nms=dict(type='nms', iou_threshold=0.5),
-        max_per_img=100))
-
-
-class ObjectDetectionPipeline:
-    
-    def __init__(self, 
-                seed=71,
-                model_cfg=None,
-                detector_spec: DetectorSpec | dict[str, Any] | None = None,
-                resize=768, 
-                batch_size=2, 
-                learning_rate=0.001,
-                random_crop=None, 
-                max_epochs=1,
-                data_folder=None, # where the data is stored
-                result_folder=None, # where the results are stored
-                config_folder=None, # where the config files are stored.
-                data_prefix='imgs/', # prefix for the data files where images are stored.
-                mean_vals=[0.485, 0.485, 0.485], # mean values for normalization expressed as list for each channel.
-                std_vals=[1.0, 1.0, 1.0], # mean values for normalization expressed as list for each channel.
-                in_channels=1, # number of channels in input
-                tif_channels_to_load=None, # list of channels to load from the tif file, in form of list
-                annot_file_train=None, # annotation file for training
-                annot_file_val=None, # annotation file for validation
-                annot_file_test=None, # annotation file for testing
-                categories = ('wake',), # categories to detect in form of tuple
-                amp=True, # Automatic Mixed Precision
-                optimizer_choice='SGD', # Optimizer choice: SGD, Adam, AdamW
-                scheduler_choice=None, # Scheduler choice: MultiStepLR, CosineAnnealingLR
-                val_interval=1, # Validation interval
-                skip_cfg=False, # Skip the original configuration of the model (useful when using custom models)
-                encoder_name=None, # timm encoder name used to replace or patch the backbone.
-                encoder_pretrained=True, # whether to load pretrained weights for the encoder.
-                encoder_in_chans=None, # explicit input channel count for timm encoders.
-                auto_patch_model=True, # automatically patch neck and head interfaces.
-                auto_patch_strict=True, # fail when a model cannot be patched safely.
-                segmentation=False, # whether to use segmentation or not for the OD model.
-        ):
-        # Training configuration        
-        self.seed = seed
-        if model_cfg is not None and detector_spec is not None:
-            raise TypeError("Use either `model_cfg` or `detector_spec`, not both.")
-        self.detector_spec = detector_spec
-        self.model_cfg = self._resolve_model_cfg(model_cfg=model_cfg, detector_spec=detector_spec)
-        self.resize = resize
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.random_crop = random_crop
-        self.max_epochs = max_epochs
-        self.val_interval = val_interval
-        self.amp = amp
-        self.optimizer_choice = optimizer_choice
-        self.scheduler_choice = scheduler_choice
-        self.skip_cfg = skip_cfg # Freeze configuration of the model when it's not a standard model.
-        self.encoder_name = encoder_name
-        self.encoder_pretrained = encoder_pretrained
-        self.encoder_in_chans = encoder_in_chans
-        self.auto_patch_model = auto_patch_model
-        self.auto_patch_strict = auto_patch_strict
-
-        # Additional asserts
-        assert isinstance(self.model_cfg, dict), 'Model config must be an dict.'
-        assert isinstance(self.seed, int), 'Seed must be an integer.'
-        assert isinstance(self.resize, int), 'Resize must be an integer.'
-        assert isinstance(self.batch_size, int), 'Batch size must be an integer.'
-        assert isinstance(self.learning_rate, float), 'Learning rate must be a float.'
-        assert self.random_crop is None or isinstance(self.random_crop, int), 'Random crop must be None or an integer.'
-        assert isinstance(self.max_epochs, int), 'Max epochs must be an integer.'
-        assert isinstance(self.val_interval, int), 'Validation interval must be an integer.'
-        assert isinstance(self.amp, bool), 'AMP must be a boolean.'
-        assert isinstance(self.optimizer_choice, str), 'Optimizer choice must be a string.'
-        assert self.scheduler_choice is None or isinstance(self.scheduler_choice, str), 'Scheduler choice must be None or a string.'
-        assert self.encoder_name is None or isinstance(self.encoder_name, str), 'Encoder name must be None or a string.'
-        assert isinstance(self.encoder_pretrained, bool), 'Encoder pretrained flag must be a boolean.'
-        assert self.encoder_in_chans is None or isinstance(self.encoder_in_chans, int), 'Encoder input channels must be None or an integer.'
-        assert isinstance(self.auto_patch_model, bool), 'Auto patch model must be a boolean.'
-        assert isinstance(self.auto_patch_strict, bool), 'Auto patch strict must be a boolean.'
-
-
-        # Data configuration:
-        self.base_folder = "."
-        self.config_folder = (
-            str(Path(config_folder).expanduser())
-            if config_folder is not None
-            else str(_DEFAULT_CONFIG_FOLDER)
+    def normalized(self) -> "DatasetConfig":
+        channels = list(self.tif_channels_to_load or _default_band_selection(self.in_channels))
+        return DatasetConfig(
+            data_root=self.data_root,
+            annot_file_train=self.annot_file_train,
+            annot_file_val=self.annot_file_val,
+            annot_file_test=self.annot_file_test,
+            data_prefix=self.data_prefix,
+            categories=tuple(self.categories),
+            in_channels=self.in_channels,
+            tif_channels_to_load=channels,
         )
-        self.data_root = data_folder
-        self.annot_file_train = annot_file_train
-        self.annot_file_val = annot_file_val
-        self.annot_file_test = annot_file_test
-        self.result_folder = result_folder
-        assert self.data_root is not None, 'Data folder must be specified.'
-        assert self.annot_file_train is not None, 'Annotation file for training must be specified.'
-        assert self.annot_file_val is not None, 'Annotation file for validation must be specified.'
-        assert self.annot_file_test is not None, 'Annotation file for testing must be specified.'
-        
-        # Loading configuration:        
-        self.data_prefix = data_prefix
-        self.in_channels = in_channels
-        self.mean_vals = mean_vals
-        self.std_vals = std_vals
-        self.tif_channels_to_load = tif_channels_to_load
-        assert self.tif_channels_to_load is not None, 'Channels to load from the tif file must be specified.'
-        assert isinstance(self.tif_channels_to_load, list), 'Channels to load from the tif file must be specified as a list.'
-        assert len(tif_channels_to_load) == self.in_channels, 'Number of channels to load from the tif file must be equal to the number of input channels.'
-        self.categories = categories
-        assert self.categories is not None, 'Categories must be specified.'
-        self.segmentation = segmentation
 
-        _ensure_openmmlab()
 
-        # Outputs:
-        self.workdir = self._construct_workdir()        
-        self.outfile_results = f"{self.workdir}/testSet" 
-        self.outfile_test = f"{self.workdir}/tests.pkl"
-        self.outfile_metric = f"{self.workdir}/metrics.pkl"
-        self.optimizers = self._get_optimizers()
-        self.model_patch_summary: list[dict[str, Any]] = []
-        
-        # Starting the pipeline:
-        self.cfg = self._init_cfg()
-        self.logger = self._set_logger()
-        self._set_seed()
-        self._configure_pipeline()
-        self.logger.info(
-            f'Pipeline configured with the following parameters: '
-            f'Seed {self.seed}, '
-            f'Batch Size: {self.batch_size}, '
-            f'Learning Rate: {self.learning_rate}, '
-            f'Random Crop: {self.random_crop}, '
-            f'Max Epochs: {self.max_epochs}, '
-            f'AMP: {self.amp}, '
-            f'Optimizer: {self.optimizer_choice}'
+@dataclass(frozen=True)
+class RuntimeConfig:
+    """Runtime and output settings for a detector project."""
+
+    result_folder: str
+    seed: int = 71
+    resize: int = 768
+    batch_size: int = 2
+    max_epochs: int = 1
+    amp: bool = True
+    val_interval: int = 1
+
+
+@dataclass(frozen=True)
+class OptimizationConfig:
+    """Optimization knobs for the native training loop."""
+
+    learning_rate: float = 0.001
+    optimizer_choice: str = "AdamW"
+    scheduler_choice: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class ProjectConfig:
+    """Top-level operational config for a SimpleDet project."""
+
+    dataset: DatasetConfig
+    runtime: RuntimeConfig
+    optimization: OptimizationConfig
+    detector_spec: Optional[DetectorSpec | dict[str, Any]] = None
+    model_cfg: Optional[dict[str, Any]] = None
+
+    @staticmethod
+    def from_mapping(payload: dict[str, Any]) -> "ProjectConfig":
+        dataset = DatasetConfig(**dict(payload.get("dataset") or {})).normalized()
+        runtime = RuntimeConfig(**dict(payload.get("runtime") or {}))
+        optimization = OptimizationConfig(**dict(payload.get("optimization") or {}))
+        return ProjectConfig(
+            dataset=dataset,
+            runtime=runtime,
+            optimization=optimization,
+            detector_spec=payload.get("detector_spec"),
+            model_cfg=payload.get("model_cfg"),
         )
 
     @staticmethod
-    def _resolve_model_cfg(
-        *,
-        model_cfg: dict[str, Any] | None,
-        detector_spec: DetectorSpec | dict[str, Any] | None,
-    ) -> dict[str, Any]:
-        if detector_spec is not None:
-            if isinstance(detector_spec, dict):
-                detector_spec = DetectorSpec(**detector_spec)
-            if not isinstance(detector_spec, DetectorSpec):
-                raise TypeError("`detector_spec` must be a DetectorSpec or mapping payload.")
-            return compile_detector_spec(detector_spec)
-
-        if model_cfg is None:
-            raise AssertionError('Model configuration must be specified as a dict.')
-        return model_cfg
-
-    def _init_cfg(self):
-        _ensure_openmmlab()
-        print("Reading base config file:")
-        print(f'{self.config_folder}/base_config.py')
-        cfg = Config.fromfile(f'{self.config_folder}/base_config.py')
-        
-        
-        preprocessor = cfg.model["data_preprocessor"]
-        self.model_cfg["data_preprocessor"] = preprocessor # Overwrite the preprocessor with the one from the base config.
-        cfg.model = self.model_cfg
-
-        if self.auto_patch_model and self.encoder_name is not None:
-            self.model_patch_summary.extend(
-                apply_runtime_model_overrides(
-                    cfg.model,
-                    encoder_name=self.encoder_name,
-                    encoder_pretrained=self.encoder_pretrained,
-                    encoder_in_chans=self.encoder_in_chans or self.in_channels,
-                    num_classes=len(self.categories),
-                    strict=self.auto_patch_strict,
-                )
-            )
-        
-        cfg.work_dir = self.workdir
-        
-        if self.segmentation:
-            
-            train_pipeline = [
-                    dict(type='LoadImageFromFile',to_float32=True, color_type='grayscale', imdecode_backend='tifffile', backend_args=None),
-                    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
-                    dict(type='RandomFlip', prob=0.4),
-                    dict(type='Resize', scale=(768,768), keep_ratio=False),
-                    dict(type='FilterAnnotations', min_gt_bbox_wh=(1, 1), keep_empty=False),
-                    dict(
-                        type='PackDetInputs',
-                        meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
-                                'scale_factor'))
-                ]
-
-            test_pipeline = [
-                    dict(type='LoadImageFromFile',to_float32=True, color_type='grayscale', imdecode_backend='tifffile', backend_args=None),
-                    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
-                    dict(type='Resize', scale=(768,768), keep_ratio=False),
-                    dict(
-                        type='PackDetInputs',
-                        meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
-                                'scale_factor'))
-                ]
-            # Update with segmentation pipeline    
-            cfg.train_dataloader.dataset.pipeline = train_pipeline
-            cfg.val_dataloader.dataset.pipeline = test_pipeline
-            cfg.test_dataloader.dataset.pipeline = test_pipeline
-                
-        return cfg
-
-    def _set_seed(self):
-        torch.manual_seed(self.seed)
-        torch.cuda.manual_seed(self.seed)
-        torch.cuda.manual_seed_all(self.seed)
-        random.seed(self.seed)
-        np.random.seed(self.seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        os.environ['PYTHONHASHSEED'] = str(self.seed)
-
-    def _construct_workdir(self):
-        workdir = (f'{self.result_folder}/'
-                   f'BS_{self.batch_size}_'
-                   f'LR_{self.learning_rate}_IMG_{self.resize}_'
-                   f'{self.seed}_Optim_{self.optimizer_choice}')
-        return workdir
-
-    def _get_optimizers(self):
-        return {
-            'SGD': {'type': 'OptimWrapper', 'optimizer': {'type': 'SGD', 'lr': self.learning_rate, 'momentum': 0.9, 'weight_decay': 0.0001}},
-            'Adam': {'type': 'OptimWrapper', 'optimizer': {'type': 'Adam', 'lr': self.learning_rate, 'weight_decay': 0.0001}},
-            'AdamW': {'type': 'OptimWrapper', 'optimizer': {'type': 'AdamW', 'lr': self.learning_rate, 'weight_decay': 0.0001}},
-        }
-
-    def _set_logger(self):
-        # This function would configure and return a logger based on the workdir
-        os.makedirs(self.workdir, exist_ok=True)
-        logger = logging.getLogger(self.workdir)
-        handler = logging.FileHandler(f'{self.workdir}/pipeline.log')
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-        return logger
-
-    def _configure_pipeline(self):        
-        _ensure_openmmlab()
-        # Configure cfg with preprocessor
-        self.cfg.model.data_preprocessor = dict(
-            mean=[float(x) for x in self.mean_vals],
-            pad_size_divisor=1,
-            std=[float(x) for x in self.std_vals],
-            type='MyPrePro')
-
-
-        # Freeze configuration of the model when it's not a standard model.
-        if not self.skip_cfg:
-            if self.encoder_name is None:
-                self.model_patch_summary.extend(
-                    patch_backbone_input_channels(self.cfg.model, self.in_channels)
-                )
-            self.model_patch_summary.extend(
-                patch_model_num_classes(self.cfg.model, len(self.categories))
-            )
-
-        # Dataloader directories and annotation files
-        self.cfg.train_dataloader.dataset.ann_file = self.annot_file_train
-        self.cfg.train_dataloader.dataset.data_prefix = {'img': self.data_prefix}
-        self.cfg.train_dataloader.dataset.data_root = self.data_root
-
-        self.cfg.val_dataloader.dataset.ann_file = self.annot_file_val
-        self.cfg.val_dataloader.dataset.data_prefix = {'img': self.data_prefix}
-        self.cfg.val_dataloader.dataset.data_root = self.data_root
-
-        # Evaluators
-        self.cfg.val_evaluator = dict(
-            ann_file=self.annot_file_val,
-            backend_args=None,
-            format_only=False,
-            metric='bbox',
-            type='CocoMetric')
-
-        # Pipeline configuration
-
-        band_sel_load = [int(x) for x in self.tif_channels_to_load]
-        # self.cfg.train_dataloader.dataset.pipeline[0] = {'type':'LoadImageFromFile', "to_float32":True, "color_type":"grayscale", "imdecode_backend":"cv2", "backend_args":None, }
-        self.cfg.train_dataloader.dataset.pipeline[0] = {'type': 'SelBandLoader', 'to_float32': True, 'bands_list': band_sel_load}
-        
-        self.cfg.val_dataloader.dataset.pipeline[0] = {'type': 'SelBandLoader', 'to_float32': True, 'bands_list': band_sel_load}
-
-        self.cfg.train_dataloader.dataset.pipeline[3] = {'type': 'Resize', 'scale': (self.resize, self.resize), 'keep_ratio': False}
-        self.cfg.val_dataloader.dataset.pipeline[2] = {'type': 'Resize', 'scale': (self.resize, self.resize), 'keep_ratio': False}
-
-        # Metainfo
-        self.cfg.train_dataloader.dataset.metainfo = {'classes': self.categories, 'palette': [(220, 20, 60)]}
-        self.cfg.val_dataloader.dataset.metainfo = {'classes': self.categories, 'palette': [(220, 20, 60)]}
-
-        # Random crop (if applicable)
-        if self.random_crop is not None:
-            assert isinstance(self.random_crop, int), 'RandomCrop Error: single dimension must be specified. E.g. 224'
-            rc = dict(type='RandomCrop', crop_size=(self.random_crop, self.random_crop))
-            self.cfg.train_dataloader.dataset.pipeline.insert(4, rc)
-            self.cfg.val_dataloader.dataset.pipeline.insert(2, rc)
-
-        
-        # Training parameters (mandatory)
-        self.cfg.train_dataloader.batch_size = self.batch_size
-        self.cfg.train_cfg = {'type': 'EpochBasedTrainLoop', 'max_epochs': self.max_epochs, 'val_interval': self.val_interval}
-        self.cfg.optim_wrapper = self.optimizers[self.optimizer_choice]
-
-        
-        # Learning rate scheduler (optional)
-        if self.scheduler_choice is not None:
-            self.cfg.param_scheduler = [
-                {'type': 'LinearLR', 'start_factor': 0.001, 'by_epoch': True, 'begin': 0, 'convert_to_iter_based': True, 'end': self.max_epochs // 5},
-                {'type': 'MultiStepLR', 'begin': 0, 'end': self.max_epochs // 5, 'by_epoch': True, 'milestones': [self.max_epochs // 4, self.max_epochs // 3, self.max_epochs // 2], 'gamma': 0.75},
-                {'type': 'CosineAnnealingLR', 'eta_min': self.learning_rate * 0.05, 'begin': self.max_epochs // 2, 'end': self.max_epochs, 'T_max': self.max_epochs // 1.5, 'by_epoch': True, 'convert_to_iter_based': True}
-            ]
-
-        # Test configuration
-        self.cfg.test_dataloader = dict(
-            batch_size=1,
-            dataset=dict(
-                ann_file=self.annot_file_test,
-                data_root=self.data_root,
-                data_prefix=dict(img=self.data_prefix),
-                filter_cfg=dict(filter_empty_gt=True),
-                metainfo=dict(classes=self.categories, palette=[(220, 20, 60)]),
-                pipeline=[
-                    {'type': 'SelBandLoader', 'to_float32': True, 'bands_list': band_sel_load},
-                    dict(type='LoadAnnotations', with_bbox=True),
-                    dict(keep_ratio=False, scale=(self.resize, self.resize), type='Resize'),
-                    dict(type='PackDetInputs', meta_keys=('img_path', 'img_id', 'seg_map_path', 'height', 'width', 'instances', 'sample_idx', 'img', 'img_shape', 'ori_shape', 'scale', 'scale_factor', 'keep_ratio', 'homography_matrix', 'gt_bboxes', 'gt_ignore_flags', 'gt_bboxes_labels'))
-                ],
-                test_mode=True,
-                type='CocoDataset'),
-            drop_last=False,
-            num_workers=2,
-            persistent_workers=True,
-            sampler=dict(shuffle=False, type='DefaultSampler')
-        )
-
-        self.cfg.test_evaluator = dict(
-            type='CocoMetric',
-            metric='bbox',
-            format_only=False,
-            ann_file=self.annot_file_test,
-            outfile_prefix=self.outfile_results)
-
-        # Enable AMP if needed
-        if self.amp:
-            optim_wrapper = self.cfg.optim_wrapper.type
-            if optim_wrapper == 'AmpOptimWrapper':
-                print_log('AMP training is already enabled in your config.', logger='current', level=logging.WARNING)
-            else:
-                assert optim_wrapper == 'OptimWrapper', f'`--amp` is only supported when the optimizer wrapper type is `OptimWrapper` but got {optim_wrapper}.'
-                self.cfg.optim_wrapper.type = 'AmpOptimWrapper'
-                self.cfg.optim_wrapper.loss_scale = 'dynamic'
-
-        if self.model_patch_summary:
-            self.logger.info(
-                'Applied runtime model patches: %s',
-                json.dumps(self.model_patch_summary, default=str)
-            )
-
-    def get_pth(self):
-        """
-        Given a folder, this function returns a list of .pth file paths.
-
-        Args:
-        folder (str): The folder to search for .pth files.
-
-        Returns:
-        list: A list of file paths to .pth files.
-        """
-        folder = self.workdir
-        pth_filepaths = []
-        for root, _, files in os.walk(folder):
-            for file in files:
-                if file.endswith('.pth'):
-                    pth_filepaths.append(os.path.join(root, file))
-                    
-        pth_filepaths = [x for x in pth_filepaths if "best" in x]
-        assert len(pth_filepaths) == 1, 'There should be only one .pth file in the folder.'
-        return pth_filepaths[0]
-
-    def build(self):
-        _ensure_openmmlab()
-        # Check if custom runner is defined
-        if 'runner_type' not in self.cfg:
-            runner = Runner.from_cfg(self.cfg)
+    def from_file(path: str | os.PathLike[str]) -> "ProjectConfig":
+        config_path = Path(path).expanduser()
+        suffix = config_path.suffix.lower()
+        if suffix == ".json":
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+        elif suffix == ".toml":
+            payload = tomllib.loads(config_path.read_text(encoding="utf-8"))
         else:
-            runner = RUNNERS.build(self.cfg)
-        
-        self.runner = runner
-        self.logger.info('Pipeline built successfully.')
-
-    def train(self):
-        _ensure_openmmlab()
-        self.runner.train()
-        
-    def test(self):
-        _ensure_openmmlab()
-        self.runner.test_evaluator.metrics.append(DumpDetResults(out_file_path=self.outfile_test))
-        # start testing
-        output_test_data =self.runner.test()
-
-        # Specify the file name
-        file_name = self.outfile_metric # Specify the filepath
-        # Write the dictionary to a JSON file
-        with open(file_name, 'w') as json_file:
-            json.dump(output_test_data, json_file, indent=4)
-
-        self.logger.info(f"Data has been saved to {file_name}")
-        self.logger.info('Testing completed successfully.')
-        self.logger.info(f'output_test_data: {output_test_data}')
-        
-        
-        
-
-# Example usage:
-if __name__ == "__main__":
-    # ------ Project Configuration ------
-    # This section is used to configure the project parameters, such as project name, model name,
-    PROJECT_NAME = 'project_name'
-    ModelName = 'model_name'
-    SEGMENTATION = False
-    # End of Project Configuration
-
-    # ------ Data Configuration ------
-    # This section is used to configure the data parameters, such as data root, image prefix
-    Band_num = 1
-
-    DATAROOT = "/path/to/data"
-    IMG_PREFIX = f"{DATAROOT}/B{Band_num}/imgs/"
-    ANNOT_TRAIN = f"{DATAROOT}/B{Band_num}/Annotations/train_annotations.json"
-    ANNOT_VAL = f"{DATAROOT}/B{Band_num}/Annotations/val_annotations.json"
-    ANNOT_TEST = f"{DATAROOT}/B{Band_num}/Annotations/test_annotations.json"
-    CATEGORIES = ('category1',)
-    BASE_CONFIG_PATH = "/path/to/configs"
-    # End of Data Configuration
-
-    # ------ Model Configuration ------
-    # This section is used to configure the model train parameters:
-    INPUT_SIZE = 512
-    BATCH_SIZE = 4
-    EPOCHS = 30
-    CHANNELS_LOADED = [1,1,1] # 1-indexed for rasterio
-    INPUT_CHANNELS = len(CHANNELS_LOADED)
-    # End of Model Configuration
+            raise ValueError(
+                f"Unsupported project config format '{config_path.suffix}'. Use .json or .toml."
+            )
+        if not isinstance(payload, dict):
+            raise TypeError("Project config payload must be a mapping.")
+        return ProjectConfig.from_mapping(payload)
 
 
-    MODEL_CFG = model
-    # now time:
-    now = time.strftime("%Y%m%d-%H%M%S")
+def _default_band_selection(in_channels: int) -> list[int]:
+    if int(in_channels) < 1:
+        raise ValueError("`in_channels` must be at least 1.")
+    return list(range(1, int(in_channels) + 1))
 
-    RESULT_FOLDER = f"/Data_large/marine/PythonProjects/MMDET/Results/{PROJECT_NAME}/{ModelName}/{now}"
 
-    pipeline = ObjectDetectionPipeline(
-                    seed=71, 
-                    model_cfg=MODEL_CFG,
-                    resize=INPUT_SIZE, 
-                    batch_size=BATCH_SIZE, 
-                    learning_rate=0.001,
-                    in_channels=INPUT_CHANNELS, # number of channels in input
-                    random_crop=None, 
-                    max_epochs=EPOCHS,
-                    result_folder=RESULT_FOLDER, # where the results are stored
-                    config_folder=BASE_CONFIG_PATH, # where the config files are stored.
-                    data_folder=DATAROOT, # where the data is stored
-                    data_prefix=IMG_PREFIX, # prefix for the data files where images are stored.
-                    mean_vals=[0.485, 0.456, 0.406], # mean values for normalization expressed as list for each channel.
-                    std_vals=[1.0, 1.0, 1.0], # mean values for normalization expressed as list for each channel.
-                    tif_channels_to_load=CHANNELS_LOADED, # list of channels to load from the tif file, in form of list
-                    annot_file_train=ANNOT_TRAIN, # annotation file for training
-                    annot_file_val=ANNOT_VAL, # annotation file for validation
-                    annot_file_test=ANNOT_TEST, # annotation file for testing
-                    categories = CATEGORIES, # categories to detect in form of tuple
-                    amp=False, # Automatic Mixed Precision
-                    optimizer_choice='SGD', # Optimizer choice: SGD, Adam, AdamW
-                    scheduler_choice=None, # Scheduler choice: MultiStepLR, CosineAnnealingLR
-                    val_interval=1, # Validation interval
-                    skip_cfg=True,
-                    segmentation=SEGMENTATION,
-                )
-    
-    pipeline.build() # Builds the pipeline
-    pipeline.train() # Trains the model
-    pipeline.test()  # Tests the model
-    
+def load_project_config(path: str | os.PathLike[str]) -> ProjectConfig:
+    return ProjectConfig.from_file(path)
+
+
+def project_config_template(format: str = "toml") -> str:
+    payload = {
+        "dataset": {
+            "data_root": "/path/to/dataset",
+            "annot_file_train": "/path/to/dataset/Annotations/train_annotations.json",
+            "annot_file_val": "/path/to/dataset/Annotations/val_annotations.json",
+            "annot_file_test": "/path/to/dataset/Annotations/test_annotations.json",
+            "data_prefix": "imgs/",
+            "categories": ["wake"],
+            "in_channels": 3,
+            "tif_channels_to_load": [1, 2, 3],
+        },
+        "runtime": {
+            "result_folder": "/tmp/simpledet-runs",
+            "resize": 768,
+            "batch_size": 2,
+            "max_epochs": 12,
+            "seed": 71,
+            "amp": True,
+            "val_interval": 1,
+        },
+        "optimization": {
+            "learning_rate": 0.001,
+            "optimizer_choice": "AdamW",
+            "scheduler_choice": None,
+        },
+        "detector_spec": {
+            "architecture": "retinanet",
+            "num_classes": 1,
+            "encoder": {"name": "resnet18.a1_in1k", "source": "timm"},
+        },
+    }
+    normalized = format.strip().lower()
+    if normalized == "json":
+        return json.dumps(payload, indent=2)
+    if normalized != "toml":
+        raise ValueError("Unsupported template format. Use 'toml' or 'json'.")
+    return """[dataset]
+data_root = "/path/to/dataset"
+annot_file_train = "/path/to/dataset/Annotations/train_annotations.json"
+annot_file_val = "/path/to/dataset/Annotations/val_annotations.json"
+annot_file_test = "/path/to/dataset/Annotations/test_annotations.json"
+data_prefix = "imgs/"
+categories = ["wake"]
+in_channels = 3
+tif_channels_to_load = [1, 2, 3]
+
+[runtime]
+result_folder = "/tmp/simpledet-runs"
+resize = 768
+batch_size = 2
+max_epochs = 12
+seed = 71
+amp = true
+val_interval = 1
+
+[optimization]
+learning_rate = 0.001
+optimizer_choice = "AdamW"
+
+[detector_spec]
+architecture = "retinanet"
+num_classes = 1
+
+[detector_spec.encoder]
+name = "resnet18.a1_in1k"
+source = "timm"
+"""
+
+
+def init_project_config(
+    path: str | os.PathLike[str],
+    *,
+    format: str | None = None,
+    overwrite: bool = False,
+) -> str:
+    config_path = Path(path).expanduser()
+    resolved_format = (format or config_path.suffix.lstrip(".") or "toml").lower()
+    if resolved_format not in {"toml", "json"}:
+        raise ValueError("Unsupported project config format. Use 'toml' or 'json'.")
+    if config_path.exists() and not overwrite:
+        raise FileExistsError(f"Refusing to overwrite existing file: {config_path}.")
+    if not config_path.suffix:
+        config_path = config_path.with_suffix(f".{resolved_format}")
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(project_config_template(resolved_format), encoding="utf-8")
+    return str(config_path)
+
+
+def validate_project_config(
+    config: ProjectConfig | dict[str, Any] | str | os.PathLike[str],
+    *,
+    strict: bool = False,
+) -> dict[str, Any]:
+    project = _coerce_project_config(config)
+    image_root = (
+        Path(project.dataset.data_root).expanduser() / project.dataset.data_prefix
+        if project.dataset.data_prefix
+        else Path(project.dataset.data_root).expanduser() / DEFAULT_IMAGE_SUBDIR
+    )
+    checks = {
+        "dataset_root": Path(project.dataset.data_root).expanduser(),
+        "images": image_root,
+        "annotations_dir": Path(project.dataset.annot_file_train).expanduser().parent,
+        "train_annotations": Path(project.dataset.annot_file_train).expanduser(),
+        "val_annotations": Path(project.dataset.annot_file_val).expanduser(),
+        "test_annotations": Path(project.dataset.annot_file_test).expanduser(),
+    }
+    report = {
+        "paths": {name: str(path) for name, path in checks.items()},
+        "exists": {name: path.exists() for name, path in checks.items()},
+    }
+    report["missing"] = [name for name, exists in report["exists"].items() if not exists]
+    if strict and report["missing"]:
+        raise FileNotFoundError(
+            "Project validation failed. Missing required input paths: " + ", ".join(report["missing"])
+        )
+    return report
+
+
+def _coerce_project_config(config: ProjectConfig | dict[str, Any] | str | os.PathLike[str]) -> ProjectConfig:
+    if isinstance(config, ProjectConfig):
+        return config
+    if isinstance(config, (str, os.PathLike)):
+        return load_project_config(config)
+    if isinstance(config, dict):
+        return ProjectConfig.from_mapping(config)
+    raise TypeError("`config` must be a ProjectConfig, mapping, or path.")
+
+
+def _coerce_detector_spec(detector_spec: Optional[DetectorSpec | dict[str, Any]], *, model_cfg: Optional[dict[str, Any]] = None) -> DetectorSpec:
+    if model_cfg is not None:
+        raise TypeError("`model_cfg` is no longer supported. Use `detector_spec`.")
+    if detector_spec is None:
+        raise TypeError("`detector_spec` is required for native execution.")
+    if isinstance(detector_spec, DetectorSpec):
+        return detector_spec
+    if not isinstance(detector_spec, dict):
+        raise TypeError("`detector_spec` must be a DetectorSpec or mapping.")
+    return DetectorSpec(**detector_spec)
+
+
+def _build_native_project_config(
+    *,
+    dataset_root: str,
+    categories: Sequence[str],
+    detector_spec: DetectorSpec,
+    in_channels: int,
+    result_folder: Optional[str],
+    kwargs: dict[str, Any],
+):
+    from .native.runtime import NativeProjectConfig
+
+    return NativeProjectConfig(
+        dataset_root=dataset_root,
+        categories=tuple(categories),
+        detector_spec=detector_spec,
+        output_dir=result_folder or str(Path(dataset_root).expanduser() / "runs" / "simpledet"),
+        in_channels=int(in_channels),
+        batch_size=int(kwargs.get("batch_size", 2)),
+        num_workers=int(kwargs.get("num_workers", 0)),
+        learning_rate=float(kwargs.get("learning_rate", 1e-3)),
+        optimizer=str(kwargs.get("optimizer_choice", "adamw")).lower(),
+        max_epochs=int(kwargs.get("max_epochs", 1)),
+        accelerator=str(kwargs.get("accelerator", "cpu")),
+        devices=int(kwargs.get("devices", 1)),
+    )
+
+
+def run_native_training(
+    *,
+    data_root: Optional[str] = None,
+    dataset_root: Optional[str] = None,
+    categories: Sequence[str],
+    in_channels: int,
+    detector_spec: DetectorSpec | dict[str, Any],
+    model_cfg: Optional[dict[str, Any]] = None,
+    result_folder: Optional[str] = None,
+    validate: bool = True,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    return run_training(
+        dataset_root=str(dataset_root or data_root),
+        categories=categories,
+        in_channels=in_channels,
+        detector_spec=detector_spec,
+        model_cfg=model_cfg,
+        result_folder=result_folder,
+        validate=validate,
+        **kwargs,
+    )
+
+
+def run_native_inference(
+    *,
+    data_root: Optional[str] = None,
+    dataset_root: Optional[str] = None,
+    categories: Sequence[str],
+    in_channels: int,
+    detector_spec: DetectorSpec | dict[str, Any],
+    model_cfg: Optional[dict[str, Any]] = None,
+    result_folder: Optional[str] = None,
+    validate: bool = True,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    return run_inference(
+        dataset_root=str(dataset_root or data_root),
+        categories=categories,
+        in_channels=in_channels,
+        detector_spec=detector_spec,
+        model_cfg=model_cfg,
+        result_folder=result_folder,
+        validate=validate,
+        **kwargs,
+    )
+
+
+def run_native_evaluation(**kwargs: Any) -> dict[str, Any]:
+    return run_native_inference(**kwargs)
+
+
+def run_project(
+    config: ProjectConfig | dict[str, Any] | str | os.PathLike[str],
+    *,
+    stages: Sequence[str] = ("build", "train", "test"),
+    validate: bool = True,
+) -> dict[str, Any]:
+    project = _coerce_project_config(config)
+    detector_spec = _coerce_detector_spec(project.detector_spec, model_cfg=project.model_cfg)
+    if validate:
+        validate_project_config(project, strict=True)
+    native_config = _build_native_project_config(
+        dataset_root=project.dataset.data_root,
+        categories=project.dataset.categories,
+        detector_spec=detector_spec,
+        in_channels=project.dataset.in_channels,
+        result_folder=project.runtime.result_folder,
+        kwargs={
+            "batch_size": project.runtime.batch_size,
+            "learning_rate": project.optimization.learning_rate,
+            "optimizer_choice": project.optimization.optimizer_choice,
+            "max_epochs": project.runtime.max_epochs,
+        },
+    )
+    from .native.runtime import run_native_inference as _run_native_inference
+    from .native.runtime import run_native_training as _run_native_training
+
+    normalized = []
+    aliases = {"fit": "train", "infer": "test", "inference": "test", "eval": "test", "evaluate": "test"}
+    for stage in stages:
+        resolved = aliases.get(str(stage).strip().lower(), str(stage).strip().lower())
+        if resolved not in {"build", "train", "test"}:
+            raise ValueError(f"Unsupported project stage: {stage}")
+        normalized.append(resolved)
+    run_order = list(dict.fromkeys(normalized or ["build", "train", "test"]))
+    result: dict[str, Any] = {
+        "backend": "native_lightning",
+        "architecture": detector_spec.architecture,
+        "output_dir": native_config.output_dir,
+        "stages": run_order,
+    }
+    for stage in run_order:
+        if stage == "build":
+            continue
+        if stage == "train":
+            result["train"] = _run_native_training(native_config)
+        else:
+            result["test"] = _run_native_inference(native_config)
+    return result
+
+
+def run_training(
+    *,
+    dataset_root: str,
+    categories: Sequence[str],
+    in_channels: int,
+    model_cfg: Optional[dict[str, Any]] = None,
+    detector_spec: Optional[DetectorSpec | dict[str, Any]] = None,
+    tif_channels_to_load: Optional[Sequence[int]] = None,
+    result_folder: Optional[str] = None,
+    validate: bool = True,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    del tif_channels_to_load
+    resolved_detector_spec = _coerce_detector_spec(detector_spec, model_cfg=model_cfg)
+    if validate:
+        layout = ProjectLayout(dataset_root=dataset_root, result_folder=result_folder)
+        validate_project_config(
+            {
+                "dataset": {
+                    "data_root": str(layout.root_path),
+                    "annot_file_train": str(layout.train_annotations),
+                    "annot_file_val": str(layout.val_annotations),
+                    "annot_file_test": str(layout.test_annotations),
+                    "data_prefix": f"{layout.image_subdir}/",
+                    "categories": categories,
+                    "in_channels": in_channels,
+                },
+                "runtime": {"result_folder": str(layout.resolved_result_folder)},
+                "optimization": {},
+                "detector_spec": resolved_detector_spec,
+            },
+            strict=True,
+        )
+    from .native.runtime import run_native_training as _run_native_training
+
+    return _run_native_training(
+        _build_native_project_config(
+            dataset_root=dataset_root,
+            categories=categories,
+            detector_spec=resolved_detector_spec,
+            in_channels=in_channels,
+            result_folder=result_folder,
+            kwargs=kwargs,
+        )
+    )
+
+
+def run_inference(
+    *,
+    dataset_root: str,
+    categories: Sequence[str],
+    in_channels: int,
+    model_cfg: Optional[dict[str, Any]] = None,
+    detector_spec: Optional[DetectorSpec | dict[str, Any]] = None,
+    tif_channels_to_load: Optional[Sequence[int]] = None,
+    result_folder: Optional[str] = None,
+    validate: bool = True,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    del tif_channels_to_load
+    resolved_detector_spec = _coerce_detector_spec(detector_spec, model_cfg=model_cfg)
+    if validate:
+        layout = ProjectLayout(dataset_root=dataset_root, result_folder=result_folder)
+        validate_project_config(
+            {
+                "dataset": {
+                    "data_root": str(layout.root_path),
+                    "annot_file_train": str(layout.test_annotations),
+                    "annot_file_val": str(layout.test_annotations),
+                    "annot_file_test": str(layout.test_annotations),
+                    "data_prefix": f"{layout.image_subdir}/",
+                    "categories": categories,
+                    "in_channels": in_channels,
+                },
+                "runtime": {"result_folder": str(layout.resolved_result_folder)},
+                "optimization": {},
+                "detector_spec": resolved_detector_spec,
+            },
+            strict=True,
+        )
+    from .native.runtime import run_native_inference as _run_native_inference
+
+    return _run_native_inference(
+        _build_native_project_config(
+            dataset_root=dataset_root,
+            categories=categories,
+            detector_spec=resolved_detector_spec,
+            in_channels=in_channels,
+            result_folder=result_folder,
+            kwargs=kwargs,
+        )
+    )
+
+
+def run_evaluation(**kwargs: Any) -> dict[str, Any]:
+    return run_inference(**kwargs)
+
+
+def list_available_encoders(pattern: str | None = None) -> list[str]:
+    try:
+        import timm
+    except ModuleNotFoundError:
+        return []
+    return sorted(timm.list_models(pattern))
+
+
+def list_available_necks() -> list[str]:
+    from .suite.catalog import list_native_neck_families
+
+    return list_native_neck_families()
+
+
+def list_available_heads() -> list[str]:
+    from .suite.catalog import list_native_head_families
+
+    return list_native_head_families()
+
+
+def print_available_encoders(pattern: str | None = None) -> None:
+    for name in list_available_encoders(pattern):
+        print(name)
+
+
+def print_available_necks() -> None:
+    for name in list_available_necks():
+        print(name)
+
+
+def print_available_heads() -> None:
+    for name in list_available_heads():
+        print(name)

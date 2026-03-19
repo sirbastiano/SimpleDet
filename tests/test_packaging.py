@@ -23,7 +23,6 @@ class TestPackagingMetadata(unittest.TestCase):
         self.assertEqual(project["requires-python"], ">=3.10,<3.13")
         self.assertEqual(project["license"], "MIT")
         self.assertIn("cpu", extras)
-        self.assertIn("openmmlab", extras)
         self.assertIn("geo", extras)
         self.assertIn("plots", extras)
         self.assertIn("Programming Language :: Python :: 3.12", project["classifiers"])
@@ -56,14 +55,14 @@ class TestBuiltDistributions(unittest.TestCase):
 
         self.assertIn("Requires-Python: <3.13,>=3.10", metadata)
         self.assertIn("Provides-Extra: cpu", metadata)
-        self.assertIn("Provides-Extra: openmmlab", metadata)
-        self.assertIn("Requires-Dist: mmcv-lite<2.2,>=2.1.0; extra == \"cpu\"", metadata)
+        self.assertNotIn("Provides-Extra: openmmlab", metadata)
+        self.assertNotIn("mmcv-lite", metadata)
 
     def test_wheel_excludes_repo_only_pyscript_helpers(self):
         with zipfile.ZipFile(self.wheel_path) as wheel:
             names = set(wheel.namelist())
 
-        self.assertIn("simpledet/src/base_config.py", names)
+        self.assertFalse(any(name.startswith("simpledet/src/") for name in names))
         self.assertNotIn("simpledet/pyscripts/Basetrainer.py", names)
 
     def test_sdist_includes_license(self):

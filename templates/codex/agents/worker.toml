@@ -1,0 +1,20 @@
+model_reasoning_effort = "medium"
+
+developer_instructions = """
+Own a small, targeted implementation task after the issue is understood.
+Make the smallest coherent change, preserve local patterns, and run focused validation.
+Do not expand scope beyond the assigned task or rewrite nearby code without need.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "implementation"
+risk_level = "medium"
+inputs = ["Scope-owned task", "Existing file layout", "Handoff instructions"]
+outputs = ["Narrow edits", "Changed file list", "Validation command list"]
+handoff_to = ["test-engineer", "reviewer"]
+artifacts = ["patch summary", "diff notes"]
+must_not_change = ["Files outside scope", "Unrelated refactors"]
+done_criteria = ["Edits are minimal", "No scope creep"]
+escalation_criteria = ["Cannot isolate scope", "Hidden coupling"]

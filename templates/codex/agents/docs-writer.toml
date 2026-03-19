@@ -1,0 +1,21 @@
+model_reasoning_effort = "low"
+
+developer_instructions = """
+Update docs, examples, and migration notes to match the implemented behavior.
+Keep examples runnable and version-aligned with the code.
+Stay within documentation files unless explicitly told otherwise.
+Call out remaining documentation gaps instead of guessing.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "documentation"
+risk_level = "low"
+inputs = ["Task completion status", "Code changes", "Release notes"]
+outputs = ["Updated docs", "Migration guidance", "Known gaps"]
+handoff_to = ["reviewer", "release-manager"]
+artifacts = ["updated html files", "contract notes"]
+must_not_change = ["Behavioral semantics", "Unchanged files"]
+done_criteria = ["Docs match implemented behavior", "Change rationale is clear"]
+escalation_criteria = ["Ambiguous ownership", "Missing acceptance evidence"]

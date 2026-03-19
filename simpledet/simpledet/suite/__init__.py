@@ -2,11 +2,36 @@
 
 from __future__ import annotations
 
-from .catalog import build_decoder, build_detector, build_encoder, build_head, build_neck
-from .compiler import compile_detector_spec
+from .catalog import (
+    inspect_native_detector_family,
+    inspect_native_encoder_family,
+    inspect_native_head_family,
+    inspect_native_neck_family,
+    build_custom_decoder,
+    build_custom_detector,
+    build_custom_encoder,
+    build_custom_head,
+    build_custom_neck,
+    build_decoder,
+    build_detector,
+    build_encoder,
+    build_head,
+    build_neck,
+    list_native_detector_families,
+    list_native_encoder_families,
+    list_native_head_families,
+    list_native_neck_families,
+    resolve_native_detector_family,
+    resolve_native_encoder_family,
+    resolve_native_head_family,
+    resolve_native_neck_family,
+)
+from .native_plan import ComponentPlan, DetectorBuildPlan, compile_native_detector_plan
 from .specs import DecoderSpec, DetectorSpec, EncoderSpec, HeadSpec, NeckSpec
 
 __all__ = [
+    "ComponentPlan",
+    "DetectorBuildPlan",
     "DecoderSpec",
     "DetectorSpec",
     "EncoderSpec",
@@ -17,6 +42,22 @@ __all__ = [
     "build_encoder",
     "build_head",
     "build_neck",
-    "compile_detector_spec",
+    "build_custom_decoder",
+    "build_custom_detector",
+    "build_custom_encoder",
+    "build_custom_head",
+    "build_custom_neck",
+    "inspect_native_detector_family",
+    "inspect_native_encoder_family",
+    "inspect_native_head_family",
+    "inspect_native_neck_family",
+    "list_native_detector_families",
+    "list_native_encoder_families",
+    "list_native_head_families",
+    "list_native_neck_families",
+    "resolve_native_detector_family",
+    "resolve_native_encoder_family",
+    "resolve_native_head_family",
+    "resolve_native_neck_family",
+    "compile_native_detector_plan",
 ]
-

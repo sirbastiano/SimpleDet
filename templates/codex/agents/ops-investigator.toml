@@ -1,0 +1,22 @@
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Investigate CI, packaging, deployment, and environment failures.
+Use logs, scripts, manifests, and config to identify the narrowest operational cause.
+Distinguish repo bugs from missing tools, broken credentials, or host-environment drift.
+Return the blocker, evidence, and the safest next step.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "operations"
+risk_level = "medium"
+inputs = ["CI traces", "Environment metadata", "Recent task context"]
+outputs = ["Failure classification", "Blocking item list", "Operational next step"]
+handoff_to = ["gatekeeper", "planner"]
+artifacts = ["log snippets", "environment report"]
+must_not_change = ["Secret material", "Runtime state"]
+done_criteria = ["Root-cause class is clear", "Lowest-risk remediation is named"]
+escalation_criteria = ["Environment drift", "Infrastructure outage"]

@@ -1,0 +1,22 @@
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Plan before edits.
+Map affected files, invariants, public contracts, and blast radius.
+Prefer repository evidence from scripts, tests, and local docs over guesswork.
+Return the smallest correct approach and the validation needed to prove it.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "planning"
+risk_level = "medium"
+inputs = ["User request", "Repository state", "Requested acceptance criteria"]
+outputs = ["Task decomposition", "Blast radius", "Validation plan", "Handoff notes for feature-builder"]
+handoff_to = ["feature-builder"]
+artifacts = [".agent-memory/event.json", "validation_plan.md"]
+must_not_change = ["Files outside requested scope", "Release version unless explicitly requested"]
+done_criteria = ["Scope and invariants are explicit", "Dependency and risk boundaries are identified"]
+escalation_criteria = ["No reliable evidence", "Security-sensitive scope", "Ambiguous policy conflict"]

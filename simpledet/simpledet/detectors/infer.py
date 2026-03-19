@@ -7,7 +7,7 @@ import inspect
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from ._deps import require_dependency
 
@@ -51,6 +51,63 @@ def _extract_state_dict(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[s
     if all(hasattr(value, "shape") for value in payload.values()):
         return dict(payload), payload
     raise ValueError("Invalid checkpoint payload: expected 'model_state_dict' or tensor mapping.")
+
+
+def _coerce_categories(raw: Any) -> tuple[str, ...]:
+    if raw is None:
+        raise TypeError("`pipeline_kwargs` must define `categories` for native mode.")
+    if isinstance(raw, str):
+        return (raw,)
+    try:
+        normalized = tuple(str(item) for item in raw)
+    except TypeError as exc:
+        raise TypeError("`categories` must be a sequence of class names.") from exc
+    if not normalized:
+        raise TypeError("`categories` must contain at least one value.")
+    return normalized
+
+
+def _coerce_in_channels(in_channels: Any, *, tif_channels_to_load: Any = None) -> int:
+    if in_channels is None:
+        if tif_channels_to_load is None:
+            raise TypeError(
+                "Provide `in_channels` or `tif_channels_to_load` for native inference."
+            )
+        try:
+            in_channels = len(tif_channels_to_load)
+        except TypeError as exc:
+            raise TypeError("`tif_channels_to_load` must be an iterable.") from exc
+    value = int(in_channels)
+    if value <= 0:
+        raise TypeError("`in_channels` must be a positive integer.")
+    return value
+
+
+def _run_native_inference_from_kwargs(pipeline_kwargs: Mapping[str, Any]) -> Any:
+    dataset_root = (
+        pipeline_kwargs.get("data_root")
+        or pipeline_kwargs.get("dataset_root")
+        or pipeline_kwargs.get("data_folder")
+    )
+    if dataset_root is None:
+        raise TypeError(
+            "When using `pipeline_kwargs`, pass `data_root` (or legacy `data_folder`) "
+            "for native inference."
+        )
+
+    from simpledet.api import run_inference
+
+    resolved_kwargs = dict(pipeline_kwargs)
+    resolved_kwargs["data_root"] = str(dataset_root)
+    resolved_kwargs["categories"] = _coerce_categories(pipeline_kwargs.get("categories"))
+    resolved_kwargs["in_channels"] = _coerce_in_channels(
+        pipeline_kwargs.get("in_channels"),
+        tif_channels_to_load=pipeline_kwargs.get("tif_channels_to_load"),
+    )
+    resolved_kwargs.pop("dataset_root", None)
+    resolved_kwargs.pop("data_folder", None)
+
+    return run_inference(**resolved_kwargs)
 
 
 def _build_torchvision_model(model_name: str, num_classes: int):
@@ -333,16 +390,13 @@ def detect(
     from ._deps import require_detector_runtime
 
     require_detector_runtime("detect")
-
-    from simpledet.api import ObjectDetectionPipeline
-
     if pipeline is None:
         if not pipeline_kwargs:
             raise TypeError(
                 "Provide either `pipeline` or the constructor keyword arguments "
-                "required by ObjectDetectionPipeline."
+                "required by the native inference backend."
             )
-        pipeline = ObjectDetectionPipeline(**pipeline_kwargs)
+        return _run_native_inference_from_kwargs(pipeline_kwargs)
 
     if build:
         pipeline.build()

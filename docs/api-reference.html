@@ -42,6 +42,11 @@
           <ul>
             <li><code>simpledet.__version__</code></li>
             <li><code>simpledet.train</code>, <code>simpledet.detect</code>, <code>simpledet.evaluate</code></li>
+            <li><code>simpledet.run_training</code>, <code>simpledet.run_inference</code>, <code>simpledet.run_evaluation</code></li>
+            <li><code>simpledet.native</code></li>
+            <li><code>simpledet.ProjectLayout</code></li>
+            <li><code>simpledet.DatasetConfig</code>, <code>simpledet.RuntimeConfig</code>, <code>simpledet.OptimizationConfig</code></li>
+            <li><code>simpledet.ProjectConfig</code>, <code>load_project_config</code>, <code>init_project_config</code>, <code>run_project</code></li>
             <li><code>simpledet.detectors</code></li>
             <li><code>simpledet.suite</code></li>
           </ul>
@@ -55,21 +60,52 @@ DecoderSpec
 DetectorSpec
 
 build_encoder(...)
+build_custom_encoder(...)
 build_neck(...)
+build_custom_neck(...)
 build_head(...)
+build_custom_head(...)
 build_decoder(...)
+build_custom_decoder(...)
 build_detector(...)
-compile_detector_spec(spec)</code></pre>
+compile_native_detector_plan(spec)</code></pre>
+          <p>The <code>build_custom_*</code> helpers are the public mechanism for registry-backed custom components. They pair a component <code>type</code>, explicit <code>imports</code>, and the config fields needed by the planner and runtime registry loader.</p>
+          <p><code>compile_native_detector_plan(...)</code> produces the structured build plan consumed by the native runtime.</p>
         </article>
         <article class="section">
-          <h2><code>simpledet.api.ObjectDetectionPipeline</code></h2>
-          <ul>
-            <li><code>build()</code></li>
-            <li><code>train()</code></li>
-            <li><code>test()</code></li>
-            <li><code>get_pth()</code></li>
-          </ul>
-          <p>Important constructor inputs include <code>detector_spec</code>, <code>model_cfg</code>, dataset paths, <code>categories</code>, and runtime settings.</p>
+          <h2>Project config helpers</h2>
+          <pre><code>ProjectLayout(...)
+DatasetConfig(...)
+RuntimeConfig(...)
+OptimizationConfig(...)
+ProjectConfig(...)
+project_config_template(...)
+init_project_config(...)
+load_project_config(...)
+validate_project_config(...)
+run_project(...)</code></pre>
+          <p>Use the structured config objects when you want a repeatable project file and a single native entrypoint for build, train, inference, and evaluation stages.</p>
+        </article>
+        <article class="section">
+          <h2>Direct execution helpers</h2>
+          <pre><code>run_training(...)
+run_inference(...)
+run_evaluation(...)</code></pre>
+          <p>Use these when you want native execution without creating a config file. They wrap the project-layout helpers and execute the relevant stages directly.</p>
+        </article>
+        <article class="section">
+          <h2><code>simpledet.native</code></h2>
+          <pre><code>NativeProjectConfig(...)
+run_native_training(...)
+run_native_inference(...)
+run_native_evaluation(...)
+build_native_components(...)</code></pre>
+          <p>This is the native Lightning-backed backend. The current native catalog supports <code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>gfl</code>, <code>vfnet</code>, <code>fovea</code>, <code>foveabox</code>, <code>reppoints</code>, <code>yolof</code>, <code>centernet</code>, <code>faster_rcnn</code>, <code>mask_rcnn</code>, <code>grid_rcnn</code>, and <code>cascade_rcnn</code>.</p>
+          <p>Custom native detectors now grow through a detector-assembler layer. Register an assembler in <code>simpledet.extensions.DETECTORS</code>, create a spec with <code>build_custom_detector(...)</code>, then call <code>build_native_model(...)</code> on that spec.</p>
+        </article>
+        <article class="section">
+          <h2><code>simpledet.api</code></h2>
+          <p>The public API now centers on <code>ProjectConfig</code>, <code>run_project(...)</code>, and the direct helpers <code>run_training(...)</code>, <code>run_inference(...)</code>, and <code>run_evaluation(...)</code>. Legacy pipeline/config-compilation helpers are no longer part of the public contract.</p>
         </article>
         <article class="section">
           <h2><code>simpledet._model_resolution</code></h2>

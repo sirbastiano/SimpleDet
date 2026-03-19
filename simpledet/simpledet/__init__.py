@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 
 
@@ -10,9 +11,23 @@ __all__ = [
     "train",
     "detect",
     "evaluate",
-    "Config",
-    "detectors",
+    "ProjectLayout",
+    "DatasetConfig",
+    "RuntimeConfig",
+    "OptimizationConfig",
+    "ProjectConfig",
+    "load_project_config",
+    "project_config_template",
+    "init_project_config",
+    "validate_project_config",
+    "run_project",
+    "run_training",
+    "run_inference",
+    "run_evaluation",
     "suite",
+    "native",
+    "extensions",
+    "detectors",
 ]
 
 try:
@@ -24,44 +39,52 @@ except PackageNotFoundError:
 def __getattr__(name: str):
     if name == "detectors":
         import simpledet.detectors as detectors
-        return detectors
 
+        return detectors
     if name == "suite":
         import simpledet.suite as suite
+
         return suite
+    if name == "extensions":
+        import simpledet.extensions as extensions
 
+        return extensions
+    if name == "native":
+        import simpledet.native as native
+
+        return native
     if name == "train":
-        from .detectors._deps import require_detector_runtime
-
-        require_detector_runtime("train")
         from .detectors import train as train_module
 
         return train_module.train
-
     if name == "detect":
-        from .detectors._deps import require_detector_runtime
-
-        require_detector_runtime("detect")
         from .detectors import infer as infer_module
 
         return infer_module.detect
-
     if name == "evaluate":
-        from .detectors._deps import require_detector_runtime
-
-        require_detector_runtime("evaluate")
         from .detectors import evaluate as evaluate_module
 
         return evaluate_module.evaluate
 
-    if name == "Config":
-        from .detectors._deps import require_config_dependency
+    api = import_module(".api", __name__)
 
-        require_config_dependency("Config")
-        from .detectors import data as data_module
-
-        return data_module.Config
-
+    exported = {
+        "ProjectLayout",
+        "DatasetConfig",
+        "RuntimeConfig",
+        "OptimizationConfig",
+        "ProjectConfig",
+        "load_project_config",
+        "project_config_template",
+        "init_project_config",
+        "validate_project_config",
+        "run_project",
+        "run_training",
+        "run_inference",
+        "run_evaluation",
+    }
+    if name in exported:
+        return getattr(api, name)
     raise AttributeError(f"module 'simpledet' has no attribute {name!r}")
 
 

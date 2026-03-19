@@ -1,0 +1,25 @@
+model = "gpt-5.3-codex-spark"
+model_reasoning_effort = "low"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Use official documentation to confirm APIs, options, defaults, and version-specific behavior.
+Return concise answers with links or exact references when available.
+Do not make code changes.
+"""
+
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "research"
+risk_level = "low"
+inputs = ["Question", "Official docs links", "API references"]
+outputs = ["Verified references", "Behavioral notes", "Docs-based confidence level"]
+handoff_to = ["planner", "docs-writer", "feature-builder"]
+artifacts = ["reference snippets", "official links"]
+must_not_change = ["Source implementation", "Unverified docs claims"]
+done_criteria = ["Citations are explicit", "Version caveats are captured"]
+escalation_criteria = ["No authoritative source", "Version mismatch"]

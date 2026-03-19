@@ -31,7 +31,7 @@
         <h1>Configuration guide</h1>
         <p class="subtle">
           The most important configuration idea in this repo is responsibility: model structure belongs in the detector spec,
-          runtime behavior belongs in the pipeline, and only advanced overrides should reach into raw MMDetection dictionaries.
+          runtime behavior belongs in the project/runtime config, and native planning fills the low-level component wiring.
         </p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
@@ -39,39 +39,38 @@
           <a class="btn" href="core-concepts.html">Core Concepts</a>
           <a class="btn" href="api-reference.html">API Reference</a>
         </div>
-        <p class="hero-context">Use this page to understand what belongs in a detector spec, what belongs in the pipeline, and what should stay out of both.</p>
+        <p class="hero-context">Use this page to understand what belongs in a detector spec, what belongs in the runtime config, and what should stay out of both.</p>
       </section>
       <section class="content">
         <article class="section">
           <h2>DetectorSpec</h2>
           <p class="section-lead">
-            Use a detector spec when you want to express intent instead of wiring every MMDetection field manually.
+            Use a detector spec when you want to express intent instead of wiring every component field manually.
             It is the recommended surface for new experiments.
           </p>
-          <pre><code>from simpledet.suite import build_decoder, build_detector, build_neck
+          <pre><code>from simpledet.suite import build_detector, build_neck
 
 spec = build_detector(
-    "deformable_detr",
+    "fcos",
     encoder="convnext_tiny.in12k_ft_in1k",
-    neck=build_neck(name="ChannelMapper", out_channels=192, num_outs=4),
-    decoder=build_decoder(embed_dims=192, num_queries=300),
+    neck=build_neck(name="FPN", out_channels=192, num_outs=4),
     num_classes=5,
     in_channels=3,
 )</code></pre>
           <p>
             In this example, <code>architecture</code> and <code>num_classes</code> describe the task,
             <code>encoder</code> describes the backbone source, <code>neck</code> adapts features across scales,
-            and <code>decoder</code> is only needed because the detector family is transformer-based.
+            and the head is selected automatically from the detector family.
           </p>
         </article>
         <article class="section">
-          <h2>Compile to a model dictionary</h2>
-          <pre><code>from simpledet.suite import compile_detector_spec
-model_cfg = compile_detector_spec(spec)</code></pre>
-          <p>The compiler fills model sections such as <code>backbone</code>, <code>neck</code>, <code>bbox_head</code>, <code>roi_head</code>, <code>encoder</code>, and <code>decoder</code>.</p>
+          <h2>Compile to a native build plan</h2>
+          <pre><code>from simpledet.suite import compile_native_detector_plan
+native_plan = compile_native_detector_plan(spec)</code></pre>
+          <p>The planner fills runtime-facing sections such as <code>encoder</code>, <code>neck</code>, <code>head</code>, and architecture family metadata.</p>
           <p>
-            Compile when you need to inspect or override the exact MMDetection-style model definition.
-            In most user flows you do not need to edit this dictionary directly after compilation.
+            Compile when you need to inspect what the native runtime will assemble.
+            For most user workflows, treat this plan as a read-only artifact after compilation.
           </p>
         </article>
         <article class="section">
@@ -88,14 +87,14 @@ custom_encoder = EncoderSpec(
         </article>
         <article class="section">
           <h2>Runtime config</h2>
-          <p><code>ObjectDetectionPipeline</code> still loads <code>simpledet/simpledet/src/base_config.py</code> and replaces <code>cfg.model</code> with the compiled detector definition. Dataloaders, evaluators, schedulers, and hooks continue to live in the runtime config.</p>
+          <p><code>ProjectConfig</code> and the direct runtime helpers own dataset paths, workdir layout, resize, batch size, optimizer settings, checkpoints, logging, and stage selection. The native runtime consumes the detector spec and compiled build plan directly.</p>
           <div class="callout-grid">
             <article class="callout">
               <h3>Put it in the detector spec</h3>
               <p>Architecture, backbone, neck, head, decoder, feature interfaces, class count.</p>
             </article>
             <article class="callout">
-              <h3>Put it in the pipeline</h3>
+              <h3>Put it in the runtime config</h3>
               <p>Dataset paths, image size, batch size, optimizer settings, checkpoints, logging, evaluators.</p>
             </article>
             <article class="callout">

@@ -1,194 +1,129 @@
-import fnmatch
-import sys
-import types
 import unittest
-from unittest.mock import patch
 
 from simpledet.suite import (
+    build_custom_detector,
+    build_custom_encoder,
     build_detector,
-    build_encoder,
-    build_neck,
-    compile_detector_spec,
+    compile_native_detector_plan,
 )
 
 
-class _FeatureInfo:
-    def __init__(self, channels):
-        self._channels = channels
+class NativeSuiteTests(unittest.TestCase):
+    def test_build_detector_defaults_to_native_v1_architectures(self):
+        retina = build_detector("retinanet", num_classes=2, encoder="resnet18.a1_in1k")
+        fcos = build_detector("fcos", num_classes=3, encoder="resnet18.a1_in1k")
+        atss = build_detector("atss", num_classes=4, encoder="resnet18.a1_in1k")
+        gfl = build_detector("gfl", num_classes=5, encoder="resnet18.a1_in1k")
+        faster_rcnn = build_detector("faster_rcnn", num_classes=4, encoder="resnet18.a1_in1k")
+        mask_rcnn = build_detector("mask_rcnn", num_classes=5, encoder="resnet18.a1_in1k")
 
-    def channels(self):
-        return list(self._channels)
+        self.assertEqual(retina.family, "dense")
+        self.assertEqual(retina.head.name, "RetinaHead")
+        self.assertEqual(fcos.family, "dense")
+        self.assertEqual(fcos.head.name, "FCOSHead")
+        self.assertEqual(atss.family, "dense")
+        self.assertEqual(atss.head.name, "ATSSHead")
+        self.assertEqual(gfl.family, "dense")
+        self.assertEqual(gfl.head.name, "GFLHead")
+        self.assertEqual(faster_rcnn.family, "roi")
+        self.assertEqual(faster_rcnn.head.name, "RetinaHead")
+        self.assertEqual(mask_rcnn.family, "roi")
+        self.assertEqual(mask_rcnn.head.name, "RetinaHead")
+        self.assertTrue(mask_rcnn.head.with_mask)
 
+    def test_build_detector_rejects_removed_legacy_architectures(self):
+        detector = build_detector("detr", num_classes=2, encoder="resnet18.a1_in1k")
 
-class _DummyEncoder:
-    def __init__(self, channels):
-        self.feature_info = _FeatureInfo(channels)
+        self.assertEqual(detector.family, "transformer")
+        self.assertIsNone(detector.head)
 
-
-class _Registry:
-    def __init__(self, module_dict):
-        self.module_dict = module_dict
-
-
-class SuiteCompilerTests(unittest.TestCase):
-    def _fake_modules(self):
-        numpy = types.ModuleType("numpy")
-        torch = types.ModuleType("torch")
-        mmengine = types.ModuleType("mmengine")
-
-        class FPN:
-            __module__ = "mmdet.models.necks.fpn"
-
-        class PAFPN:
-            __module__ = "mmdet.models.necks.pafpn"
-
-        class ChannelMapper:
-            __module__ = "mmdet.models.necks.channel_mapper"
-
-        class StandardRoIHead:
-            __module__ = "mmdet.models.roi_heads.standard_roi_head"
-
-        class CascadeRoIHead:
-            __module__ = "mmdet.models.roi_heads.cascade_roi_head"
-
-        class FCNMaskHead:
-            __module__ = "mmdet.models.roi_heads.mask_heads.fcn_mask_head"
-
-        class RetinaHead:
-            __module__ = "mmdet.models.dense_heads.retina_head"
-
-        class DeformableDETRHead:
-            __module__ = "mmdet.models.dense_heads.deformable_detr_head"
-
-        registry_module = types.ModuleType("mmdet.registry")
-        registry_module.MODELS = _Registry(
-            {
-                "FPN": FPN,
-                "PAFPN": PAFPN,
-                "ChannelMapper": ChannelMapper,
-                "StandardRoIHead": StandardRoIHead,
-                "CascadeRoIHead": CascadeRoIHead,
-                "FCNMaskHead": FCNMaskHead,
-                "RetinaHead": RetinaHead,
-                "DeformableDETRHead": DeformableDETRHead,
-            }
-        )
-
-        mmdet = types.ModuleType("mmdet")
-        mmdet.registry = registry_module
-
-        timm = types.ModuleType("timm")
-        model_names = ["tiny_encoder", "wide_encoder", "transformer_encoder"]
-        timm.list_models = lambda pattern=None: sorted(
-            name for name in model_names if pattern is None or fnmatch.fnmatch(name, pattern)
-        )
-        timm.create_model = lambda *_args, **_kwargs: _DummyEncoder([16, 32, 64, 128])
-
-        return {
-            "numpy": numpy,
-            "torch": torch,
-            "mmengine": mmengine,
-            "mmdet": mmdet,
-            "mmdet.registry": registry_module,
-            "timm": timm,
+    def test_build_transformer_name_aliases_normalize_to_transformer_family(self):
+        aliases = {
+            "detr_r50_fpn": "detr",
+            "deformable-detr_r50": "deformable_detr",
+            "conditional_detr-4scale": "conditional_detr",
+            "dino4": "dino",
+            "deformable-detr-v2": "deformable_detr",
+            "detr3d": "detr",
         }
+        for architecture, expected_family in aliases.items():
+            detector = build_detector(architecture, num_classes=2, encoder="resnet18.a1_in1k")
+            self.assertEqual(detector.family, "transformer")
+            self.assertEqual(detector.architecture, expected_family)
 
-    def test_compile_dense_detector_from_suite_spec(self):
-        spec = build_detector(
-            "retinanet",
-            num_classes=4,
-            encoder="tiny_encoder",
-        )
+    def test_build_detector_supports_many_dense_and_roi_architectures(self):
+        specs = {
+            "vfnet": "VFNetHead",
+            "fovea": "FoveaHead",
+            "foveabox": "FoveaHead",
+            "reppoints": "RepPointsHead",
+            "yolof": "YOLOFHead",
+            "centernet": "CenterNetHead",
+        }
+        for architecture, expected_head in specs.items():
+            detector = build_detector(architecture, num_classes=3, encoder="resnet18.a1_in1k")
+            self.assertEqual(detector.family, "dense")
+            self.assertEqual(detector.head.name, expected_head)
 
-        with patch.dict(sys.modules, self._fake_modules()):
-            model_cfg = compile_detector_spec(spec)
+        more_architectures = {
+            "yolo": "YOLOXHead",
+            "yolo4": "YOLOXHead",
+            "yolo3": "YOLOXHead",
+            "yolo_v3": "YOLOXHead",
+            "yolov3": "YOLOXHead",
+            "yolov5": "YOLOXHead",
+            "yolov6": "YOLOXHead",
+            "yolov7": "YOLOXHead",
+            "yolov8": "YOLOXHead",
+            "yolov9": "YOLOXHead",
+            "yolov10": "YOLOXHead",
+            "yolox": "YOLOXHead",
+            "rtmdet_tiny": "FCOSHead",
+            "rtmdet_s": "FCOSHead",
+            "rtmdet": "FCOSHead",
+            "ssd300": "SSDHead",
+            "ssdlite": "SSDHead",
+            "tood": "TOODHead",
+            "ssd": "SSDHead",
+            "sabl": "ATSSHead",
+            "solov2": "FCOSHead",
+        }
+        for architecture, expected_head in more_architectures.items():
+            detector = build_detector(architecture, num_classes=3, encoder="resnet18.a1_in1k")
+            self.assertEqual(detector.family, "dense")
+            self.assertEqual(detector.head.name, expected_head)
 
-        self.assertEqual(model_cfg["type"], "RetinaNet")
-        self.assertEqual(model_cfg["backbone"]["type"], "TimmEncoder")
-        self.assertEqual(model_cfg["neck"]["in_channels"], [16, 32, 64, 128])
-        self.assertEqual(model_cfg["bbox_head"]["num_classes"], 4)
-        self.assertEqual(model_cfg["bbox_head"]["in_channels"], 256)
+        grid = build_detector("grid_rcnn", num_classes=2, encoder="resnet18.a1_in1k")
+        cascade = build_detector("cascade_rcnn", num_classes=2, encoder="resnet18.a1_in1k")
+        self.assertEqual(grid.family, "roi")
+        self.assertEqual(cascade.family, "roi")
+        self.assertEqual(grid.head.name, "RetinaHead")
+        self.assertEqual(cascade.head.name, "RetinaHead")
 
-    def test_compile_roi_detector_patches_extractors_and_heads(self):
-        spec = build_detector(
-            "mask_rcnn",
-            num_classes=5,
-            encoder="wide_encoder",
-            neck=build_neck(out_channels=192),
-        )
+    def test_build_custom_detector_defaults_mask_rcnn_head_with_masking(self):
+        detector = build_custom_detector("mask_rcnn", family="roi", num_classes=3, encoder="resnet18.a1_in1k")
+        self.assertEqual(detector.family, "roi")
+        self.assertTrue(detector.head.with_mask)
 
-        with patch.dict(sys.modules, self._fake_modules()):
-            model_cfg = compile_detector_spec(spec)
-
-        self.assertEqual(model_cfg["neck"]["out_channels"], 192)
-        self.assertEqual(model_cfg["rpn_head"]["in_channels"], 192)
-        self.assertEqual(model_cfg["rpn_head"]["feat_channels"], 192)
-        self.assertEqual(model_cfg["roi_head"]["bbox_head"]["in_channels"], 192)
-        self.assertEqual(model_cfg["roi_head"]["bbox_roi_extractor"]["out_channels"], 192)
-        self.assertEqual(model_cfg["roi_head"]["mask_head"]["in_channels"], 192)
-        self.assertEqual(model_cfg["roi_head"]["mask_roi_extractor"]["out_channels"], 192)
-        self.assertEqual(model_cfg["roi_head"]["mask_head"]["num_classes"], 5)
-
-    def test_compile_transformer_detector_patches_embed_dims(self):
-        spec = build_detector(
-            "deformable_detr",
-            num_classes=6,
-            encoder="transformer_encoder",
-            neck=build_neck(out_channels=192),
-        )
-
-        with patch.dict(sys.modules, self._fake_modules()):
-            model_cfg = compile_detector_spec(spec)
-
-        self.assertEqual(model_cfg["backbone"]["type"], "TimmEncoder")
-        self.assertEqual(model_cfg["neck"]["in_channels"], [32, 64, 128])
-        self.assertEqual(model_cfg["neck"]["out_channels"], 192)
-        self.assertEqual(model_cfg["encoder"]["layer_cfg"]["self_attn_cfg"]["embed_dims"], 192)
-        self.assertEqual(model_cfg["decoder"]["layer_cfg"]["self_attn_cfg"]["embed_dims"], 192)
-        self.assertEqual(model_cfg["decoder"]["layer_cfg"]["cross_attn_cfg"]["embed_dims"], 192)
-        self.assertEqual(model_cfg["bbox_head"]["num_classes"], 6)
-        self.assertEqual(model_cfg["positional_encoding"]["num_feats"], 96)
-        self.assertEqual(model_cfg["num_feature_levels"], 4)
-
-    def test_compile_detector_with_direct_backbone_config(self):
+    def test_compile_native_detector_plan_uses_custom_backbone_channels(self):
         spec = build_detector(
             "retinanet",
             num_classes=3,
-            encoder=build_encoder(
-                "custom_backbone",
-                source="config",
-                backbone_cfg={"type": "CustomBackbone", "depth": 7},
+            encoder=build_custom_encoder(
+                "CustomBackbone",
+                imports=("pkg.backbones",),
                 feature_channels=[24, 48, 96, 192],
+                depth=18,
             ),
         )
 
-        with patch.dict(sys.modules, self._fake_modules()):
-            model_cfg = compile_detector_spec(spec)
+        plan = compile_native_detector_plan(spec)
 
-        self.assertEqual(model_cfg["backbone"]["type"], "CustomBackbone")
-        self.assertEqual(model_cfg["backbone"]["depth"], 7)
-        self.assertEqual(model_cfg["neck"]["in_channels"], [24, 48, 96, 192])
-        self.assertEqual(model_cfg["bbox_head"]["num_classes"], 3)
+        self.assertEqual(plan.encoder.type, "CustomBackbone")
+        self.assertEqual(plan.encoder.params["feature_channels"], [24, 48, 96, 192])
+        self.assertEqual(plan.head.params["num_classes"], 3)
 
-    def test_pipeline_resolves_detector_spec_into_model_cfg(self):
-        spec = build_detector(
-            "retinanet",
-            num_classes=2,
-            encoder="tiny_encoder",
-        )
+    def test_build_custom_detector_accepts_explicit_transformer_family(self):
+        spec = build_custom_detector("custom-transformer", family="transformer", num_classes=2)
 
-        with patch.dict(sys.modules, self._fake_modules()):
-            from simpledet.api import ObjectDetectionPipeline
-
-            model_cfg = ObjectDetectionPipeline._resolve_model_cfg(
-                model_cfg=None,
-                detector_spec=spec,
-            )
-
-        self.assertEqual(model_cfg["type"], "RetinaNet")
-        self.assertEqual(model_cfg["backbone"]["type"], "TimmEncoder")
-        self.assertEqual(model_cfg["bbox_head"]["num_classes"], 2)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        self.assertEqual(spec.family, "transformer")

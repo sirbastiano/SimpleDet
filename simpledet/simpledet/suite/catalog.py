@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from importlib import import_module
 from typing import Any
 
 from .specs import DecoderSpec, DetectorSpec, EncoderSpec, HeadSpec, NeckSpec
@@ -10,16 +11,302 @@ from .specs import DecoderSpec, DetectorSpec, EncoderSpec, HeadSpec, NeckSpec
 
 ARCHITECTURE_FAMILIES: dict[str, str] = {
     "retinanet": "dense",
-    "fcos": "dense",
-    "vfnet": "dense",
-    "fovea": "dense",
-    "faster_rcnn": "roi",
-    "mask_rcnn": "roi",
-    "cascade_rcnn": "roi",
-    "cascade_mask_rcnn": "roi",
+    "retina": "dense",
     "detr": "transformer",
     "deformable_detr": "transformer",
+    "deformabledetr": "transformer",
+    "conditional_detr": "transformer",
+    "dino": "transformer",
+    "fcos": "dense",
+    "atss": "dense",
+    "gfl": "dense",
+    "vfnet": "dense",
+    "fovea": "dense",
+    "foveabox": "dense",
+    "reppoints": "dense",
+    "yolof": "dense",
+    "centernet": "dense",
+    "yolo": "dense",
+    "yolo3": "dense",
+    "yolo_v3": "dense",
+    "yolov3": "dense",
+    "yolov5": "dense",
+    "yolov6": "dense",
+    "yolov7": "dense",
+    "yolov8": "dense",
+    "yolox": "dense",
+    "rtmdet": "dense",
+    "tood": "dense",
+    "ssd": "dense",
+    "sabl": "dense",
+    "solov2": "dense",
+    "faster_rcnn": "roi",
+    "faster-rcnn": "roi",
+    "mask_rcnn": "roi",
+    "mask-rcnn": "roi",
+    "grid_rcnn": "roi",
+    "cascade_rcnn": "roi",
 }
+
+
+def _normalize_architecture_name(name: str) -> str:
+    return str(name).strip().lower().replace("-", "_")
+
+
+def _compact_architecture_name(normalized: str) -> str:
+    return "".join(char for char in normalized if char.isalnum())
+
+
+def resolve_architecture_name(name: str) -> str:
+    normalized = _normalize_architecture_name(name)
+    compact = _compact_architecture_name(normalized)
+    if compact.startswith("yolof"):
+        return "yolof"
+    if compact in {"detr", "detrnext", "detrv2", "detr3d"}:
+        return "detr"
+    if compact in {"deformabledetr", "deformabledetrnext", "deformabledetrv2"}:
+        return "deformable_detr"
+    if compact in {"conditionaldetr", "conditionaldetrnext"}:
+        return "conditional_detr"
+    if compact in {"dino", "dinov2", "dino2"}:
+        return "dino"
+    if compact.startswith("deformabledetr"):
+        return "deformable_detr"
+    if compact.startswith("conditionaldetr"):
+        return "conditional_detr"
+    if compact.startswith("dino"):
+        return "dino"
+    if compact.startswith("detr"):
+        return "detr"
+    if compact in {
+        "fasterrcnn",
+        "fasterrcnncv",
+        "fasterrcnnnext",
+    }:
+        return "faster_rcnn"
+    if compact in {
+        "maskrcnn",
+        "maskrcnncv",
+        "maskrcnnnext",
+    }:
+        return "mask_rcnn"
+    if compact in {"gridrcnn", "gridrcnncv", "gridrcnnnext"}:
+        return "grid_rcnn"
+    if compact in {"cascadercnn", "cascadercnncv", "cascadercnnnext"}:
+        return "cascade_rcnn"
+    if compact.startswith("retinanet"):
+        return "retinanet"
+    if compact.startswith("fcos"):
+        return "fcos"
+    if compact.startswith("atss"):
+        return "atss"
+    if compact.startswith("gfl"):
+        return "gfl"
+    if compact.startswith("vfnet"):
+        return "vfnet"
+    if compact.startswith("fovea"):
+        return "fovea"
+    if compact.startswith("reppoints"):
+        return "reppoints"
+    if compact.startswith("centernet"):
+        return "centernet"
+    if compact.startswith("yolo"):
+        return "yolo"
+    if compact.startswith("rtmdet"):
+        return "rtmdet"
+    if compact.startswith("solov2"):
+        return "solov2"
+    if compact.startswith("tood"):
+        return "tood"
+    if compact.startswith("ssd"):
+        return "ssd"
+    if compact.startswith("sabl"):
+        return "sabl"
+    if compact.startswith("fasterrcnn"):
+        return "faster_rcnn"
+    if compact.startswith("maskrcnn"):
+        return "mask_rcnn"
+    if compact.startswith("gridrcnn"):
+        return "grid_rcnn"
+    if compact.startswith("cascadercnn"):
+        return "cascade_rcnn"
+    return normalized
+
+
+_DENSE_DEFAULT_HEAD_BY_ARCHITECTURE = {
+    "fcos": "FCOSHead",
+    "atss": "ATSSHead",
+    "gfl": "GFLHead",
+    "yolo": "YOLOXHead",
+    "yolo3": "YOLOXHead",
+    "yolo_v3": "YOLOXHead",
+    "yolov3": "YOLOXHead",
+    "yolov4": "YOLOXHead",
+    "yolov5": "YOLOXHead",
+    "yolov6": "YOLOXHead",
+    "yolov7": "YOLOXHead",
+    "yolov8": "YOLOXHead",
+    "yolov9": "YOLOXHead",
+    "yolov10": "YOLOXHead",
+    "yolox": "YOLOXHead",
+    "rtmdet": "FCOSHead",
+    "tood": "TOODHead",
+    "ssd": "SSDHead",
+    "sabl": "ATSSHead",
+    "solov2": "FCOSHead",
+    "vfnet": "VFNetHead",
+    "fovea": "FoveaHead",
+    "foveabox": "FoveaHead",
+    "reppoints": "RepPointsHead",
+    "yolof": "YOLOFHead",
+    "centernet": "CenterNetHead",
+}
+
+
+def list_native_encoder_families(pattern: str | None = None) -> list[str]:
+    return _list_native_families(kind="encoder", pattern=pattern)
+
+
+def list_native_head_families(pattern: str | None = None) -> list[str]:
+    return _list_native_families(kind="head", pattern=pattern)
+
+
+def list_native_neck_families(pattern: str | None = None) -> list[str]:
+    return _list_native_families(kind="neck", pattern=pattern)
+
+
+def list_native_detector_families(pattern: str | None = None) -> list[str]:
+    return _list_native_families(kind="detector", pattern=pattern)
+
+
+def inspect_native_encoder_family(name: str) -> dict[str, Any]:
+    return _inspect_native_family("encoder", name)
+
+
+def inspect_native_head_family(name: str) -> dict[str, Any]:
+    return _inspect_native_family("head", name)
+
+
+def inspect_native_neck_family(name: str) -> dict[str, Any]:
+    return _inspect_native_family("neck", name)
+
+
+def inspect_native_detector_family(name: str) -> dict[str, Any]:
+    return _inspect_native_family("detector", name)
+
+
+def resolve_native_encoder_family(name: str | None = None) -> Any:
+    return _resolve_native_family("encoder", name, default="timm")
+
+
+def resolve_native_head_family(name: str | None = None) -> Any:
+    return _resolve_native_family("head", name, default="RetinaHead")
+
+
+def resolve_native_neck_family(name: str | None = None) -> Any:
+    return _resolve_native_family("neck", name, default="FPN")
+
+
+def resolve_native_detector_family(name: str | None = None) -> Any:
+    return _resolve_native_family("detector", name, default="retinanet")
+
+
+def _list_native_families(*, kind: str, pattern: str | None = None) -> list[str]:
+    if not _native_registries_available():
+        return []
+    registry = _native_registry(kind)
+    names = registry.names()
+    if not pattern:
+        return names
+    token = str(pattern).strip().lower()
+    if not token:
+        return names
+    return [name for name in names if token in name.lower()]
+
+
+def _inspect_native_family(kind: str, name: str) -> dict[str, Any]:
+    if not _native_registries_available():
+        _raise_native_registries_error()
+    registry = _native_registry(kind)
+    component_name = _resolve_registered_name(registry, name)
+    component = registry.get(component_name)
+    return {
+        "kind": kind,
+        "name": component_name,
+        "module": str(getattr(component, "__module__", "")),
+        "callable": component.__name__
+        if hasattr(component, "__name__")
+        else component.__class__.__name__,
+    }
+
+
+def _resolve_native_family(kind: str, name: str | None, *, default: str) -> Any:
+    if not _native_registries_available():
+        _raise_native_registries_error()
+    registry = _native_registry(kind)
+    requested = name
+    if requested is None:
+        requested = default
+    if str(requested).strip().lower() == "auto":
+        requested = default
+    component_name = _resolve_registered_name(registry, str(requested))
+    return registry.get(component_name)
+
+
+def _resolve_registered_name(registry: Any, name: str) -> str:
+    normalized = str(name).strip()
+    if not normalized:
+        raise ValueError("Native component name must be a non-empty string.")
+    names = registry.names()
+    lower_to_original = {item.lower(): item for item in names}
+    resolved = lower_to_original.get(normalized.lower())
+    if resolved is not None:
+        return resolved
+    raise KeyError(f"Unknown {registry.kind} family '{normalized}'. Available: {', '.join(names)}.")
+
+
+_NATIVE_REGISTRY_IMPORTED: bool = False
+_NATIVE_REGISTRY_IMPORT_ERROR: Exception | None = None
+
+
+def _native_registries_available() -> bool:
+    _load_native_registries()
+    return _NATIVE_REGISTRY_IMPORT_ERROR is None
+
+
+def _raise_native_registries_error() -> None:
+    _load_native_registries()
+    if _NATIVE_REGISTRY_IMPORT_ERROR is None:
+        return
+    raise ImportError(
+        "Native registry components are unavailable. Ensure optional Lightning-native dependencies are installed."
+    ) from _NATIVE_REGISTRY_IMPORT_ERROR
+
+
+def _load_native_registries() -> None:
+    global _NATIVE_REGISTRY_IMPORTED, _NATIVE_REGISTRY_IMPORT_ERROR
+    if _NATIVE_REGISTRY_IMPORTED:
+        return
+    _NATIVE_REGISTRY_IMPORTED = True
+    try:
+        import_module("simpledet.native")
+    except Exception as exc:  # pragma: no cover - import-time optional deps
+        _NATIVE_REGISTRY_IMPORT_ERROR = exc
+
+
+def _native_registry(kind: str):
+    from ..extensions import DETECTORS, ENCODERS, HEADS, NECKS
+    if not _native_registries_available():
+        _raise_native_registries_error()
+    if kind == "encoder":
+        return ENCODERS
+    if kind == "neck":
+        return NECKS
+    if kind == "head":
+        return HEADS
+    if kind == "detector":
+        return DETECTORS
+    raise ValueError(f"Unknown native component kind '{kind}'. Expected one of: encoder, head, neck, detector.")
 
 
 def build_encoder(
@@ -30,6 +317,7 @@ def build_encoder(
     in_channels: int | None = None,
     backbone_cfg: dict[str, Any] | None = None,
     feature_channels: tuple[int, ...] | list[int] | None = None,
+    imports: tuple[str, ...] | list[str] | None = None,
     **extra: Any,
 ) -> EncoderSpec:
     return EncoderSpec(
@@ -39,6 +327,7 @@ def build_encoder(
         in_channels=in_channels,
         backbone_cfg=backbone_cfg,
         feature_channels=tuple(feature_channels) if feature_channels is not None else None,
+        imports=tuple(imports or ()),
         extra=extra,
     )
 
@@ -49,6 +338,7 @@ def build_neck(
     neck_cfg: dict[str, Any] | None = None,
     out_channels: int | None = None,
     num_outs: int | None = None,
+    imports: tuple[str, ...] | list[str] | None = None,
     **extra: Any,
 ) -> NeckSpec:
     return NeckSpec(
@@ -56,6 +346,7 @@ def build_neck(
         neck_cfg=neck_cfg,
         out_channels=out_channels,
         num_outs=num_outs,
+        imports=tuple(imports or ()),
         extra=extra,
     )
 
@@ -66,6 +357,7 @@ def build_head(
     head_cfg: dict[str, Any] | None = None,
     num_classes: int | None = None,
     with_mask: bool = False,
+    imports: tuple[str, ...] | list[str] | None = None,
     **extra: Any,
 ) -> HeadSpec:
     return HeadSpec(
@@ -73,6 +365,7 @@ def build_head(
         head_cfg=head_cfg,
         num_classes=num_classes,
         with_mask=with_mask,
+        imports=tuple(imports or ()),
         extra=extra,
     )
 
@@ -83,6 +376,7 @@ def build_decoder(
     decoder_cfg: dict[str, Any] | None = None,
     num_queries: int | None = None,
     embed_dims: int | None = None,
+    imports: tuple[str, ...] | list[str] | None = None,
     **extra: Any,
 ) -> DecoderSpec:
     return DecoderSpec(
@@ -90,7 +384,94 @@ def build_decoder(
         decoder_cfg=decoder_cfg,
         num_queries=num_queries,
         embed_dims=embed_dims,
+        imports=tuple(imports or ()),
         extra=extra,
+    )
+
+
+def build_custom_encoder(
+    component_type: str,
+    *,
+    feature_channels: tuple[int, ...] | list[int],
+    imports: tuple[str, ...] | list[str],
+    backbone_cfg: dict[str, Any] | None = None,
+    **extra: Any,
+) -> EncoderSpec:
+    resolved_cfg = dict(backbone_cfg or {})
+    resolved_cfg.setdefault("type", component_type)
+    resolved_cfg.update(extra)
+    return build_encoder(
+        component_type,
+        source="config",
+        backbone_cfg=resolved_cfg,
+        feature_channels=feature_channels,
+        imports=imports,
+    )
+
+
+def build_custom_neck(
+    component_type: str,
+    *,
+    imports: tuple[str, ...] | list[str],
+    neck_cfg: dict[str, Any] | None = None,
+    **extra: Any,
+) -> NeckSpec:
+    resolved_cfg = None
+    if neck_cfg is not None:
+        resolved_cfg = dict(neck_cfg)
+        resolved_cfg.setdefault("type", component_type)
+        resolved_cfg.update(extra)
+        extra = {}
+    return build_neck(component_type, neck_cfg=resolved_cfg, imports=imports, **extra)
+
+
+def build_custom_head(
+    component_type: str,
+    *,
+    imports: tuple[str, ...] | list[str],
+    head_cfg: dict[str, Any] | None = None,
+    num_classes: int | None = None,
+    with_mask: bool = False,
+    **extra: Any,
+) -> HeadSpec:
+    resolved_cfg = None
+    if head_cfg is not None:
+        resolved_cfg = dict(head_cfg)
+        resolved_cfg.setdefault("type", component_type)
+        resolved_cfg.update(extra)
+        extra = {}
+    return build_head(
+        component_type,
+        head_cfg=resolved_cfg,
+        num_classes=num_classes,
+        with_mask=with_mask,
+        imports=imports,
+        **extra,
+    )
+
+
+def build_custom_decoder(
+    component_type: str,
+    *,
+    imports: tuple[str, ...] | list[str],
+    decoder_cfg: dict[str, Any] | None = None,
+    num_queries: int | None = None,
+    embed_dims: int | None = None,
+    **extra: Any,
+) -> DecoderSpec:
+    resolved_cfg = None
+    if decoder_cfg is not None:
+        resolved_cfg = dict(decoder_cfg)
+        resolved_cfg.setdefault("type", component_type)
+        resolved_cfg.update(extra)
+        extra = {}
+    return build_decoder(
+        component_type,
+        decoder_cfg=resolved_cfg,
+        num_queries=num_queries,
+        embed_dims=embed_dims,
+        imports=imports,
+        **extra,
     )
 
 
@@ -105,9 +486,10 @@ def build_detector(
     in_channels: int = 3,
     pretrained: bool = True,
     strict_auto_adapt: bool = True,
+    imports: tuple[str, ...] | list[str] | None = None,
     **overrides: Any,
 ) -> DetectorSpec:
-    normalized_architecture = str(architecture).strip().lower()
+    normalized_architecture = resolve_architecture_name(architecture)
     family = ARCHITECTURE_FAMILIES.get(normalized_architecture)
     if family is None:
         known = ", ".join(sorted(ARCHITECTURE_FAMILIES))
@@ -129,15 +511,22 @@ def build_detector(
         )
 
     if head is None:
-        head = build_head(
-            num_classes=num_classes,
-            with_mask=normalized_architecture in {"mask_rcnn", "cascade_mask_rcnn"},
-        )
+        if family == "dense":
+            default_head = _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE.get(
+                normalized_architecture,
+                "RetinaHead",
+            )
+            head = build_head(
+                default_head,
+                num_classes=num_classes,
+                with_mask=normalized_architecture == "mask_rcnn",
+            )
+        elif family == "roi":
+            head = build_head("RetinaHead", num_classes=num_classes, with_mask=normalized_architecture == "mask_rcnn")
+        else:
+            head = None
     else:
         head = replace(head, num_classes=num_classes if head.num_classes is None else head.num_classes)
-
-    if family == "transformer" and decoder is None:
-        decoder = build_decoder()
 
     return DetectorSpec(
         architecture=normalized_architecture,
@@ -148,6 +537,76 @@ def build_detector(
         head=head,
         decoder=decoder,
         strict_auto_adapt=strict_auto_adapt,
+        imports=tuple(imports or ()),
         overrides=dict(overrides),
     )
 
+
+def build_custom_detector(
+    architecture: str,
+    *,
+    family: str,
+    num_classes: int = 1,
+    encoder: str | EncoderSpec | None = None,
+    neck: NeckSpec | None = None,
+    head: HeadSpec | None = None,
+    decoder: DecoderSpec | None = None,
+    in_channels: int = 3,
+    pretrained: bool = True,
+    strict_auto_adapt: bool = True,
+    imports: tuple[str, ...] | list[str] | None = None,
+    **overrides: Any,
+) -> DetectorSpec:
+    normalized_architecture = resolve_architecture_name(architecture)
+    normalized_family = str(family).strip().lower()
+    if not normalized_architecture:
+        raise ValueError("Custom detector architectures require a non-empty name.")
+    if normalized_family not in {"dense", "roi", "transformer"}:
+        raise ValueError("Custom detector families must be one of: dense, roi, transformer.")
+
+    if isinstance(encoder, str):
+        encoder = build_encoder(
+            encoder,
+            source="timm",
+            pretrained=pretrained,
+            in_channels=in_channels,
+        )
+    elif encoder is None:
+        encoder = build_encoder(
+            "resnet18.a1_in1k",
+            source="timm",
+            pretrained=pretrained,
+            in_channels=in_channels,
+        )
+
+    if head is None:
+        if normalized_family == "dense":
+            default_head = _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE.get(
+                normalized_architecture,
+                "RetinaHead",
+            )
+            with_mask = normalized_architecture == "mask_rcnn"
+            head = build_head(
+                default_head,
+                num_classes=num_classes,
+                with_mask=with_mask,
+            )
+        elif normalized_family == "roi":
+            head = build_head("RetinaHead", num_classes=num_classes, with_mask=normalized_architecture == "mask_rcnn")
+        else:
+            head = None
+    else:
+        head = replace(head, num_classes=num_classes if head.num_classes is None else head.num_classes)
+
+    return DetectorSpec(
+        architecture=normalized_architecture,
+        family=normalized_family,
+        num_classes=num_classes,
+        encoder=encoder,
+        neck=neck,
+        head=head,
+        decoder=decoder,
+        strict_auto_adapt=strict_auto_adapt,
+        imports=tuple(imports or ()),
+        overrides=dict(overrides),
+    )

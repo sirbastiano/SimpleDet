@@ -44,9 +44,9 @@
         <article class="section">
           <h2>Recommended training path</h2>
           <p class="section-lead">
-            Use the pipeline path when you want consistent checkpoints, logs, evaluator outputs, and one place to rerun the experiment later.
+            Use the project pipeline path when you want consistent checkpoints, logs, evaluator outputs, validation, and one place to rerun the experiment later.
           </p>
-          <pre><code>from simpledet.api import ObjectDetectionPipeline
+          <pre><code>from simpledet import create_project_pipeline
 from simpledet.suite import build_detector, build_neck
 
 detector_spec = build_detector(
@@ -57,17 +57,12 @@ detector_spec = build_detector(
     in_channels=3,
 )
 
-pipeline = ObjectDetectionPipeline(
+pipeline = create_project_pipeline(
+    dataset_root="/data/project",
     detector_spec=detector_spec,
-    data_folder="/data/project",
     result_folder="results/project",
-    config_folder="simpledet/simpledet/src",
-    data_prefix="imgs/",
-    annot_file_train="/data/project/annotations/train.json",
-    annot_file_val="/data/project/annotations/val.json",
-    annot_file_test="/data/project/annotations/test.json",
-    tif_channels_to_load=[1, 1, 1],
     in_channels=3,
+    tif_channels_to_load=[1, 2, 3],
     categories=("car", "building", "ship"),
     resize=768,
     batch_size=2,
@@ -75,13 +70,44 @@ pipeline = ObjectDetectionPipeline(
     max_epochs=30,
 )
 
-pipeline.build()
-pipeline.train()</code></pre>
+pipeline.validate_paths(strict=True)
+pipeline.run(stages=("build", "train"))</code></pre>
           <p>
             The detector spec controls <em>what model is trained</em>. The pipeline arguments control <em>how and where it is trained</em>.
             In particular, <code>categories</code> must match the semantic class list expected by the run, while
             <code>num_classes</code> on the detector spec controls the size of the prediction heads.
           </p>
+        </article>
+        <article class="section">
+          <h2>Direct non-config execution</h2>
+          <p class="section-lead">
+            If you want the same operational path without writing a project file or handling a pipeline object explicitly, use the direct execution helper.
+          </p>
+          <pre><code>from simpledet import run_training
+
+result = run_training(
+    dataset_root="/data/project",
+    detector_spec=detector_spec,
+    categories=("car", "building", "ship"),
+    in_channels=3,
+    tif_channels_to_load=[1, 2, 3],
+    resize=768,
+    batch_size=2,
+    learning_rate=0.001,
+    max_epochs=30,
+)</code></pre>
+          <p>
+            This still builds the project-layout pipeline under the hood. The difference is only the interface:
+            you pass the run arguments directly and receive the stage outputs immediately.
+          </p>
+        </article>
+        <article class="section">
+          <h2>Config-driven operations</h2>
+          <p class="section-lead">
+            When you want a repeatable operational package workflow, move the same settings into a project config file and run them through the CLI.
+          </p>
+          <pre><code>python -m simpledet --project-validate project.toml
+python -m simpledet --project-run project.toml --stages build train</code></pre>
         </article>
         <article class="section">
           <h2>What the pipeline injects</h2>
@@ -99,15 +125,15 @@ pipeline.train()</code></pre>
         <article class="section">
           <h2>What gets written</h2>
           <ul>
-            <li><code>pipeline.log</code> for the run log</li>
-            <li><code>best_*.pth</code> for the retained best checkpoint</li>
-            <li>MMEngine metadata and hook outputs in the workdir</li>
+            <li><code>native-manifest.json</code> for the run summary</li>
+            <li><code>checkpoints/</code> for the retained checkpoint files</li>
+            <li>native Lightning trainer outputs in the workdir</li>
           </ul>
         </article>
         <article class="section">
           <h2>Compatibility path</h2>
           <p class="section-lead">
-            Use the lightweight path only when you want a fast local check without the full OpenMMLab experiment stack.
+            Use the lightweight path only when you want a fast local check without the full native experiment stack.
           </p>
           <pre><code>from simpledet.detectors.train import train
 

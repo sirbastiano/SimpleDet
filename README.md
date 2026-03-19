@@ -4,7 +4,9 @@
 [![Python](https://img.shields.io/pypi/pyversions/simpledet.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-SimpleDet is a custom object-detection toolkit built around MMDetection/OpenMMLab workflows for training, inference, evaluation, and experiment packaging.
+SimpleDet is a custom object-detection toolkit with a native PyTorch Lightning execution path for training, inference, evaluation, and experiment packaging.
+
+The maintained native catalog currently supports `retinanet`, `retina`, `fcos`, `atss`, `gfl`, `vfnet`, `fovea`, `foveabox`, `reppoints`, `yolof`, `centernet`, `faster_rcnn`, `mask_rcnn`, `grid_rcnn`, and `cascade_rcnn`.
 
 ## Installation
 
@@ -20,12 +22,6 @@ Supported CPU runtime for the public detection APIs:
 python -m pip install "simpledet[cpu]"
 ```
 
-Backward-compatible alias:
-
-```bash
-python -m pip install "simpledet[openmmlab]"
-```
-
 Optional workflow extras:
 
 ```bash
@@ -35,8 +31,8 @@ python -m pip install "simpledet[geo,plots]"
 From source while iterating locally:
 
 ```bash
-git clone https://github.com/sirbastiano/MDet.git
-cd MDet
+git clone https://github.com/sirbastiano/SimpleDet.git
+cd SimpleDet
 python -m pip install -e ".[cpu]"
 ```
 
@@ -44,7 +40,7 @@ Sanity checks:
 
 ```bash
 python -m simpledet --version
-python -m simpledet --check-openmmlab
+python -m simpledet --check-runtime
 ```
 
 ## Supported Publish Matrix
@@ -56,7 +52,7 @@ The package is published as a pure-Python wheel. The supported runtime contract 
 - CPU-only dependency stack for `simpledet[cpu]`
 - wheel-only dependency resolution for release verification
 
-If a dependency cannot be installed from wheels on a claimed platform/Python pair, that matrix entry is not considered supported.
+For a supported OS/Python pair, all dependencies must install from wheels; otherwise that matrix entry is not supported.
 
 ## Repository Shortcuts
 
@@ -71,7 +67,8 @@ make check
 ## Package Layout
 
 - `simpledet/`: installable package
-- `simpledet/src/`: packaged configs and custom model components
+- `simpledet/native/`: native PyTorch Lightning runtime, components, and execution helpers
+- `simpledet/suite/`: detector specs, planners, and authoring helpers
 - `tests/`: unit and packaging checks
 - `docs/`: project documentation site sources
 

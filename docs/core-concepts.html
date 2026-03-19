@@ -64,8 +64,8 @@
             then trained into a workdir that preserves checkpoints and evaluator outputs.
           </p>
           <pre><code>dataset
-  -&gt; detector_spec or model_cfg
-  -&gt; ObjectDetectionPipeline
+  -&gt; detector_spec
+  -&gt; native runtime
   -&gt; training
   -&gt; checkpoint
   -&gt; inference
@@ -74,11 +74,9 @@
           <pre><code>Recommended path
 dataset root + COCO annotations
   -&gt; build_detector(...)
-  -&gt; compile_detector_spec(...)
-  -&gt; ObjectDetectionPipeline(detector_spec=...)
-  -&gt; build()
-  -&gt; train()
-  -&gt; test() / evaluate()</code></pre>
+  -&gt; compile_native_detector_plan(...)
+  -&gt; run_training(detector_spec=...)
+  -&gt; run_evaluation(...)</code></pre>
 
           <pre><code>Lightweight path
 dataset file or folder
@@ -95,13 +93,13 @@ dataset file or folder
         <article class="section" id="layers">
           <h2>Layers</h2>
           <ul>
-            <li><strong>Authoring layer:</strong> <code>simpledet.suite</code> provides <code>DetectorSpec</code>, builders, and compilation.</li>
-            <li><strong>Runtime layer:</strong> <code>ObjectDetectionPipeline</code> builds the MMEngine runner, wires data, and owns the workdir.</li>
+            <li><strong>Authoring layer:</strong> <code>simpledet.suite</code> provides <code>DetectorSpec</code>, builders, and native planning.</li>
+            <li><strong>Runtime layer:</strong> <code>run_training</code>, <code>run_inference</code>, <code>run_evaluation</code>, and <code>run_project</code> wire data and own the workdir.</li>
             <li><strong>Compatibility helpers:</strong> <code>simpledet.detectors.*</code> covers lightweight training, inference, and dataset loading.</li>
           </ul>
           <p>
             The important boundary is this: <code>simpledet.suite</code> decides the detector structure, while
-            <code>ObjectDetectionPipeline</code> decides how that detector is executed in a full experiment.
+            the native runtime decides how that detector is executed in a full experiment.
           </p>
         </article>
 
@@ -122,15 +120,14 @@ dataset file or folder
         <article class="section" id="artifacts">
           <h2>Artifacts</h2>
           <ul>
-            <li><code>pipeline.log</code> for runtime logging</li>
-            <li><code>best_*.pth</code> for the retained best checkpoint</li>
-            <li><code>tests.pkl</code> and <code>metrics.pkl</code> for evaluation outputs</li>
-            <li><code>testSet*</code> result files for the configured evaluator</li>
+            <li><code>native-manifest.json</code> for the run summary</li>
+            <li><code>checkpoints/</code> for the retained checkpoint files</li>
+            <li>prediction records returned by the evaluation runtime</li>
           </ul>
           <p>In the lightweight path, the main artifacts are <code>epoch_001.pth</code> and <code>metrics.json</code>.</p>
           <p>
             This difference matters because a checkpoint from one path is not automatically interchangeable with the other.
-            The pipeline path is richer, but it assumes the MMDetection runtime and evaluator stack.
+            The native runtime path is the canonical execution surface for the current package.
           </p>
         </article>
 
@@ -150,6 +147,32 @@ dataset file or folder
             input channels or editing several head sections by hand.
           </p>
           <p class="notice">This covers <code>timm</code> encoders with usable feature metadata and custom backbones only when you provide <code>backbone_cfg</code> plus explicit <code>feature_channels</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Custom component mechanism</h2>
+          <p class="section-lead">
+            SimpleDet now exposes a suite-level customization path for registry-backed backbones, necks, heads, and decoders without dropping to handwritten low-level component wiring.
+          </p>
+          <pre><code>from simpledet.suite import build_custom_encoder, build_custom_neck, build_detector
+
+spec = build_detector(
+    "retinanet",
+    num_classes=2,
+    encoder=build_custom_encoder(
+        "MyBackbone",
+        imports=("my_project.detectors.backbones",),
+        feature_channels=[64, 128, 256, 512],
+    ),
+    neck=build_custom_neck(
+        "MyNeck",
+        imports=("my_project.detectors.necks",),
+        out_channels=256,
+    ),
+)</code></pre>
+          <p>
+            The important contract is explicit: custom components are still registry-backed types, but the suite now carries the required
+            <code>imports</code> metadata into the native build plan so those modules can be resolved at runtime.
+          </p>
         </article>
       </section>
     </main>

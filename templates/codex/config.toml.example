@@ -1,0 +1,320 @@
+# .codex/config.toml.example
+# Copy the parts that fit your environment.
+
+# Read more of each AGENTS file before truncation becomes a problem.
+project_doc_max_bytes = 65536
+
+# Treat alternate instruction file names as project guidance when needed.
+project_doc_fallback_filenames = ["TEAM_GUIDE.md", ".agents.md"]
+
+# Keep default responses compact in interactive coding sessions.
+model_verbosity = "low"
+
+# Reduce noisy reasoning events in CI or terminal logs if desired.
+hide_agent_reasoning = true
+
+[features]
+multi_agent = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+contract_version = "1.0"
+depth_profiles = { default = 1, high_risk = 2 }
+
+[agents.explorer]
+description = "Read-only codebase explorer for gathering evidence before changes are proposed."
+config_file = "agents/explorer.toml"
+role_scope = "discovery"
+risk_level = "low"
+allow_parallel = true
+parallel_cap = 2
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.planner]
+description = "Read-only planner for mapping blast radius, invariants, and the smallest correct implementation path."
+config_file = "agents/planner.toml"
+role_scope = "coordination"
+risk_level = "medium"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "stage-gate"
+
+[agents.feature-builder]
+description = "Top-level coding orchestrator that routes through planning, implementation, validation, review, and gate stages."
+config_file = "agents/feature-builder.toml"
+role_scope = "orchestration"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 2
+serial_required = true
+handoff_mode = "multi-stage"
+
+[agents.architecture-reviewer]
+description = "Read-only architecture reviewer for boundaries, state flow, dependency direction, and change schematic risk."
+config_file = "agents/architecture-reviewer.toml"
+role_scope = "analysis"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.a11y-reviewer]
+description = "Read-only reviewer for accessibility, keyboard flow, and assistive-technology readiness."
+config_file = "agents/a11y-reviewer.toml"
+role_scope = "accessibility"
+risk_level = "medium"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.reviewer]
+description = "Read-only reviewer focused on correctness, regressions, security, and missing tests."
+config_file = "agents/reviewer.toml"
+role_scope = "analysis"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.clean-code-reviewer]
+description = "Read-only maintainability reviewer focused on cohesion, clarity, complexity, and future change safety."
+config_file = "agents/clean-code-reviewer.toml"
+role_scope = "analysis"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.security-reviewer]
+description = "Read-only reviewer for trust boundaries, misuse cases, sensitive data handling, and exploitability."
+config_file = "agents/security-reviewer.toml"
+role_scope = "analysis"
+risk_level = "critical"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "single-expert"
+
+[agents.api-contract-reviewer]
+description = "Read-only reviewer for API contracts, schema drift, backwards compatibility, and consumer impact."
+config_file = "agents/api-contract-reviewer.toml"
+role_scope = "analysis"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "single-expert"
+
+[agents.skill-instantiator]
+description = "Create missing skills and specialist roles for capability gaps, and route to the right cohort."
+config_file = "agents/skill-instantiator.toml"
+role_scope = "governance"
+risk_level = "high"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "single-execution"
+
+[agents.privacy-reviewer]
+description = "Read-only reviewer for privacy and data-handling risk in behavioral changes."
+config_file = "agents/privacy-reviewer.toml"
+role_scope = "analysis"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.performance-reviewer]
+description = "Read-only performance specialist for hot paths, latency regressions, memory growth, and unnecessary work."
+config_file = "agents/performance-reviewer.toml"
+role_scope = "analysis"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.bug-triager]
+description = "Read-only incident triage specialist for repro isolation, symptom clustering, and narrowing likely causes."
+config_file = "agents/bug-triager.toml"
+role_scope = "analysis"
+risk_level = "medium"
+allow_parallel = true
+parallel_cap = 2
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.incident-response]
+description = "Response coordinator for production-impact incidents and high-severity user-visible degradations."
+config_file = "agents/incident-response.toml"
+role_scope = "incident"
+risk_level = "critical"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "single-expert"
+
+[agents.ops-investigator]
+description = "Read-only operations investigator for CI, release, environment, and deployment failures."
+config_file = "agents/ops-investigator.toml"
+role_scope = "analysis"
+risk_level = "medium"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.frontend-designer]
+description = "Write-capable UI specialist for intentional frontend changes that preserve the existing design system when present."
+config_file = "agents/frontend-designer.toml"
+role_scope = "implementation-ui"
+risk_level = "high"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "stage-gate"
+
+[agents.ux-reviewer]
+description = "Read-only reviewer for user flow clarity, interaction friction, and usability regressions."
+config_file = "agents/ux-reviewer.toml"
+role_scope = "experience"
+risk_level = "medium"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.docs-researcher]
+description = "Documentation specialist that checks official docs and API references without modifying code."
+config_file = "agents/docs-researcher.toml"
+role_scope = "research"
+risk_level = "medium"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.worker]
+description = "Implementation-focused agent for small, targeted fixes once the approach is clear."
+config_file = "agents/worker.toml"
+role_scope = "implementation"
+risk_level = "medium"
+allow_parallel = true
+parallel_cap = 2
+serial_required = false
+handoff_mode = "serialization-optional"
+
+[agents.implementer]
+description = "Write-capable implementation agent for minimal diffs once the plan and ownership are clear."
+config_file = "agents/implementer.toml"
+role_scope = "implementation"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "single-execution"
+
+[agents.test-engineer]
+description = "Validation specialist for reproductions, tests, failing cases, and focused verification."
+config_file = "agents/test-engineer.toml"
+role_scope = "validation"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 2
+serial_required = true
+handoff_mode = "parallel-review"
+
+[agents.release-notes-writer]
+description = "Write-capable agent for release notes and user-facing changelog drafting after validation."
+config_file = "agents/release-notes-writer.toml"
+role_scope = "documentation"
+risk_level = "low"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "serialization-optional"
+
+[agents.docs-writer]
+description = "Documentation writer for examples, usage notes, and migration guidance after behavior changes."
+config_file = "agents/docs-writer.toml"
+role_scope = "documentation"
+risk_level = "low"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "serialization-optional"
+
+[agents.dependency-curator]
+description = "Dependency-change specialist for upgrade risk, compatibility, lockfile churn, and validation planning."
+config_file = "agents/dependency-curator.toml"
+role_scope = "analysis"
+risk_level = "high"
+allow_parallel = true
+parallel_cap = 1
+serial_required = false
+handoff_mode = "parallel-review"
+
+[agents.migration-planner]
+description = "Planner for rollout-sensitive schema or data changes with rollback and staged deployment guidance."
+config_file = "agents/migration-planner.toml"
+role_scope = "strategy"
+risk_level = "high"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "single-expert"
+
+[agents.release-manager]
+description = "Release-focused coordinator for packaging, versioning, changelog checks, and publish readiness."
+config_file = "agents/release-manager.toml"
+role_scope = "release"
+risk_level = "high"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "single-expert"
+
+[agents.instruction-maintainer]
+description = "Maintainer for AGENTS, skills, and custom-agent routing with a narrow instruction-system scope."
+config_file = "agents/instruction-maintainer.toml"
+role_scope = "governance"
+risk_level = "high"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "single-expert"
+
+[agents.gatekeeper]
+description = "Final read-only gate that checks evidence, skipped validation, and release readiness."
+config_file = "agents/gatekeeper.toml"
+role_scope = "control"
+risk_level = "critical"
+allow_parallel = false
+parallel_cap = 1
+serial_required = true
+handoff_mode = "final-only"
+
+# Optional named profiles.
+[profiles.lightweight]
+model = "gpt-4.1"
+approval_policy = "on-request"
+
+[profiles.deep-review]
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+model_verbosity = "low"
+approval_policy = "on-request"
+
+# Start from a trimmed environment and opt variables in deliberately.
+[shell_environment_policy]
+inherit = "core"
+include_only = ["PATH", "HOME", "LANG", "LC_ALL", "TERM"]
+exclude = ["*_TOKEN", "*_SECRET", "*_KEY", "AWS_*", "AZURE_*"]

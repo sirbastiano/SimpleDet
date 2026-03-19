@@ -4,6 +4,7 @@ import types
 import unittest
 from unittest.mock import patch
 
+from simpledet.extensions import HEADS, NECKS
 from simpledet._model_resolution import (
     ModelPatchError,
     apply_runtime_model_overrides,
@@ -26,40 +27,10 @@ class _DummyEncoder:
         self.feature_info = _FeatureInfo(channels)
 
 
-class _Registry:
-    def __init__(self, module_dict):
-        self.module_dict = module_dict
-
-
 class ModelResolutionTests(unittest.TestCase):
     def _fake_modules(self):
         torch = types.ModuleType("torch")
-        mmengine = types.ModuleType("mmengine")
-
-        class FPN:
-            __module__ = "mmdet.models.necks.fpn"
-
-        class RADCVFNetHead:
-            __module__ = "simpledet.src.custom_components.Head"
-
-        class StandardRoIHead:
-            __module__ = "mmdet.models.roi_heads.standard_roi_head"
-
-        class ResNet:
-            __module__ = "mmdet.models.backbones.resnet"
-
-        registry_module = types.ModuleType("mmdet.registry")
-        registry_module.MODELS = _Registry(
-            {
-                "FPN": FPN,
-                "RADCVFNetHead": RADCVFNetHead,
-                "StandardRoIHead": StandardRoIHead,
-                "ResNet": ResNet,
-            }
-        )
-
-        mmdet = types.ModuleType("mmdet")
-        mmdet.registry = registry_module
+        torch_vision = types.ModuleType("torchvision")
 
         timm = types.ModuleType("timm")
         model_names = ["tiny_encoder", "wide_encoder", "headless_encoder"]
@@ -70,10 +41,8 @@ class ModelResolutionTests(unittest.TestCase):
 
         return {
             "torch": torch,
-            "mmengine": mmengine,
-            "mmdet": mmdet,
-            "mmdet.registry": registry_module,
             "timm": timm,
+            "torchvision": torch_vision,
         }
 
     def test_apply_runtime_model_overrides_patches_dense_head_models(self):
@@ -159,10 +128,26 @@ class ModelResolutionTests(unittest.TestCase):
         self.assertIn("Cannot safely patch", str(context.exception))
 
     def test_runtime_list_helpers_use_registry_and_timm_catalogs(self):
-        with patch.dict(sys.modules, self._fake_modules()):
-            self.assertEqual(list_available_encoders(pattern="tiny*"), ["tiny_encoder"])
-            self.assertEqual(list_available_necks(), ["FPN"])
-            self.assertEqual(list_available_heads(), ["RADCVFNetHead", "StandardRoIHead"])
+        class FCOSHead:
+            pass
+
+        class FPN:
+            pass
+
+        head_items = dict(HEADS._items)
+        neck_items = dict(NECKS._items)
+        try:
+            HEADS._items = {"FCOSHead": FCOSHead}
+            NECKS._items = {"FPN": FPN}
+
+            with patch.dict(sys.modules, self._fake_modules()):
+                self.assertEqual(list_available_encoders(pattern="tiny*"), ["tiny_encoder"])
+                self.assertEqual(list_available_necks(), ["FPN"])
+                self.assertEqual(list_available_heads(), ["FCOSHead"])
+        finally:
+            HEADS._items = head_items
+            NECKS._items = neck_items
+
 
 
 if __name__ == "__main__":

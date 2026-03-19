@@ -55,9 +55,9 @@
             </thead>
             <tbody>
               <tr>
-                <td><code>python -m simpledet --check-openmmlab</code> fails</td>
-                <td>Missing or incompatible OpenMMLab runtime packages</td>
-                <td>Reinstall with <code>python -m pip install ".[openmmlab]"</code> and verify PyTorch, <code>mmcv</code>, <code>mmengine</code>, and <code>mmdet</code> versions together.</td>
+                <td><code>python -m simpledet --check-runtime</code> fails</td>
+                <td>Missing or incompatible optional runtime packages</td>
+                <td>Reinstall with <code>python -m pip install ".[cpu]"</code> and verify the runtime stack together.</td>
               </tr>
               <tr>
                 <td>Backbone swap raises <code>ModelPatchError</code></td>
@@ -80,9 +80,9 @@
                 <td>Pass <code>device="cuda:0"</code> explicitly and verify your PyTorch CUDA build separately.</td>
               </tr>
               <tr>
-                <td><code>metrics.pkl</code> does not deserialize as a pickle</td>
-                <td>The current pipeline writes JSON text to a file ending in <code>.pkl</code></td>
-                <td>Read it as JSON text. The suffix is historical, not authoritative.</td>
+                <td><code>native-manifest.json</code> is missing after a run</td>
+                <td>The native runtime writes the manifest after a successful training or evaluation pass</td>
+                <td>Check that the output directory is writable and that the run completed without an exception.</td>
               </tr>
             </tbody>
           </table>
@@ -90,7 +90,7 @@
 
         <article class="section">
           <h2>Useful checks</h2>
-          <pre><code>python -m simpledet --check-openmmlab
+          <pre><code>python -m simpledet --check-runtime
 python - &lt;&lt;'PY'
 from simpledet._model_resolution import list_available_encoders
 print(list_available_encoders(pattern="resnet*")[:10])

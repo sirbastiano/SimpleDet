@@ -5,14 +5,13 @@ UV ?= uv
 UVX ?= uvx
 UV_SYNC_FLAGS ?=
 
-.PHONY: help venv sync sync-cpu sync-openmmlab install install-runtime install-editable build sdist wheel verify-dist check publish publish-test test clean docs-check docs-verify
+.PHONY: help venv sync sync-cpu install install-runtime install-editable build sdist wheel verify-dist check publish publish-test test clean docs-check docs-verify
 
 help:
 	@echo "Targets:"
 	@echo "  make venv           Create the project virtual environment with uv"
 	@echo "  make sync           Create/update .venv and install core dependencies"
 	@echo "  make sync-cpu       Create/update .venv and install the supported CPU runtime"
-	@echo "  make sync-openmmlab Backward-compatible alias for sync-cpu"
 	@echo "  make install        Install project from source"
 	@echo "  make install-runtime Install the supported CPU runtime from source"
 	@echo "  make install-editable Install editable package with the CPU runtime"
@@ -34,9 +33,6 @@ sync:
 	$(UV) sync $(UV_SYNC_FLAGS)
 
 sync-cpu:
-	$(UV) sync --extra cpu $(UV_SYNC_FLAGS)
-
-sync-openmmlab:
 	$(UV) sync --extra cpu $(UV_SYNC_FLAGS)
 
 install:

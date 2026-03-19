@@ -42,9 +42,29 @@
       </section>
       <section class="content">
         <article class="section">
-          <h2>Entry point</h2>
+          <h2>Direct evaluation helper</h2>
           <p class="section-lead">
-            Reuse the same detector spec and the same dataset metadata you trained with. That keeps class names, evaluator settings, and expected outputs consistent.
+            For the project-layout workflow, the simplest entry point is the direct evaluation helper. It runs the same pipeline-backed test path without requiring a config file.
+          </p>
+          <pre><code>from simpledet import run_evaluation
+from simpledet.suite import build_detector
+
+metrics = run_evaluation(
+    dataset_root="/data/project",
+    detector_spec=build_detector(
+        "fcos",
+        encoder="convnext_tiny.in12k_ft_in1k",
+        num_classes=3,
+        in_channels=3,
+    ),
+    categories=("object_a", "object_b", "object_c"),
+    in_channels=3,
+)</code></pre>
+        </article>
+        <article class="section">
+          <h2>Legacy low-level entry point</h2>
+          <p class="section-lead">
+            Reuse the same detector spec and the same dataset metadata you trained with. That keeps class names, evaluator settings, and expected outputs consistent when you need full explicit control.
           </p>
           <pre><code>from simpledet import evaluate
 from simpledet.suite import build_detector
@@ -52,14 +72,13 @@ from simpledet.suite import build_detector
 metrics = evaluate(
     build=True,
     detector_spec=build_detector(
-        "deformable_detr",
+        "fcos",
         encoder="convnext_tiny.in12k_ft_in1k",
         num_classes=3,
         in_channels=3,
     ),
     data_folder="/data/project",
     result_folder="results/project",
-    config_folder="simpledet/simpledet/src",
     annot_file_train="/data/project/annotations/train.json",
     annot_file_val="/data/project/annotations/val.json",
     annot_file_test="/data/project/annotations/test.json",
@@ -71,13 +90,12 @@ metrics = evaluate(
         <article class="section">
           <h2>Outputs</h2>
           <ul>
-            <li><code>tests.pkl</code></li>
-            <li><code>metrics.pkl</code></li>
-            <li><code>testSet*</code> files from the configured evaluator</li>
+            <li><code>native-manifest.json</code></li>
+            <li><code>checkpoints/</code> for the retained checkpoint files</li>
+            <li>prediction records returned by the runtime</li>
           </ul>
           <p>
-            In the current implementation, <code>metrics.pkl</code> is JSON text despite the suffix.
-            That behavior comes from the pipeline implementation and is worth remembering when you parse the artifact later.
+            The native evaluation path returns prediction records directly and writes a JSON manifest for the run summary.
           </p>
         </article>
         <article class="section">

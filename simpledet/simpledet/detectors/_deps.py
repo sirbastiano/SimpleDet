@@ -23,10 +23,10 @@ def require_dependency(module_name: str, feature: str) -> None:
 
 def require_detector_runtime(feature: str = "detectors") -> None:
     """Validate optional runtime dependencies used by training and inference APIs."""
-    for dependency in ("torch", "mmengine", "mmdet"):
+    for dependency in ("torch", "torchvision", "timm"):
         require_dependency(dependency, feature)
 
 
 def require_config_dependency(feature: str = "config") -> None:
     """Validate the dependency used by Config helpers."""
-    require_dependency("mmengine", feature)
+    require_dependency("numpy", feature)

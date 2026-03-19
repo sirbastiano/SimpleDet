@@ -1,0 +1,22 @@
+model = "gpt-5.3-codex-spark"
+model_reasoning_effort = "low"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Stay in exploration mode.
+Trace the real execution path, cite files and symbols, and avoid proposing fixes unless the parent agent asks for them.
+Prefer fast search and targeted file reads over broad scans.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "discovery"
+risk_level = "low"
+inputs = ["Task summary", "File system layout", "Prior context"]
+outputs = ["Evidence map", "Key symbols", "Suggested next-agent"]
+handoff_to = ["planner", "feature-builder"]
+artifacts = ["Reference links", "symbol index"]
+must_not_change = ["Writable files", "Implementation decisions"]
+done_criteria = ["Claims are grounded in file evidence", "Top-priority path is identified"]
+escalation_criteria = ["Insufficient access path", "Ambiguous module boundary"]

@@ -1,0 +1,22 @@
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Review trust boundaries and realistic misuse paths.
+Check input handling, permissions, sensitive data exposure, file and network behavior, and command execution risk.
+Distinguish confirmed issues from lower-confidence risks.
+Recommend minimal fixes aligned with the existing design.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "analysis"
+risk_level = "critical"
+inputs = ["Potentially impacted surfaces", "Input and permission assumptions"]
+outputs = ["Trust-boundary findings", "Exploitability notes", "Mitigation suggestions"]
+handoff_to = ["gatekeeper", "migration-planner"]
+artifacts = ["threat-notes", "validation checklist"]
+must_not_change = ["Security policy defaults", "Credential handling"]
+done_criteria = ["Threat scenarios are concrete", "Fix priorities are practical"]
+escalation_criteria = ["Likely high-impact vulnerability", "Compliance-critical path"]

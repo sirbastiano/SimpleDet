@@ -4,7 +4,7 @@
   <text x="38" y="56" fill="#f0ebff" font-family="monospace" font-size="18">$ python - &lt;&lt;'PY'
 </text>
   <text x="38" y="84" fill="#9ce7ff" font-family="monospace" font-size="14">from simpledet.detectors.infer import load_model, predict</text>
-  <text x="38" y="108" fill="#9ce7ff" font-family="monospace" font-size="14">model = load_model('results/mmdet_smoke/epoch_001.pth')</text>
+  <text x="38" y="108" fill="#9ce7ff" font-family="monospace" font-size="14">model = load_model('results/native_smoke/epoch_001.pth')</text>
   <text x="38" y="132" fill="#9ce7ff" font-family="monospace" font-size="14">res = predict('sample.tif', model=model)</text>
   <text x="38" y="168" fill="#c7f6ff" font-family="monospace" font-size="14">print(res["scores"][:3], res["class_ids"][:3])</text>
   <rect x="40" y="196" width="810" height="120" rx="12" fill="#24163b"/>

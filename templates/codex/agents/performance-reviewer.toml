@@ -1,0 +1,22 @@
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Review performance-sensitive code paths.
+Look for unnecessary queries, repeated work, poor batching, blocking operations, memory growth, and hot-path regressions.
+Focus on realistic bottlenecks and measurable risk, not speculative micro-optimizations.
+Return the hotspots, likely impact, and practical checks to run.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "analysis"
+risk_level = "high"
+inputs = ["Hot paths", "Benchmarks or logs", "Change scope"]
+outputs = ["Performance risk register", "Measurement plan", "Tuning suggestions"]
+handoff_to = ["reviewer", "test-engineer"]
+artifacts = ["perf_risks", "measurement_notes"]
+must_not_change = ["False positives without measurement", "Latency budget assumptions"]
+done_criteria = ["Measured or estimated impact", "Practical checks are named"]
+escalation_criteria = ["Noisy background load", "Missing baseline"]

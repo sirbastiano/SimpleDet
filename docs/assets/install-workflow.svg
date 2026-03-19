@@ -12,8 +12,8 @@
   <text x="40" y="100" fill="#8fdcff" font-family="monospace" font-size="16">Collecting simpledet ...
 </text>
   <text x="40" y="132" fill="#8fdcff" font-family="monospace" font-size="16">Successfully installed simpledet-0.1.0</text>
-  <text x="40" y="178" fill="#e8f0ff" font-family="monospace" font-size="20">$ python -m simpledet --check-openmmlab</text>
-  <text x="40" y="214" fill="#9cf7d6" font-family="monospace" font-size="16">Optional OpenMMLab runtime stack is available.</text>
+  <text x="40" y="178" fill="#e8f0ff" font-family="monospace" font-size="20">$ python -m simpledet --check-runtime</text>
+  <text x="40" y="214" fill="#9cf7d6" font-family="monospace" font-size="16">SimpleDet native runtime stack is available.</text>
   <rect x="48" y="238" width="804" height="90" rx="12" fill="url(#g1)" stroke="#7fd1ff"/>
   <text x="66" y="272" fill="#dbeaff" font-family="monospace" font-size="16">Tip: re-run when env changes or driver updates.</text>
   <circle cx="840" cy="84" r="12" fill="#8dffc5">

@@ -29,8 +29,8 @@
         <p class="hero-kicker">SimpleDet Docs</p>
         <h1>Inference</h1>
         <p class="subtle">
-          Inference means two different things in this repository: MMDetection-style test-time execution through the pipeline,
-          and lightweight prediction from a <code>torchvision</code>-compatible checkpoint. Pick the path that matches the checkpoint you have.
+          This repository documents two inference paths: the native project/runtime flow and lightweight prediction from a
+          <code>torchvision</code>-compatible checkpoint. Pick the path that matches your checkpoint type.
         </p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
@@ -44,7 +44,7 @@
         <article class="section">
           <h2>Pipeline inference</h2>
           <p class="section-lead">
-            Use this when the checkpoint belongs to the pipeline path and you want evaluator-compatible test-time outputs.
+            Use this when the checkpoint comes from the pipeline path and you want evaluator-compatible test-time outputs.
           </p>
           <pre><code>from simpledet import detect
 from simpledet.suite import build_detector
@@ -52,14 +52,13 @@ from simpledet.suite import build_detector
 outputs = detect(
     build=True,
     detector_spec=build_detector(
-        "mask_rcnn",
-        encoder="swin_tiny_patch4_window7_224.ms_in22k_ft_in1k",
+        "faster_rcnn",
+        encoder="convnext_tiny.in12k_ft_in1k",
         num_classes=4,
         in_channels=3,
     ),
     data_folder="/data/project",
     result_folder="results/project",
-    config_folder="simpledet/simpledet/src",
     annot_file_train="/data/project/annotations/train.json",
     annot_file_val="/data/project/annotations/val.json",
     annot_file_test="/data/project/annotations/test.json",
@@ -67,7 +66,29 @@ outputs = detect(
     in_channels=3,
     categories=("a", "b", "c", "d"),
 )</code></pre>
-          <p>This is the same test-time path used during evaluation. It is the right choice when you want the pipeline to write <code>tests.pkl</code>, <code>metrics.pkl</code>, and evaluator result files.</p>
+          <p>This is the same test-time path used during evaluation. It writes the native manifest for the run and returns the prediction payload for downstream scoring.</p>
+        </article>
+        <article class="section">
+          <h2>Direct non-config inference</h2>
+          <p class="section-lead">
+            Use this when your dataset follows the standard project layout and you want pipeline-managed test execution without creating a config file first.
+          </p>
+          <pre><code>from simpledet import run_inference
+
+result = run_inference(
+    dataset_root="/data/project",
+    detector_spec=build_detector(
+        "faster_rcnn",
+        encoder="convnext_tiny.in12k_ft_in1k",
+        num_classes=4,
+        in_channels=3,
+    ),
+    categories=("a", "b", "c", "d"),
+    in_channels=3,
+)</code></pre>
+          <p>
+            This helper executes the pipeline <code>build</code> and <code>test</code> stages directly and returns the same stage payloads the pipeline would produce.
+          </p>
         </article>
         <article class="section">
           <h2>Lightweight inference</h2>

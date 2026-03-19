@@ -12,9 +12,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, ClassVar, TypeVar
 
-from ._deps import require_config_dependency
-
-
 class UnsupportedFormatError(ValueError):
     """Raised when a requested dataset format is not registered."""
 
@@ -1701,12 +1698,47 @@ class VocDatasetAdapter(DatasetAdapter):
 
 
 def create_config(config_path: str, **overrides: Any):
-    """Load and merge a detector configuration file."""
-    require_config_dependency("Config")
+    """Load and merge a lightweight JSON or TOML configuration file."""
 
-    from mmengine.config import Config
+    path = Path(config_path)
+    suffix = path.suffix.lower()
+    if suffix == ".json":
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    elif suffix == ".toml":
+        try:
+            import tomllib
+        except ModuleNotFoundError:
+            try:
+                import tomli as tomllib
+            except ModuleNotFoundError as exc:
+                raise RuntimeError(
+                    "TOML config loading requires Python 3.11+ or the optional 'tomli' package."
+                ) from exc
+        with path.open("rb") as handle:
+            payload = tomllib.load(handle)
+    else:
+        raise ValueError(
+            f"Unsupported config format '{path.suffix or '<none>'}'. Expected '.json' or '.toml'."
+        )
 
-    cfg = Config.fromfile(config_path)
-    if overrides:
-        cfg.merge_from_dict(overrides)
-    return cfg
+    if not isinstance(payload, dict):
+        raise ValueError(f"Config file '{path}' must contain a top-level mapping.")
+
+    if not overrides:
+        return payload
+
+    merged = dict(payload)
+    for key, value in overrides.items():
+        cursor = merged
+        segments = [segment for segment in str(key).split(".") if segment]
+        if not segments:
+            continue
+        for segment in segments[:-1]:
+            next_value = cursor.get(segment)
+            if not isinstance(next_value, dict):
+                next_value = {}
+                cursor[segment] = next_value
+            cursor = next_value
+        cursor[segments[-1]] = value
+    return merged

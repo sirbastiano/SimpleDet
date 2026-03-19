@@ -4,7 +4,8 @@ from collections.abc import MutableMapping, Sequence
 from importlib import import_module
 from typing import Any
 
-from .detectors._deps import require_dependency, require_detector_runtime
+from .detectors._deps import require_dependency
+from .extensions import HEADS, NECKS
 
 
 class ModelPatchError(ValueError):
@@ -155,7 +156,6 @@ def inspect_encoder_feature_channels(
 ) -> list[int]:
     """Return the feature channels produced by a timm encoder."""
     require_dependency("timm", "inspect_encoder_feature_channels")
-    _bootstrap_runtime_registries()
 
     timm = import_module("timm")
     kwargs: dict[str, Any] = {
@@ -222,63 +222,22 @@ def patch_model_num_classes(
     return patch_summary
 
 
+_FALLBACK_NATIVE_HEADS = ("FCOSHead", "RetinaHead")
+_FALLBACK_NATIVE_NECKS = ("ChannelMapper", "FPN")
+
+
 def _list_registered_model_components(kind: str) -> list[str]:
-    require_detector_runtime(f"list_available_{kind}s")
-    _bootstrap_runtime_registries()
-
-    from mmdet.registry import MODELS
-
-    names: list[str] = []
-    for name, component in MODELS.module_dict.items():
-        if kind == "neck" and _is_neck_component(name, component):
-            names.append(name)
-        elif kind == "head" and _is_head_component(name, component):
-            names.append(name)
-    return sorted(set(names))
-
-
-def _bootstrap_runtime_registries() -> None:
-    require_detector_runtime("simpledet.api")
-    for module_name in (
-        "simpledet.src.custom_components.Head",
-        "simpledet.src.custom_components.Encoder",
-        "simpledet.src.custom_components.TimmEncoder",
-    ):
-        try:
-            import_module(module_name)
-        except Exception:
-            continue
-
-
-def _is_neck_component(name: str, component: Any) -> bool:
-    module_name = getattr(component, "__module__", "")
-    if ".models.necks" in module_name:
-        return True
-    return name.endswith("Neck") or name in {
-        "FPN",
-        "PAFPN",
-        "NASFPN",
-        "DyHead",
-        "SSH",
-        "BFP",
-        "HRFPN",
-        "RFP",
-        "DilatedEncoder",
-        "YOLOXPAFPN",
-        "CSPNeXtPAFPN",
-        "CTResNetNeck",
-        "SSDNeck",
-        "ChannelMapper",
-        "FPN_CARAFE",
-        "YOLOV3Neck",
-    }
-
-
-def _is_head_component(name: str, component: Any) -> bool:
-    module_name = getattr(component, "__module__", "")
-    if any(token in module_name for token in (".dense_heads", ".roi_heads", ".seg_heads", ".tracking_heads", ".panoptic_heads")):
-        return True
-    return name.endswith("Head") or name in {"StandardRoIHead", "CascadeRoIHead"}
+    registry = {"head": HEADS, "neck": NECKS}.get(kind)
+    if registry is None:
+        return []
+    names = sorted(registry.names())
+    if names:
+        return names
+    if kind == "head":
+        return sorted(_FALLBACK_NATIVE_HEADS)
+    if kind == "neck":
+        return sorted(_FALLBACK_NATIVE_NECKS)
+    return []
 
 
 def _patch_head_consumers(

@@ -28,7 +28,7 @@
       <section class="hero">
         <p class="hero-kicker">SimpleDet Docs</p>
         <h1>Examples</h1>
-        <p class="subtle">Three practical detector patterns that match the current suite plus pipeline API.</p>
+        <p class="subtle">Three practical detector patterns that match the current suite plus native runtime API.</p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
           <a class="btn" href="quickstart.html">Quickstart</a>
@@ -43,7 +43,7 @@
           <pre><code>from simpledet.suite import build_detector, build_neck
 
 detector_spec = build_detector(
-    "vfnet",
+    "retinanet",
     encoder="convnext_tiny.in12k_ft_in1k",
     neck=build_neck(name="FPN", out_channels=192, num_outs=5),
     num_classes=1,
@@ -56,8 +56,8 @@ detector_spec = build_detector(
           <pre><code>from simpledet.suite import build_detector, build_neck
 
 detector_spec = build_detector(
-    "mask_rcnn",
-    encoder="swin_tiny_patch4_window7_224.ms_in22k_ft_in1k",
+    "faster_rcnn",
+    encoder="convnext_tiny.in12k_ft_in1k",
     neck=build_neck(name="FPN", out_channels=192),
     num_classes=1,
     in_channels=3,
@@ -65,18 +65,46 @@ detector_spec = build_detector(
           <p>Notebook starting point: <code>notebooks/Tools/suite_02_roi_detector.ipynb</code>.</p>
         </article>
         <article class="section">
-          <h2>Ship detection with a transformer detector</h2>
-          <pre><code>from simpledet.suite import build_decoder, build_detector, build_neck
+          <h2>Ship detection with FCOS</h2>
+          <pre><code>from simpledet.suite import build_detector, build_neck
 
 detector_spec = build_detector(
-    "deformable_detr",
+    "fcos",
     encoder="convnext_tiny.in12k_ft_in1k",
-    neck=build_neck(name="ChannelMapper", out_channels=192, num_outs=4),
-    decoder=build_decoder(embed_dims=192, num_queries=300),
+    neck=build_neck(name="FPN", out_channels=192, num_outs=4),
     num_classes=1,
     in_channels=3,
 )</code></pre>
-          <p>Notebook starting point: <code>notebooks/Tools/suite_03_transformer_detector.ipynb</code>.</p>
+          <p>Notebook starting point: <code>notebooks/Tools/suite_01_dense_detector.ipynb</code>.</p>
+        </article>
+        <article class="section">
+          <h2>API-first training flow</h2>
+          <pre><code>from simpledet import run_training
+from simpledet.suite import build_detector
+
+result = run_training(
+    dataset_root='/path/to/data',
+    detector_spec=build_detector("retinanet", ...),
+    categories=('wake',),
+    in_channels=3,
+    tif_channels_to_load=[1, 2, 3],
+)</code></pre>
+          <p>Notebook starting point: <code>notebooks/Tools/api_pipeline_training_example.ipynb</code>.</p>
+        </article>
+        <article class="section">
+          <h2>API-first inference flow</h2>
+          <pre><code>from simpledet import run_inference
+from simpledet.suite import build_detector
+
+spec = build_detector("fcos", ...)
+result = run_inference(
+    dataset_root='/path/to/data',
+    categories=('wake',),
+    in_channels=3,
+    detector_spec=spec,
+    tif_channels_to_load=[1, 2, 3],
+)</code></pre>
+          <p>Notebook starting point: <code>notebooks/Tools/api_inference_example.ipynb</code>.</p>
         </article>
       </section>
     </main>

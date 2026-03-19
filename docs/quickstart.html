@@ -32,7 +32,7 @@
         <h1>Quickstart</h1>
         <p class="subtle">
           This tutorial is the shortest path through the current repository. It explains not only what to run,
-          but why the repo is split into a detector-definition step and a pipeline-execution step.
+          but why the repo is split into a detector-definition step and a native-runtime execution step.
         </p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
@@ -46,21 +46,29 @@
         <article class="section">
           <h2>1. Install and verify</h2>
           <p class="section-lead">
-            The suite and pipeline path depend on the OpenMMLab runtime. Verify the environment first so you do not debug docs examples with a broken install.
+            Install the package and CPU runtime first, then verify the command-line surface before working through the examples.
           </p>
           <pre><code>python -m pip install -e .
-python -m pip install ".[openmmlab]"
-python -m simpledet --check-openmmlab</code></pre>
+python -m pip install ".[cpu]"
+python -m simpledet --check-runtime</code></pre>
         </article>
         <article class="section">
-          <h2>2. Build a detector</h2>
+          <h2>2. Bootstrap a project config</h2>
+          <p class="section-lead">
+            If you want a repeatable operational workflow, start by creating a project file and validating it before launching training.
+          </p>
+          <pre><code>python -m simpledet --init-project project.toml
+python -m simpledet --project-validate project.toml</code></pre>
+        </article>
+        <article class="section">
+          <h2>3. Build a detector</h2>
           <p class="section-lead">
             A <code>DetectorSpec</code> is the repo’s high-level model description. It says which detector family you want, which backbone it should use,
-            and how many classes it must predict. The compiler then turns that high-level description into an MMDetection-style model dictionary.
+            and how many classes it must predict. The planner then turns that high-level description into a native build plan.
           </p>
           <pre><code>python - &lt;&lt;'PY'
 from pprint import pprint
-from simpledet.suite import build_detector, compile_detector_spec
+from simpledet.suite import build_detector, compile_native_detector_plan
 
 spec = build_detector(
     "retinanet",
@@ -68,30 +76,30 @@ spec = build_detector(
     num_classes=2,
     in_channels=3,
 )
-model_cfg = compile_detector_spec(spec)
+plan = compile_native_detector_plan(spec)
 
 print(spec.family)
-pprint(model_cfg["backbone"])
-pprint(model_cfg["neck"])
-pprint(model_cfg["bbox_head"])
+pprint(plan.encoder)
+pprint(plan.neck)
+pprint(plan.head)
 PY</code></pre>
           <p>Expected output shape:</p>
           <pre><code>dense
-{'type': 'TimmEncoder', ...}
-{'type': 'FPN', ...}
-{'type': 'RetinaHead', 'num_classes': 2, ...}</code></pre>
+NativeEncoderPlan(type='TimmEncoder', ...)
+NativeNeckPlan(type='FPN', ...)
+NativeHeadPlan(type='RetinaHead', ...)</code></pre>
           <p>
             The key concept is that you are not writing the full <code>model</code> dictionary by hand.
             SimpleDet inspects the backbone, infers feature channels, and patches the neck and head interfaces for you.
           </p>
         </article>
         <article class="section">
-          <h2>3. Train through the pipeline</h2>
+          <h2>4. Train through the native runtime</h2>
           <p class="section-lead">
-            The pipeline owns everything that is not intrinsic to the detector itself: dataset locations, annotation files,
-            image resize, logging, checkpointing, and evaluator outputs.
+            The runtime owns everything that is not intrinsic to the detector itself: dataset locations, annotation files,
+            image resize, logging, checkpointing, evaluator outputs, and operational validation.
           </p>
-          <pre><code>from simpledet.api import ObjectDetectionPipeline
+          <pre><code>from simpledet import run_training
 from simpledet.suite import build_detector
 
 detector_spec = build_detector(
@@ -101,50 +109,80 @@ detector_spec = build_detector(
     in_channels=3,
 )
 
-pipeline = ObjectDetectionPipeline(
+result = run_training(
+    dataset_root="/path/to/dataset_root",
     detector_spec=detector_spec,
-    data_folder="/path/to/dataset_root",
-    result_folder="/path/to/results",
-    config_folder="simpledet/simpledet/src",
-    data_prefix="imgs/",
-    annot_file_train="/path/to/annotations/train.json",
-    annot_file_val="/path/to/annotations/val.json",
-    annot_file_test="/path/to/annotations/test.json",
-    tif_channels_to_load=[1, 1, 1],
-    in_channels=3,
     categories=("object_a", "object_b"),
+    in_channels=3,
+    tif_channels_to_load=[1, 2, 3],
     resize=768,
     batch_size=2,
     learning_rate=0.001,
     max_epochs=10,
+    validate=True,
 )
-
-pipeline.build()
-pipeline.train()</code></pre>
+print(result["backend"])</code></pre>
           <p>
-            <code>build()</code> prepares the runtime configuration and runner. <code>train()</code> launches the actual experiment.
-            The detector spec becomes <code>cfg.model</code>, while the shared runtime config still controls dataloaders,
-            hooks, and evaluation setup.
+            The runtime helper assumes the conventional <code>imgs/</code> and <code>Annotations/*_annotations.json</code> layout.
+            It validates dataset wiring, assembles the model from the detector spec, and executes the requested native training stages.
           </p>
         </article>
         <article class="section">
-          <h2>4. Evaluate</h2>
+          <h2>5. Run without a config file or explicit pipeline object</h2>
           <p class="section-lead">
-            Evaluation is not a standalone subsystem in this repo. It reuses the pipeline test path so the evaluator,
+            If you want the operational pipeline behavior but do not want to create a project config or hold a pipeline instance yourself,
+            use the direct execution helpers.
+          </p>
+          <pre><code>from simpledet import run_training, run_evaluation
+
+train_result = run_training(
+    dataset_root="/path/to/dataset_root",
+    detector_spec=detector_spec,
+    categories=("object_a", "object_b"),
+    in_channels=3,
+    batch_size=2,
+    max_epochs=10,
+)
+
+metrics = run_evaluation(
+    dataset_root="/path/to/dataset_root",
+    detector_spec=detector_spec,
+    categories=("object_a", "object_b"),
+    in_channels=3,
+)</code></pre>
+          <p>
+            These helpers still use the same project-layout conventions and native runtime internals.
+            They just remove the config-file step and the explicit project execution call.
+          </p>
+        </article>
+        <article class="section">
+          <h2>6. Evaluate</h2>
+          <p class="section-lead">
+            Evaluation is not a standalone subsystem in this repo. It reuses the native runtime test path so the evaluator,
             output files, and dataset metadata remain consistent with training.
           </p>
-          <pre><code>from simpledet import evaluate
+          <pre><code>from simpledet import run_evaluation
 
-metrics = evaluate(pipeline=pipeline, build=False)
-print(type(metrics).__name__)</code></pre>
+metrics = run_evaluation(
+    dataset_root="/path/to/dataset_root",
+    detector_spec=detector_spec,
+    categories=("object_a", "object_b"),
+    in_channels=3,
+)
+print(metrics["backend"])</code></pre>
           <p>Expected artifacts:</p>
           <ul>
-            <li><code>pipeline.log</code></li>
-            <li><code>best_*.pth</code></li>
-            <li><code>tests.pkl</code></li>
-            <li><code>metrics.pkl</code></li>
-            <li><code>testSet*</code> evaluator outputs</li>
+            <li><code>native-manifest.json</code></li>
+            <li><code>checkpoints/</code></li>
+            <li>prediction records returned by the runtime</li>
           </ul>
+        </article>
+        <article class="section">
+          <h2>7. Run the same workflow from a config file</h2>
+          <p class="section-lead">
+            Once the experiment shape stabilizes, move the same settings into a project config and execute the package through the CLI.
+          </p>
+          <pre><code>python -m simpledet --project-run project.toml --stages build train test</code></pre>
         </article>
         <article class="section">
           <h2>What to remember</h2>
@@ -154,14 +192,46 @@ print(type(metrics).__name__)</code></pre>
               <p>Describes the detector architecture you want to run.</p>
             </article>
             <article class="callout">
-              <h3>Compiled model config</h3>
-              <p>Is the low-level MMDetection model dictionary generated from that high-level spec.</p>
+              <h3>Compiled build plan</h3>
+              <p>Is the native runtime plan generated from that high-level spec.</p>
             </article>
             <article class="callout">
-              <h3>Pipeline</h3>
+              <h3>Runtime</h3>
               <p>Attaches runtime concerns such as datasets, workdir layout, hooks, and evaluators.</p>
             </article>
           </div>
+        </article>
+        <article class="section">
+          <h2>8. Use structured configs when the project grows</h2>
+          <p class="section-lead">
+            The project helpers are the fastest way to start. When experiments become more complex, move to structured config objects so dataset wiring, runtime knobs, and optimization settings are kept separate.
+          </p>
+          <pre><code>from simpledet import (
+    ProjectConfig,
+    DatasetConfig,
+    RuntimeConfig,
+    OptimizationConfig,
+    run_project,
+)
+
+dataset = DatasetConfig(
+    data_root="/path/to/dataset_root",
+    annot_file_train="/path/to/annotations/train.json",
+    annot_file_val="/path/to/annotations/val.json",
+    annot_file_test="/path/to/annotations/test.json",
+    categories=("object_a", "object_b"),
+    in_channels=3,
+)
+runtime = RuntimeConfig(result_folder="/path/to/results", resize=768, batch_size=2)
+optimization = OptimizationConfig(learning_rate=0.001, optimizer_choice="AdamW")
+
+project = ProjectConfig(
+    dataset=dataset,
+    runtime=runtime,
+    optimization=optimization,
+    detector_spec=detector_spec,
+)
+run_project(project)</code></pre>
         </article>
       </section>
     </main>

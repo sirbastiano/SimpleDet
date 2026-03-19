@@ -38,7 +38,7 @@
       <section class="hero">
         <p class="hero-kicker">SimpleDet Docs</p>
         <h1>Installation</h1>
-        <p class="subtle">Install the package from source, add the OpenMMLab runtime, then verify the suite and pipeline entry points.</p>
+        <p class="subtle">Install the package from source, add the CPU runtime extras, then verify the suite and native runtime entry points.</p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
           <a class="btn" href="quickstart.html">Quickstart</a>
@@ -60,9 +60,9 @@
         <article class="section" id="requirements">
           <h2>Requirements</h2>
           <ul>
-            <li>Python <code>&gt;=3.8</code></li>
+            <li>Python <code>&gt;=3.10</code></li>
             <li>PyTorch runtime compatible with your CPU or CUDA environment</li>
-            <li><code>mmengine</code>, <code>mmdet</code>, and <code>mmcv==2.1.0</code> for the pipeline path</li>
+            <li><code>simpledet[cpu]</code> for the public package runtime</li>
             <li><code>timm</code> if you want suite-driven backbone swapping</li>
           </ul>
         </article>
@@ -72,27 +72,27 @@
           <pre><code>git clone https://github.com/sirbastiano/SimpleDet.git
 cd SimpleDet
 python -m pip install -e .
-python -m pip install ".[openmmlab]"</code></pre>
+python -m pip install ".[cpu]"</code></pre>
 
-          <p>The optional extra currently includes <code>openmim</code>, <code>mmcv==2.1.0</code>, <code>timm</code>, and plotting or data utilities used by the repository.</p>
+          <p>The bundled extras currently include <code>cpu</code> for runtime dependencies, <code>geo</code> for geospatial helpers, and <code>plots</code> for plotting utilities.</p>
         </article>
 
         <article class="section" id="verify">
           <h2>Verify the runtime</h2>
           <pre><code>python -m simpledet --version
-python -m simpledet --check-openmmlab
+python -m simpledet --check-runtime
 python - &lt;&lt;'PY'
 from simpledet.detectors.data import list_formats
-from simpledet.suite import build_detector, compile_detector_spec
+from simpledet.suite import build_detector, compile_native_detector_plan
 
 print(list_formats())
 spec = build_detector("retinanet", encoder="resnet18.a1_in1k", num_classes=2, in_channels=3)
-print(compile_detector_spec(spec)["backbone"]["type"])
+print(compile_native_detector_plan(spec).encoder.type)
 PY</code></pre>
 
           <p>Expected output shape:</p>
           <pre><code>0.1.0
-Optional OpenMMLab runtime stack is available.
+SimpleDet native runtime stack is available.
 ['coco', 'csv', 'json', 'voc', 'yolo', ...]
 TimmEncoder</code></pre>
         </article>
@@ -100,11 +100,11 @@ TimmEncoder</code></pre>
         <article class="section" id="notes">
           <h2>Notes</h2>
           <ul>
-            <li>The lightweight <code>torchvision</code> helpers can run without the full OpenMMLab stack.</li>
-            <li>The suite plus pipeline workflow depends on the OpenMMLab runtime.</li>
+            <li>The documented training, inference, and evaluation flow is native-only.</li>
+            <li>Use <code>simpledet[cpu]</code> before importing <code>simpledet.native</code> or running the CLI.</li>
             <li><code>device="auto"</code> in the lightweight inference helper currently resolves to CPU.</li>
           </ul>
-          <p class="notice">If <code>python -m simpledet --check-openmmlab</code> fails, fix the environment before debugging pipeline code.</p>
+          <p class="notice">If <code>python -m simpledet --check-runtime</code> fails, fix the environment before debugging runtime code.</p>
         </article>
       </section>
     </main>

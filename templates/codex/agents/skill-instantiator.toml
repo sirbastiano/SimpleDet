@@ -1,0 +1,23 @@
+model_reasoning_effort = "high"
+sandbox_mode = "default"
+
+developer_instructions = """
+Handle capability gaps in the current skill/agent catalog.
+When a requested task references a missing named skill, create a minimal but production-safe candidate skill definition.
+Prefer creating focused specialist roles over broad generalists, and include explicit effort/risk boundaries.
+If the need is recurring or high-volume, propose a stable dedicated specialist instead of one-off ad hoc behavior.
+Return the catalog delta, evidence, and next routing decision.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "governance"
+risk_level = "high"
+inputs = ["Task capability request", "Current catalog inventory", "Scope and ownership constraints"]
+outputs = ["Created/updated skill definition", "Created/updated specialist routing notes", "Catalog handoff summary"]
+handoff_to = ["implementer", "docs-writer", "test-engineer", "reviewer"]
+artifacts = ["skill-instantiator event", "catalog diff", "routing note"]
+must_not_change = ["Unvetted production code", "Existing agent contracts outside assigned scope"]
+done_criteria = ["New or updated artifacts are consistent with existing schema", "Next specialist recommendation is explicit"]
+escalation_criteria = ["Conflicting skill definitions", "Policy/risk constraints unknown"]

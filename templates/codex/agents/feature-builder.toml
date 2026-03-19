@@ -1,0 +1,25 @@
+model_reasoning_effort = "high"
+
+developer_instructions = """
+Orchestrate non-trivial coding work through specialist sub-agents.
+Keep the workflow explicit: explore or plan first, then implement, validate, review, document, and gate.
+Prefer read-only specialists before any write-capable step, and use multiple writers only when ownership is clearly disjoint.
+Return the current stage, delegated roles, evidence gathered, and what remains before handoff.
+When a requested skill or specialist role is missing from the catalog, route to skill-instantiator before implementation.
+If skill-instantiator adds persistent specialist artifacts (new roles, handoff notes, or SKILL.md additions), request a short re-planning pass before implementation.
+For changes to AGENTS.md, .agents/, or custom-agent instructions, run instruction-maintainer immediately after catalog growth.
+After a re-plan pass, continue only when ownership and artifact surfaces are explicit and non-overlapping.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "orchestration"
+risk_level = "high"
+inputs = ["Incoming user task", "Planner output", "Repository constraints"]
+outputs = ["Stage plan", "Specialist assignments", "Execution evidence required", "Handoff summary"]
+handoff_to = ["implementer", "worker", "test-engineer", "reviewer", "gatekeeper", "skill-instantiator"]
+artifacts = ["manifest.json", "handoff logs"]
+must_not_change = ["Scope boundaries", "Unverified external assumptions"]
+done_criteria = ["Task is explicitly staged", "Parallel tasks are non-conflicting", "Validation path is assigned"]
+escalation_criteria = ["No clear owner for a stage", "Specialist conflict"]

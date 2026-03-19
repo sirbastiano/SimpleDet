@@ -56,18 +56,18 @@
           <p>This is where you describe the architecture itself: backbone, neck, head or decoder, and class count.</p>
           <ul>
             <li><code>simpledet.suite</code> defines <code>EncoderSpec</code>, <code>NeckSpec</code>, <code>HeadSpec</code>, <code>DecoderSpec</code>, and <code>DetectorSpec</code>.</li>
-            <li>Supported families: dense, ROI, and transformer detectors.</li>
-            <li>Backbone sources: <code>timm</code> encoders or explicit config-backed custom backbones.</li>
+            <li>Supported native architectures: <code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>gfl</code>, <code>vfnet</code>, <code>fovea</code>, <code>foveabox</code>, <code>reppoints</code>, <code>yolof</code>, <code>centernet</code>, <code>faster_rcnn</code>, <code>mask_rcnn</code>, <code>grid_rcnn</code>, and <code>cascade_rcnn</code>.</li>
+            <li>Backbone sources: <code>timm</code> encoders or explicit registry-backed custom backbones.</li>
           </ul>
-          <p><strong>Start here if:</strong> you want to decide what detector to run without manually editing several MMDetection channel fields.</p>
+          <p><strong>Start here if:</strong> you want to decide what detector to run without manually editing several channel and feature-map fields.</p>
         </article>
         <article class="section">
-          <h2>2. Runtime pipeline layer</h2>
+          <h2>2. Native runtime layer</h2>
           <p>This is where dataset paths, workdir layout, evaluators, logging, and training settings are attached to the detector.</p>
           <ul>
-            <li><code>ObjectDetectionPipeline</code> is the canonical runtime path.</li>
+            <li><code>run_training</code>, <code>run_inference</code>, and <code>run_evaluation</code> are the canonical runtime entrypoints.</li>
             <li>Use <code>detector_spec=...</code> for the recommended flow.</li>
-            <li>Use <code>model_cfg=...</code> only for direct legacy config usage.</li>
+            <li>Use <code>ProjectConfig</code> plus <code>run_project(...)</code> when you want a reusable project file.</li>
           </ul>
           <p><strong>Start here if:</strong> you already know what model you want and need a reproducible experiment run with checkpoints and evaluation outputs.</p>
         </article>
@@ -79,14 +79,14 @@
             <li><code>simpledet.detectors.infer.load_model()</code> and <code>predict()</code> for lightweight inference.</li>
             <li><code>simpledet.detectors.data.load_dataset()</code> for generic dataset inspection.</li>
           </ul>
-          <p><strong>Start here if:</strong> you need a quick sanity check, not a fully managed MMDetection experiment.</p>
+          <p><strong>Start here if:</strong> you need a quick sanity check, not a fully managed native experiment.</p>
         </article>
         <article class="section">
           <h2>One lifecycle example</h2>
           <pre><code>choose architecture
   -&gt; build a DetectorSpec
-  -&gt; compile it into a model definition
-  -&gt; pass it into ObjectDetectionPipeline
+  -&gt; compile a native build plan
+  -&gt; pass it into run_training(...)
   -&gt; train into one workdir
   -&gt; keep the best checkpoint and evaluator outputs together</code></pre>
           <p>This lifecycle is the main design choice behind the repo. It keeps the “what model is this?” question separate from the “how was this run?” question.</p>
@@ -99,8 +99,9 @@
                 <tr><th>Path</th><th>Purpose</th></tr>
               </thead>
               <tbody>
-                <tr><td><code>simpledet/simpledet/suite/</code></td><td>Canonical detector specs, builders, and compiler</td></tr>
-                <tr><td><code>simpledet/simpledet/api.py</code></td><td>MMEngine pipeline wrapper</td></tr>
+                <tr><td><code>simpledet/simpledet/suite/</code></td><td>Canonical detector specs, builders, and native planner</td></tr>
+                <tr><td><code>simpledet/simpledet/api.py</code></td><td>Project config and native runtime entrypoints</td></tr>
+                <tr><td><code>simpledet/simpledet/native/</code></td><td>Native modeling, training loop, and runtime implementation</td></tr>
                 <tr><td><code>simpledet/simpledet/_model_resolution.py</code></td><td>Runtime backbone inspection and model adaptation</td></tr>
                 <tr><td><code>simpledet/simpledet/detectors/</code></td><td>Lightweight training, inference, evaluation, and dataset helpers</td></tr>
                 <tr><td><code>MyConfigs/</code></td><td>Experiment config workspace</td></tr>

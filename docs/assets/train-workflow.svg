@@ -7,10 +7,10 @@
   <rect x="34" y="130" width="832" height="120" fill="#111d42"/>
   <text x="52" y="160" fill="#e9f1ff" font-family="monospace" font-size="18">$ python runscripts/SenTrainer.py --batch_size 2 ... --max_epochs 1</text>
   <text x="52" y="192" fill="#8dffd1" font-family="monospace" font-size="14">Epoch 1/1 | loss=1.24 | lr=1e-3 | seed=71</text>
-  <text x="52" y="220" fill="#8dffd1" font-family="monospace" font-size="14">Training completed. checkpoint: results/mmdet_smoke/epoch_001.pth</text>
+  <text x="52" y="220" fill="#8dffd1" font-family="monospace" font-size="14">Training completed. checkpoint: results/native_smoke/epoch_001.pth</text>
   <g>
     <rect x="520" y="286" width="320" height="90" rx="12" fill="#16224f"/>
-    <text x="548" y="322" fill="#fff4c0" font-family="monospace" font-size="15">results/mmdet_smoke/</text>
+    <text x="548" y="322" fill="#fff4c0" font-family="monospace" font-size="15">results/native_smoke/</text>
     <text x="548" y="348" fill="#fff4c0" font-family="monospace" font-size="15">epoch_001.pth  metrics.json</text>
   </g>
   <rect x="56" y="302" width="420" height="52" fill="#213066"/>

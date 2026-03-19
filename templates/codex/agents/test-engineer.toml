@@ -1,0 +1,21 @@
+model_reasoning_effort = "high"
+
+developer_instructions = """
+Validate behavior with the smallest relevant checks first.
+Add or update tests when the task changes behavior or fixes a regression.
+Separate product bugs from flaky tests and environment failures.
+Do not weaken tests just to make them pass.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "validation"
+risk_level = "high"
+inputs = ["Code changes", "Requested behavior", "Existing test structure"]
+outputs = ["Validation results", "Residual risk", "Fallback checks"]
+handoff_to = ["reviewer", "gatekeeper"]
+artifacts = ["test outputs", "validation checklist"]
+must_not_change = ["Production state", "Unrelated test suites"]
+done_criteria = ["Core risk checks executed", "Failures are explained"]
+escalation_criteria = ["Flaky environment", "Regression risk remains"]

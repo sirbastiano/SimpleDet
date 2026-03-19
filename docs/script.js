@@ -1,7 +1,7 @@
 (() => {
   const THEMES = ['theme-aurora', 'theme-midnight', 'theme-volcano'];
   const DEFAULT_THEME = 'theme-aurora';
-  const STORAGE_THEME = 'mmdet-docs-theme';
+  const STORAGE_THEME = 'simpledet-docs-theme';
   const path = window.location.pathname.split('/').pop() || 'index.html';
 
   const body = document.body;

@@ -10,6 +10,17 @@ def _copy_mapping(value: dict[str, Any] | None) -> dict[str, Any]:
     return {} if value is None else dict(value)
 
 
+def _copy_imports(value: tuple[str, ...] | list[str] | None) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    normalized: list[str] = []
+    for item in value:
+        text = str(item).strip()
+        if text and text not in normalized:
+            normalized.append(text)
+    return tuple(normalized)
+
+
 @dataclass(slots=True)
 class EncoderSpec:
     """Backbone/encoder definition for the suite compiler."""
@@ -20,10 +31,12 @@ class EncoderSpec:
     in_channels: int | None = None
     backbone_cfg: dict[str, Any] | None = None
     feature_channels: tuple[int, ...] | None = None
+    imports: tuple[str, ...] = ()
     extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.extra = _copy_mapping(self.extra)
+        self.imports = _copy_imports(self.imports)
         if self.source == "timm" and not self.name:
             raise ValueError("`EncoderSpec.name` is required when source='timm'.")
         if self.source == "config":
@@ -46,10 +59,12 @@ class NeckSpec:
     neck_cfg: dict[str, Any] | None = None
     out_channels: int | None = None
     num_outs: int | None = None
+    imports: tuple[str, ...] = ()
     extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.extra = _copy_mapping(self.extra)
+        self.imports = _copy_imports(self.imports)
         if self.neck_cfg is not None:
             self.neck_cfg = dict(self.neck_cfg)
 
@@ -62,10 +77,12 @@ class HeadSpec:
     head_cfg: dict[str, Any] | None = None
     num_classes: int | None = None
     with_mask: bool = False
+    imports: tuple[str, ...] = ()
     extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.extra = _copy_mapping(self.extra)
+        self.imports = _copy_imports(self.imports)
         if self.head_cfg is not None:
             self.head_cfg = dict(self.head_cfg)
 
@@ -78,10 +95,12 @@ class DecoderSpec:
     decoder_cfg: dict[str, Any] | None = None
     num_queries: int | None = None
     embed_dims: int | None = None
+    imports: tuple[str, ...] = ()
     extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.extra = _copy_mapping(self.extra)
+        self.imports = _copy_imports(self.imports)
         if self.decoder_cfg is not None:
             self.decoder_cfg = dict(self.decoder_cfg)
 
@@ -98,13 +117,16 @@ class DetectorSpec:
     head: HeadSpec | None = None
     decoder: DecoderSpec | None = None
     strict_auto_adapt: bool = True
+    imports: tuple[str, ...] = ()
     overrides: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.family = str(self.family).strip().lower()
         self.architecture = str(self.architecture).strip().lower()
         self.num_classes = int(self.num_classes)
+        if self.family not in {"dense", "roi", "transformer"}:
+            raise ValueError("`family` must be one of: dense, roi, transformer.")
         if self.num_classes <= 0:
             raise ValueError("`num_classes` must be a positive integer.")
+        self.imports = _copy_imports(self.imports)
         self.overrides = _copy_mapping(self.overrides)
-

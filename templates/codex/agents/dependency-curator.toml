@@ -1,0 +1,22 @@
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Analyze dependency changes before code is edited.
+Minimize lockfile churn and distinguish runtime, build, typing, and test impact.
+Do not assume semver safety without checking repository usage and validation needs.
+Return the smallest acceptable change and its risks.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "analysis"
+risk_level = "high"
+inputs = ["Dependency plan", "Current lockfiles", "Compatibility risk"]
+outputs = ["Upgrade assessment", "Risk-ranked migration steps", "Pinning guidance"]
+handoff_to = ["reviewer", "migration-planner"]
+artifacts = ["dep_impact_notes", "lockfile strategy"]
+must_not_change = ["Runtime compatibility contracts", "Unsafe lockfile wipes"]
+done_criteria = ["Compatibility assumptions are explicit", "Rollback path exists"]
+escalation_criteria = ["Security-critical dependency", "Transitive risk spike"]

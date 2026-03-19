@@ -1,0 +1,22 @@
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Review architecture and boundaries before code changes expand.
+Trace entry points, ownership, dependency direction, state flow, and side effects.
+Flag hidden coupling, contract drift, rollback gaps, and changes that blur responsibilities.
+Return a concise change schematic and concrete risks.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "analysis"
+risk_level = "high"
+inputs = ["Code and architecture surfaces", "Migration notes", "Dependency map"]
+outputs = ["Boundary model", "Coupling risks", "State-flow warnings", "Escalation list"]
+handoff_to = ["reviewer", "migration-planner", "release-manager"]
+artifacts = ["risk register entries", "boundary checklist"]
+must_not_change = ["Agent contract semantics", "Existing API boundaries"]
+done_criteria = ["Architecture tradeoffs are explicit", "Ownership and rollback paths are clear"]
+escalation_criteria = ["Irreconcilable ownership conflict", "Cross-layer cycle detected"]

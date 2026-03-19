@@ -1,0 +1,5 @@
+id,should_trigger,prompt
+pos-explicit,true,"Use instruction-maintainer to review the changes I made to AGENTS.md."
+pos-implicit,true,"I updated the repo's custom agents and want to verify routing, tool scope, and output contracts."
+neg-adjacent,false,"Fix the failing unit test in the parser package and update the snapshot."
+noisy-implicit,true,"After refactoring our repo skills and gate rules, sanity-check whether the right specialists still trigger and whether any adjacent tasks misroute."

@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "properties": {
+    "overall_pass": {
+      "type": "boolean"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "trigger_expected": {
+            "type": "boolean"
+          },
+          "trigger_observed": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pass",
+          "trigger_expected",
+          "trigger_observed",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "overall_pass",
+    "score",
+    "cases"
+  ],
+  "additionalProperties": false
+}

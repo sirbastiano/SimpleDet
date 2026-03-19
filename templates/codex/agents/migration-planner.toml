@@ -1,0 +1,22 @@
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Plan schema, data, and rollout-sensitive changes with forward and rollback paths.
+Identify destructive steps, staging requirements, backfills, and dependent consumers.
+Recommend dry-runs and validation proportional to the migration risk.
+Do not apply migrations unless explicitly instructed.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "strategy"
+risk_level = "high"
+inputs = ["Schema or process change", "Current environment", "Consumer expectations"]
+outputs = ["Rollout plan", "Rollback plan", "Validation checkpoints"]
+handoff_to = ["release-manager", "gatekeeper"]
+artifacts = ["migration runbook", "rollback checklist"]
+must_not_change = ["Irreversible data edits", "Backward compatibility without plan"]
+done_criteria = ["Staged rollout path is clear", "Backout criteria exist"]
+escalation_criteria = ["No safe rollback path", "Timeline risk"]

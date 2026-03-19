@@ -50,10 +50,8 @@
         <article class="section">
           <h2>Suite-driven experiment flow</h2>
           <pre><code>build_detector(...)
-  -&gt; compile_detector_spec(...)
-  -&gt; ObjectDetectionPipeline(detector_spec=...)
-  -&gt; build()
-  -&gt; train()
+  -&gt; compile_native_detector_plan(...)
+  -&gt; run_training(...)
   -&gt; best checkpoint
   -&gt; evaluate() / test()</code></pre>
         </article>
@@ -70,7 +68,7 @@
         <figure class="page-figure">
           <h3>Install workflow</h3>
           <img src="assets/install-workflow.svg" alt="Install workflow diagram" />
-          <figcaption>Install the OpenMMLab runtime first so the suite and pipeline path can build and run correctly.</figcaption>
+          <figcaption>Install the native runtime extras first so the suite and runtime path can build and run correctly.</figcaption>
         </figure>
 
         <figure class="page-figure">

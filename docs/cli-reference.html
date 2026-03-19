@@ -47,10 +47,72 @@
               <thead><tr><th>Command</th><th>Description</th></tr></thead>
               <tbody>
                 <tr><td><code>simpledet --version</code></td><td>Print the installed package version</td></tr>
-                <tr><td><code>python -m simpledet --check-openmmlab</code></td><td>Verify the optional runtime stack used by the pipeline</td></tr>
+                <tr><td><code>python -m simpledet --check-runtime</code></td><td>Verify the optional runtime stack used by the package</td></tr>
+                <tr><td><code>python -m simpledet --list-detectors</code></td><td>List supported high-level detector architectures</td></tr>
+                <tr><td><code>python -m simpledet --list-encoders</code></td><td>List supported encoder/backbone names</td></tr>
+                <tr><td><code>python -m simpledet --show-detector-help retinanet</code></td><td>Explain one detector family and recommended encoders</td></tr>
+                <tr><td><code>python -m simpledet --init-project project.toml</code></td><td>Write a starter project config</td></tr>
+                <tr><td><code>python -m simpledet --project-validate path/to/project.toml</code></td><td>Validate a project config without running training</td></tr>
+                <tr><td><code>python -m simpledet --project-run path/to/project.toml --stages build train</code></td><td>Run selected stages from a project config</td></tr>
+                <tr><td><code>python -m simpledet --train-root /data/project ...</code></td><td>Run training directly from CLI arguments</td></tr>
+                <tr><td><code>python -m simpledet --infer-root /data/project ...</code></td><td>Run inference directly from CLI arguments</td></tr>
+                <tr><td><code>python -m simpledet --eval-root /data/project ...</code></td><td>Run evaluation directly from CLI arguments</td></tr>
               </tbody>
             </table>
           </div>
+        </article>
+        <article class="section">
+          <h2>Discovery commands</h2>
+          <p>Use these before direct execution if you do not want to guess supported architecture or encoder names.</p>
+          <pre><code>python -m simpledet --list-detectors
+python -m simpledet --list-encoders
+python -m simpledet --show-detector-help retinanet</code></pre>
+          <p><code>--show-detector-help</code> prints the detector family, a short summary, and a few encoder suggestions for the selected architecture.</p>
+        </article>
+        <article class="section">
+          <h2>Direct non-config workflow</h2>
+          <p>Use these commands when your dataset follows the standard project layout and you want native execution without creating a project file.</p>
+          <pre><code>python -m simpledet --train-root /data/project \
+  --categories car building ship \
+  --in-channels 3 \
+  --detector retinanet \
+  --encoder resnet18.a1_in1k \
+  --batch-size 2 \
+  --max-epochs 30
+
+python -m simpledet --infer-root /data/project \
+  --categories car building ship \
+  --in-channels 3 \
+  --detector retinanet \
+  --encoder resnet18.a1_in1k
+
+python -m simpledet --eval-root /data/project \
+  --categories car building ship \
+  --in-channels 3 \
+  --detector retinanet \
+  --encoder resnet18.a1_in1k</code></pre>
+          <p>Direct execution currently requires <code>--categories</code>, <code>--in-channels</code>, and a high-level detector selection.</p>
+          <pre><code>python -m simpledet --train-root /data/project \
+  --categories car building ship \
+  --in-channels 3 \
+  --detector retinanet \
+  --encoder resnet18.a1_in1k \
+  --batch-size 2 \
+  --max-epochs 30</code></pre>
+          <p>Use one of these model-definition paths:</p>
+          <ul>
+            <li><code>--detector</code> with optional <code>--encoder</code> and <code>--num-classes</code> for suite-backed high-level model selection</li>
+          </ul>
+          <p>Direct CLI execution uses the native Lightning backend automatically when you use one of the supported architectures, for example <code>--detector retinanet</code>, <code>--detector vfnet</code>, <code>--detector centernet</code>, or <code>--detector faster_rcnn</code>.</p>
+          <p>Optional runtime flags include <code>--tif-channels-to-load</code>, <code>--result-folder</code>, <code>--resize</code>, <code>--batch-size</code>, <code>--max-epochs</code>, <code>--learning-rate</code>, and <code>--no-validate</code>.</p>
+        </article>
+        <article class="section">
+          <h2>Project config workflow</h2>
+          <p>Use a JSON or TOML file when you want a repeatable operational entrypoint for the native runtime.</p>
+          <pre><code>python -m simpledet --init-project project.toml
+python -m simpledet --project-validate project.toml
+python -m simpledet --project-run project.toml --stages build test</code></pre>
+          <p>A reusable example can be created with <code>--init-project</code> and then adjusted for your dataset root and output folder.</p>
         </article>
         <article class="section">
           <h2><code>simpledet.train</code></h2>
@@ -58,19 +120,19 @@
           <pre><code>train(*, config=None, pipeline=None, build=True, **pipeline_kwargs)</code></pre>
           <ul>
             <li><code>config=...</code> uses the lightweight <code>torchvision</code> path</li>
-            <li><code>pipeline=...</code> or forwarded constructor kwargs use <code>ObjectDetectionPipeline</code></li>
-            <li><code>detector_spec=...</code> is supported through forwarded pipeline kwargs</li>
+            <li>Forwarded runtime kwargs map to the native execution helpers</li>
+            <li><code>detector_spec=...</code> is the supported high-level model input</li>
           </ul>
         </article>
         <article class="section">
           <h2><code>simpledet.detect</code></h2>
           <pre><code>detect(*, pipeline=None, build=True, **pipeline_kwargs)</code></pre>
-          <p>Runs <code>pipeline.test()</code> through the OpenMMLab path. This is not the same as <code>load_model()</code> plus <code>predict()</code>.</p>
+          <p>Runs the package inference helper for the current native runtime. This is separate from <code>load_model()</code> plus <code>predict()</code>.</p>
         </article>
         <article class="section">
           <h2><code>simpledet.evaluate</code></h2>
           <pre><code>evaluate(*, pipeline=None, build=True, **pipeline_kwargs)</code></pre>
-          <p>Currently a thin wrapper around the same pipeline <code>test()</code> path used by <code>detect()</code>.</p>
+          <p>Currently a thin wrapper around the same native evaluation path used by <code>run_evaluation(...)</code>.</p>
         </article>
         <article class="section">
           <h2>Lightweight inference helpers</h2>

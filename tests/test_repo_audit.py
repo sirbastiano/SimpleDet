@@ -1,8 +1,9 @@
 import ast
-import pathlib
-import py_compile
 import importlib
 import inspect
+import pathlib
+import py_compile
+import re
 import unittest
 from collections import Counter
 
@@ -24,22 +25,28 @@ SAFE_IMPORT_MODULES = [
     "simpledet.detectors.train",
     "simpledet.suite",
     "simpledet.suite.catalog",
-    "simpledet.suite.compiler",
     "simpledet.suite.specs",
+    "simpledet.native",
+    "simpledet.native.assemblers",
+    "simpledet.native.backbones",
+    "simpledet.native.dense_ops",
+    "simpledet.native.engine",
+    "simpledet.native.heads",
+    "simpledet.native.modeling",
+    "simpledet.native.necks",
+    "simpledet.native.runtime",
 ]
 OPTIONAL_DEPS = {
     "numpy",
     "torch",
     "torchvision",
-    "mmcv",
-    "mmengine",
-    "mmdet",
     "timm",
     "cv2",
     "PIL",
     "onnxruntime",
     "pycocotools",
 }
+FORBIDDEN_LEGACY_IMPORTS = re.compile(r"\b(mmdet|mmcv|mmengine)\b")
 
 
 class TestRepoAudit(unittest.TestCase):
@@ -112,6 +119,11 @@ class TestRepoAudit(unittest.TestCase):
                     if missing in OPTIONAL_DEPS:
                         self.skipTest(f"Optional dependency not installed: {missing}")
                     raise
+                except ImportError as exc:
+                    message = str(exc)
+                    if any(f"'{dependency}'" in message for dependency in OPTIONAL_DEPS):
+                        self.skipTest(message)
+                    raise
 
                 self.assertIsNotNone(module)
 
@@ -130,3 +142,12 @@ class TestRepoAudit(unittest.TestCase):
                             inspect.isfunction(attr) or inspect.isclass(attr),
                             f"{module_name}.{symbol} not loaded as function/class",
                         )
+
+    def test_maintained_package_paths_do_not_reference_legacy_mmdet_stack(self):
+        offenders = []
+        for path in sorted(self._python_files()):
+            text = path.read_text(encoding="utf-8")
+            if FORBIDDEN_LEGACY_IMPORTS.search(text):
+                offenders.append(str(path.relative_to(PACKAGE_ROOT)))
+
+        self.assertEqual(offenders, [], "Found legacy MMDet/MMCV/MMEngine references:\n" + "\n".join(offenders))

@@ -14,9 +14,18 @@ from mmdet.utils.benchmark import (DataLoaderBenchmark, DatasetBenchmark,
 
 
 import sys
-sys.path.append('/Data_large/marine/PythonProjects/MMDET/notebooks/Tools')
-sys.path.append('/Data_large/marine/PythonProjects/MMDET/MyConfigs/custom_components')
-sys.path.append('/Data_large/marine/PythonProjects/MMDET/MyConfigs')
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+_LOCAL_PATHS = (
+    ROOT / 'notebooks' / 'Tools',
+    ROOT / 'MyConfigs' / 'custom_components',
+    ROOT / 'MyConfigs',
+)
+for _path in _LOCAL_PATHS:
+    if _path.exists():
+        sys.path.append(str(_path))
 
 
 
@@ -113,6 +122,13 @@ def dataset_benchmark(args, cfg, distributed, logger):
     return benchmark
 
 
+_TASK_DISPATCH = {
+    'inference': inference_benchmark,
+    'dataloader': dataloader_benchmark,
+    'dataset': dataset_benchmark,
+}
+
+
 def main():
     args = parse_args()
     cfg = Config.fromfile(args.config)
@@ -134,7 +150,7 @@ def main():
     logger = MMLogger.get_instance(
         'mmdet', log_file=log_file, log_level='INFO')
 
-    benchmark = eval(f'{args.task}_benchmark')(args, cfg, distributed, logger)
+    benchmark = _TASK_DISPATCH[args.task](args, cfg, distributed, logger)
     benchmark.run(args.repeat_num)
 
 

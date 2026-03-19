@@ -46,11 +46,9 @@
         <p class="hero-kicker">SimpleDet Docs</p>
         <h1>SimpleDet static documentation</h1>
         <p class="subtle">
-          SimpleDet is a thin object-detection framework that keeps MMDetection power while reducing how much
-          raw configuration a user has to write by hand. The main idea is simple:
-          define detectors with <code>simpledet.suite</code>, run them with
-          <code>ObjectDetectionPipeline(detector_spec=...)</code>, and keep
-          experiments reproducible with one workdir per run.
+          SimpleDet is a native object-detection toolkit for bbox training, inference, and evaluation.
+          Define detectors with <code>simpledet.suite</code>, run them with the native runtime helpers,
+          and keep experiments reproducible with one workdir per run.
         </p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
@@ -65,12 +63,12 @@
         <div class="grid">
           <article class="card">
             <h3>Suite-first workflow</h3>
-            <p>Build dense, ROI, or transformer detectors with a small Python API instead of hand-editing model dicts.</p>
+            <p>Build dense and ROI detectors with a small Python API instead of hand-editing low-level model wiring.</p>
             <a class="btn" href="overview.html">Open overview</a>
           </article>
           <article class="card">
             <h3>Backbone auto-adaptation</h3>
-            <p>Swap to any supported <code>timm</code> backbone and let SimpleDet patch necks, heads, ROI extractors, and transformer blocks.</p>
+            <p>Swap to any supported <code>timm</code> backbone and let SimpleDet patch necks, dense heads, and ROI extractors.</p>
             <a class="btn" href="core-concepts.html">Open concepts</a>
           </article>
           <article class="card">
@@ -88,7 +86,7 @@
         <article class="section">
           <h2>What problem this repo solves</h2>
           <p class="section-lead">
-            Raw MMDetection config editing is flexible, but it is also easy to make inconsistent experiments:
+            Hand-editing low-level detection wiring is flexible, but it is also easy to make inconsistent experiments:
             backbone channels drift out of sync with the neck, class counts are duplicated in several places, and
             project runtime settings end up mixed into model definition. SimpleDet separates those concerns.
           </p>
@@ -99,7 +97,7 @@
             </article>
             <article class="callout">
               <h3>For engineers</h3>
-              <p>Use the pipeline path when you want stable artifacts, explicit dataset wiring, and a clear handoff from model definition to runtime execution.</p>
+              <p>Use the native runtime when you want stable artifacts, explicit dataset wiring, and a clear handoff from model definition to runtime execution.</p>
             </article>
             <article class="callout">
               <h3>For quick checks</h3>
@@ -122,10 +120,10 @@
         <article class="section">
           <h2>Current public surface</h2>
           <ul>
-            <li><code>simpledet --version</code> and <code>python -m simpledet --check-openmmlab</code> for diagnostics.</li>
-            <li><code>simpledet.suite</code> for <code>DetectorSpec</code>, builders, and compilation.</li>
-            <li><code>simpledet.api.ObjectDetectionPipeline</code> for training, testing, and evaluation.</li>
-            <li><code>simpledet.detectors.*</code> for lightweight training, inference, and generic dataset loading.</li>
+            <li><code>simpledet --version</code> and <code>python -m simpledet --check-runtime</code> for diagnostics.</li>
+            <li><code>simpledet.suite</code> for <code>DetectorSpec</code>, builders, and native build plans.</li>
+            <li><code>simpledet.run_training</code>, <code>run_inference</code>, and <code>run_evaluation</code> for native execution.</li>
+            <li><code>simpledet.ProjectConfig</code> plus <code>run_project</code> for repeatable project-based runs.</li>
           </ul>
           <p class="section-lead">
             If you are new to the repository, read these in order: Overview, Quickstart, Core Concepts, then Configuration Guide.

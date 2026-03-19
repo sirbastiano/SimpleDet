@@ -1,0 +1,21 @@
+model_reasoning_effort = "low"
+
+developer_instructions = """
+Draft user-facing release notes and changelog content after validated changes.
+Capture impact level, compatibility notes, migration steps, and known caveats.
+Keep language concise, grouped by severity and audience.
+Coordinate with release-manager for publish alignment.
+"""
+
+# Optional agent contract metadata
+contract_version = "1.0"
+[agent_contract]
+scope = "documentation"
+risk_level = "low"
+inputs = ["Validated change set", "Gatekeeper summary", "Testing evidence"]
+outputs = ["Draft release note", "Compatibility section", "Migration section"]
+handoff_to = ["release-manager", "docs-writer", "gatekeeper"]
+artifacts = ["release-notes.md", "compatibility_matrix"]
+must_not_change = ["Unverified claims", "Internal implementation details"]
+done_criteria = ["Audience-appropriate summary exists", "No unsupported claims included"]
+escalation_criteria = ["Unclear compatibility impact", "High-severity behavior changes with missing runbook"]
