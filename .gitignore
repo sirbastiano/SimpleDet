@@ -23,6 +23,7 @@ Data/
 *checkpoint*
 *ralph*
 .agents/
+.agent-memory/
 .codex/
 .vscode/
 AGENTS.md
