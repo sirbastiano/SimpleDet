@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-18 21:32:46 | run=20260518-183418-2827287 | iter=4 | mode=build | story=US-004 | duration=2845s | status=success
 - 2026-05-18 20:45:06 | run=20260518-183418-2827287 | iter=3 | mode=build | story=US-003 | duration=2908s | status=success
 - 2026-05-18 19:56:33 | run=20260518-183418-2827287 | iter=2 | mode=build | story=US-002 | duration=2508s | status=success
 - 2026-05-18 19:14:11 | run=20260518-183418-2827287 | iter=1 | mode=build | story=US-001 | duration=2310s | status=success
@@ -39,3 +40,11 @@
 [2026-05-18 21:21:23] US-004 verification completed: focused tests, python3 full unittest, make test, docs-check, build, verify-dist passed; exact python gate unavailable
 [2026-05-18 21:29:35] US-004 security performance regression review completed before commit; no unresolved findings
 [2026-05-18 21:31:40] US-004 progress log updated with commit and verification details
+[2026-05-18 21:32:36] ITERATION 4 end (duration=2845s)
+[2026-05-18 21:32:52] ITERATION 5 start (mode=build story=US-005)
+[2026-05-18 21:36:51] Start US-005 native tensor contract tests
+[2026-05-18 21:41:07] US-005 tensor contract helper, focused tests, and developer docs added
+[2026-05-18 21:42:28] US-005 verification completed: focused tensor contract tests, python3 full unittest, docs-check, build, and verify-dist passed; exact python gate unavailable
+[2026-05-18 21:43:30] US-005 packaging manifest updated to include tensor contract helper in sdist
+[2026-05-18 21:45:25] US-005 final verification rerun completed after manifest fix: python3 full unittest, docs-check, build, and verify-dist passed; exact python gate unavailable
+[2026-05-18 21:46:31] US-005 security performance regression review completed before commit: no unresolved findings; sdist includes tensor contract helper

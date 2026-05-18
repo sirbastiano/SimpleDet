@@ -65,6 +65,15 @@
 python3 scripts/verify_docs.py
 python3 scripts/docs_audit.py
 make docs-check</code></pre>
+          <p>Native detector-family stories should reuse <code>tests/native_tensor_contracts.py</code>. It builds deterministic CPU tensors for images, multiscale feature maps, boxes, labels, targets, and metadata so support claims are backed by runtime tensors rather than registry-only wiring.</p>
+          <pre><code>from native_tensor_contracts import (
+    assert_dense_head_output_contract,
+    make_cpu_detector_smoke_batch,
+)
+
+batch = make_cpu_detector_smoke_batch(feature_channels=8)
+outputs = head(batch.feature_maps)
+assert_dense_head_output_contract(outputs, batch.feature_maps, batch_size=2)</code></pre>
         </article>
       </section>
     </main>
