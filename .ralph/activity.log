@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-18 23:22:39 | run=20260518-183418-2827287 | iter=9 | mode=build | story=US-009 | duration=983s | status=success
 - 2026-05-18 23:06:10 | run=20260518-183418-2827287 | iter=8 | mode=build | story=US-008 | duration=1096s | status=success
 - 2026-05-18 22:47:32 | run=20260518-183418-2827287 | iter=7 | mode=build | story=US-007 | duration=1715s | status=success
 - 2026-05-18 22:18:34 | run=20260518-183418-2827287 | iter=6 | mode=build | story=US-006 | duration=1675s | status=success
@@ -82,3 +83,10 @@
 [2026-05-18 23:20:12] US-009 verification completed: focused geometry tests, full unittest via python3, docs-check, build, and verify-dist run; exact python binary unavailable
 [2026-05-18 23:20:44] US-009 pre-commit security performance regression review completed: no unsafe I/O, network, secret handling, or unbounded geometry loops introduced; dense prediction contracts preserved
 [2026-05-18 23:21:56] US-009 progress log updated with implementation commit 1f13f45 and verification outcomes
+[2026-05-18 23:22:37] ITERATION 9 end (duration=983s)
+[2026-05-18 23:22:43] ITERATION 10 start (mode=build story=US-010)
+[2026-05-18 23:25:16] US-010 started: guardrails errors PRD AGENTS command surface and skill gates reviewed
+[2026-05-18 23:37:27] US-010 code changes applied: native assignment utilities, dense/DETR loss integration, and assignment edge tests added
+[2026-05-18 23:39:15] US-010 verification completed: exact python gate failed due missing binary; python3 full tests, make test, docs-check, build, verify-dist, and diff check run
+[2026-05-18 23:45:28] US-010 final verification rerun completed after review fix: focused tests skipped without torch, python3 full tests, make test, docs-check, build, verify-dist, and diff check passed; exact python binary unavailable
+[2026-05-18 23:46:02] US-010 pre-commit security performance regression review completed: tensor-only assignment logic, no file/network/secret handling, vectorized IoU/top-k matching with bounded Hungarian solver, dense and transformer regression gates passed

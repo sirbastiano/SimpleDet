@@ -3,6 +3,26 @@
 from __future__ import annotations
 
 from .assemblers import NativeModelComponents, build_native_components
+from .assignment import (
+    ATSSAssigner,
+    AssignmentResult,
+    BalancedSampler,
+    CenterRegionAssigner,
+    HungarianAssigner,
+    MaxIoUAssigner,
+    PointAssigner,
+    SamplingResult,
+    SimOTAAssigner,
+    TaskAlignedAssigner,
+    atss_assign,
+    center_region_assign,
+    hungarian_assign,
+    max_iou_assign,
+    point_assign,
+    sample_assignment,
+    sim_ota_assign,
+    task_aligned_assign,
+)
 from .backbones import BackboneSpec, TimmFeatureBackbone, build_native_backbone
 from .data import NativeDataConfig, NativeDetectionDataModule
 from .engine import NativeDetectionLightningModule, NativeEngineConfig, build_native_trainer
@@ -79,6 +99,24 @@ from .runtime import (
 __all__ = [
     "BackboneSpec",
     "NativeModelComponents",
+    "AssignmentResult",
+    "SamplingResult",
+    "MaxIoUAssigner",
+    "ATSSAssigner",
+    "TaskAlignedAssigner",
+    "CenterRegionAssigner",
+    "HungarianAssigner",
+    "SimOTAAssigner",
+    "PointAssigner",
+    "BalancedSampler",
+    "max_iou_assign",
+    "atss_assign",
+    "task_aligned_assign",
+    "center_region_assign",
+    "hungarian_assign",
+    "sim_ota_assign",
+    "point_assign",
+    "sample_assignment",
     "TimmFeatureBackbone",
     "build_native_components",
     "build_native_backbone",

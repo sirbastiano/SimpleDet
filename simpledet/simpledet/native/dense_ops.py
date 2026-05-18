@@ -23,6 +23,7 @@ from .geometry import (  # noqa: E402
     prediction_payload_to_dict,
     select_prediction_payload,
 )
+from .assignment import atss_assign, center_region_assign, max_iou_assign  # noqa: E402
 
 
 class DenseRetinaNetDecoder(nn.Module):
@@ -78,17 +79,22 @@ class DenseRetinaNetLoss(nn.Module):
             cls_logits = flatten_cls_logits(head_outputs["cls_logits"])
             bbox_regression = flatten_bbox_regression(head_outputs["bbox_regression"])
 
-            matched_boxes, matched_labels, positive_mask = match_anchors(anchors, target)
+            assignment = max_iou_assign(
+                anchors,
+                target["boxes"],
+                target["labels"],
+                ignored_boxes=_ignored_boxes_from_target(target),
+            )
+            matched_boxes = assignment.matched_boxes
+            matched_labels = assignment.labels
+            positive_mask = assignment.positive_mask
+            valid_mask = ~assignment.ignored_mask
             class_targets = torch.zeros_like(cls_logits)
             if positive_mask.any():
                 positive_labels = matched_labels[positive_mask].long().clamp(min=1) - 1
                 class_targets[positive_mask, positive_labels] = 1.0
 
-            total_cls = total_cls + F.binary_cross_entropy_with_logits(
-                cls_logits,
-                class_targets,
-                reduction="mean",
-            )
+            total_cls = total_cls + _binary_cross_entropy_valid(cls_logits, class_targets, valid_mask)
 
             if positive_mask.any():
                 regression_targets = encode_boxes(anchors[positive_mask], matched_boxes[positive_mask])
@@ -196,7 +202,10 @@ class DenseFCOSLoss(nn.Module):
                 bbox_reg = bbox.permute(0, 2, 3, 1).reshape(-1, 4)
                 centerness = center.permute(0, 2, 3, 1).reshape(-1)
 
-                matched_boxes, matched_labels, positive_mask = match_points_to_boxes(points, gt_boxes, gt_labels)
+                assignment = center_region_assign(points, gt_boxes, gt_labels)
+                matched_boxes = assignment.matched_boxes
+                matched_labels = assignment.labels
+                positive_mask = assignment.positive_mask
                 class_targets = torch.zeros_like(cls_logits)
                 if positive_mask.any():
                     positive_labels = matched_labels[positive_mask].long().clamp(min=1) - 1
@@ -274,22 +283,29 @@ class DenseATSSLoss(nn.Module):
             head_outputs_per_image,
         ):
             feature_maps = _feature_sequence(feature_maps)
-            anchors = _anchor_priors_for_image(image, feature_maps)
+            anchors_per_level = _anchor_priors_per_level_for_image(image, feature_maps)
+            anchors = torch.cat(anchors_per_level, dim=0)
             cls_logits = flatten_anchor_cls_logits(head_outputs["cls_logits"])
             bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
             centerness = flatten_anchor_centerness_logits(head_outputs["centerness"])
 
-            matched_boxes, matched_labels, positive_mask = match_anchors(anchors, target)
+            assignment = atss_assign(
+                anchors,
+                target["boxes"],
+                target["labels"],
+                num_level_priors=tuple(level.shape[0] for level in anchors_per_level),
+                ignored_boxes=_ignored_boxes_from_target(target),
+            )
+            matched_boxes = assignment.matched_boxes
+            matched_labels = assignment.labels
+            positive_mask = assignment.positive_mask
+            valid_mask = ~assignment.ignored_mask
             class_targets = torch.zeros_like(cls_logits)
             if positive_mask.any():
                 positive_labels = matched_labels[positive_mask].long().clamp(min=1) - 1
                 class_targets[positive_mask, positive_labels] = 1.0
 
-            total_cls = total_cls + F.binary_cross_entropy_with_logits(
-                cls_logits,
-                class_targets,
-                reduction="mean",
-            )
+            total_cls = total_cls + _binary_cross_entropy_valid(cls_logits, class_targets, valid_mask)
 
             if positive_mask.any():
                 regression_targets = encode_boxes(anchors[positive_mask], matched_boxes[positive_mask])
@@ -377,13 +393,19 @@ def _image_size(image):
 
 def _anchor_priors_for_image(image, feature_maps):
     feature_specs = build_feature_map_specs(feature_maps, image_size=_image_size(image))
-    return torch.cat(
-        generate_anchors(
-            feature_specs,
-            device=feature_maps[0].device,
-            dtype=feature_maps[0].dtype,
-        ),
-        dim=0,
+    return torch.cat(_anchor_priors_from_specs(feature_specs, feature_maps), dim=0)
+
+
+def _anchor_priors_per_level_for_image(image, feature_maps):
+    feature_specs = build_feature_map_specs(feature_maps, image_size=_image_size(image))
+    return _anchor_priors_from_specs(feature_specs, feature_maps)
+
+
+def _anchor_priors_from_specs(feature_specs, feature_maps):
+    return generate_anchors(
+        feature_specs,
+        device=feature_maps[0].device,
+        dtype=feature_maps[0].dtype,
     )
 
 
@@ -460,28 +482,29 @@ def flatten_anchor_centerness_logits(centerness_per_level):
     return torch.cat(flattened, dim=0)
 
 
-def match_anchors(anchors, target):
-    gt_boxes = target["boxes"]
-    gt_labels = target["labels"]
-    if gt_boxes.numel() == 0:
-        zeros_boxes = torch.zeros_like(anchors)
-        zeros_labels = torch.zeros((anchors.shape[0],), dtype=torch.long, device=anchors.device)
-        positive_mask = torch.zeros((anchors.shape[0],), dtype=torch.bool, device=anchors.device)
-        return zeros_boxes, zeros_labels, positive_mask
+def _binary_cross_entropy_valid(logits, targets, valid_mask):
+    if valid_mask.all():
+        return F.binary_cross_entropy_with_logits(logits, targets, reduction="mean")
+    if valid_mask.any():
+        return F.binary_cross_entropy_with_logits(logits[valid_mask], targets[valid_mask], reduction="mean")
+    return logits.sum() * 0.0
 
-    anchor_centers_x = (anchors[:, 0] + anchors[:, 2]) / 2.0
-    anchor_centers_y = (anchors[:, 1] + anchors[:, 3]) / 2.0
-    in_box = (
-        (anchor_centers_x[:, None] >= gt_boxes[None, :, 0])
-        & (anchor_centers_x[:, None] <= gt_boxes[None, :, 2])
-        & (anchor_centers_y[:, None] >= gt_boxes[None, :, 1])
-        & (anchor_centers_y[:, None] <= gt_boxes[None, :, 3])
+
+def _ignored_boxes_from_target(target):
+    for key in ("ignored_boxes", "ignore_boxes", "gt_bboxes_ignore"):
+        if key in target:
+            return target[key]
+    return None
+
+
+def match_anchors(anchors, target):
+    assignment = max_iou_assign(
+        anchors,
+        target["boxes"],
+        target["labels"],
+        ignored_boxes=_ignored_boxes_from_target(target),
     )
-    positive_mask = in_box.any(dim=1)
-    matched_indices = in_box.float().argmax(dim=1)
-    matched_boxes = gt_boxes[matched_indices]
-    matched_labels = gt_labels[matched_indices]
-    return matched_boxes, matched_labels, positive_mask
+    return assignment.matched_boxes, assignment.labels, assignment.positive_mask
 
 
 def build_fcos_points(feature_map, *, image_size=None, stride=None):
@@ -493,25 +516,8 @@ def build_fcos_points(feature_map, *, image_size=None, stride=None):
 
 
 def match_points_to_boxes(points, gt_boxes, gt_labels):
-    if gt_boxes.numel() == 0:
-        zeros_boxes = torch.zeros((points.shape[0], 4), dtype=points.dtype, device=points.device)
-        zeros_labels = torch.zeros((points.shape[0],), dtype=torch.long, device=points.device)
-        positive_mask = torch.zeros((points.shape[0],), dtype=torch.bool, device=points.device)
-        return zeros_boxes, zeros_labels, positive_mask
-
-    in_box = (
-        (points[:, None, 0] >= gt_boxes[None, :, 0])
-        & (points[:, None, 0] <= gt_boxes[None, :, 2])
-        & (points[:, None, 1] >= gt_boxes[None, :, 1])
-        & (points[:, None, 1] <= gt_boxes[None, :, 3])
-    )
-    box_areas = (gt_boxes[:, 2] - gt_boxes[:, 0]) * (gt_boxes[:, 3] - gt_boxes[:, 1])
-    candidate_areas = torch.where(in_box, box_areas.unsqueeze(0), torch.full_like(in_box.float(), float("inf")))
-    matched_indices = candidate_areas.argmin(dim=1)
-    positive_mask = in_box.any(dim=1)
-    matched_boxes = gt_boxes[matched_indices]
-    matched_labels = gt_labels[matched_indices]
-    return matched_boxes, matched_labels, positive_mask
+    assignment = center_region_assign(points, gt_boxes, gt_labels)
+    return assignment.matched_boxes, assignment.labels, assignment.positive_mask
 
 
 def encode_fcos_boxes(points, gt_boxes):

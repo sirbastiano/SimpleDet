@@ -7,6 +7,9 @@ from ..detectors._deps import require_dependency
 require_dependency("torch", "native transformer ops")
 import torch  # noqa: E402
 import torch.nn as nn  # noqa: E402
+import torch.nn.functional as F  # noqa: E402
+
+from .assignment import HungarianAssigner  # noqa: E402
 
 
 class NativeDetrDecoder(nn.Module):
@@ -36,15 +39,43 @@ class NativeDetrDecoder(nn.Module):
 class NativeDetrLoss(nn.Module):
     def __init__(self) -> None:
         super().__init__()
+        self.matcher = HungarianAssigner()
 
     def forward(self, predictions, targets):
         logits = predictions["pred_logits"]
         boxes = predictions["pred_boxes"]
         loss_cls = logits.sum() * 0.0
         loss_bbox = boxes.sum() * 0.0
+        for image_index, target in enumerate(targets or []):
+            pred_logits = logits[image_index]
+            pred_boxes = boxes[image_index]
+            gt_boxes = _normalize_target_boxes(target.get("boxes", []), pred_boxes, target)
+            gt_labels = torch.as_tensor(target.get("labels", []), dtype=torch.long, device=pred_boxes.device)
+            assignment = self.matcher(pred_logits, pred_boxes, gt_boxes, gt_labels)
+
+            background_index = pred_logits.shape[-1] - 1
+            class_targets = torch.full(
+                (pred_logits.shape[0],),
+                background_index,
+                dtype=torch.long,
+                device=pred_logits.device,
+            )
+            if assignment.positive_mask.any():
+                class_targets[assignment.positive_mask] = (assignment.labels[assignment.positive_mask] - 1).clamp(
+                    min=0,
+                    max=background_index - 1,
+                )
+            loss_cls = loss_cls + F.cross_entropy(pred_logits, class_targets)
+            if assignment.positive_mask.any():
+                loss_bbox = loss_bbox + F.l1_loss(
+                    pred_boxes[assignment.positive_mask],
+                    assignment.matched_boxes[assignment.positive_mask],
+                    reduction="mean",
+                )
         if targets:
-            loss_cls = loss_cls + logits[..., :-1].mean() * 0.0
-            loss_bbox = loss_bbox + boxes.mean() * 0.0
+            count = max(len(targets), 1)
+            loss_cls = loss_cls / count
+            loss_bbox = loss_bbox / count
         return {
             "loss_cls": loss_cls,
             "loss_bbox": loss_bbox,
@@ -78,3 +109,25 @@ class NativeDetrPostProcessor(nn.Module):
             "scores": max_scores,
             "labels": labels,
         }
+
+
+def _normalize_target_boxes(boxes, reference_boxes, target):
+    boxes = torch.as_tensor(boxes, dtype=reference_boxes.dtype, device=reference_boxes.device)
+    if boxes.numel() == 0:
+        return boxes.reshape(0, 4)
+    if boxes.dim() != 2 or boxes.shape[1] != 4:
+        raise ValueError("DETR targets must provide boxes with shape (N, 4).")
+    height = target.get("height") or target.get("image_height")
+    width = target.get("width") or target.get("image_width")
+    image_size = target.get("image_size") or target.get("size")
+    if image_size is not None and height is None and width is None:
+        height, width = image_size
+    if height is not None and width is not None:
+        scale = boxes.new_tensor([float(width), float(height), float(width), float(height)]).clamp(min=1.0)
+        return (boxes / scale).clamp(min=0.0, max=1.0)
+    if float(boxes.max()) <= 1.0:
+        return boxes.clamp(min=0.0, max=1.0)
+    scale_x = boxes[:, (0, 2)].max().clamp(min=1.0)
+    scale_y = boxes[:, (1, 3)].max().clamp(min=1.0)
+    scale = torch.stack((scale_x, scale_y, scale_x, scale_y))
+    return (boxes / scale).clamp(min=0.0, max=1.0)
