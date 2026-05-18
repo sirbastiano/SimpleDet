@@ -5,6 +5,49 @@ Started: Mon May 18 18:34:17 UTC 2026
 - (add reusable patterns here)
 
 ---
+## [2026-05-18 21:30:47 UTC] - US-004: Replace legacy fallback assumptions
+Thread:
+Run: 20260518-183418-2827287 (iteration 4)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-4.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-4.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: c379d37 fix(runtime): remove legacy fallback assumptions
+- Post-commit status: `clean` after committing this progress entry
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_api_model_resolution tests.test_public_api tests.test_data tests.test_repo_audit tests.test_native_components tests.test_native_api_routing tests.test_suite` -> PASS (64 tests, 9 skipped)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (117 tests, 9 skipped)
+  - Command: `make test` -> PASS (117 tests, 9 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/package-surface-audit.html
+  - simpledet/simpledet/_legacy.py
+  - simpledet/simpledet/_model_resolution.py
+  - simpledet/simpledet/api.py
+  - simpledet/simpledet/detectors/data.py
+  - tests/test_api_model_resolution.py
+  - tests/test_data.py
+  - tests/test_native_components.py
+  - tests/test_public_api.py
+  - tests/test_repo_audit.py
+- What was implemented
+  - Removed hardcoded native head/neck fallback lists so listing comes from registries and returns empty instead of masking missing optional native dependencies.
+  - Added a shared legacy config boundary error and rejected MMDetection-style `.py` config paths in project config loading, project config initialization, and detector config loading.
+  - Strengthened maintained package audit coverage with lower-case legacy runtime text checks plus AST checks for static and dynamic imports of the legacy runtime modules.
+  - Added focused tests that RetinaNet native construction returns SimpleDet-owned torch module wrappers under the native build path.
+  - Updated the package surface audit to document explicit unsupported import/conversion behavior for legacy `.py` config paths.
+  - Security/performance/regression review: no new secret handling or code execution was added, legacy path handling fails closed, registry listing remains bounded to in-memory names, and review blockers were fixed before full validation.
+- **Learnings for future iterations:**
+  - The environment still has no bare `python`; use `python3` or Makefile defaults for runnable validation.
+  - Importing full native registries for metadata can regress base installs unless optional dependency errors are handled as absence, not fallback support.
+  - The repo audit should keep both text-level legacy references and AST import checks so production fallback assumptions cannot hide in strings or dynamic imports.
+---
 ## [2026-05-18 20:42:38 UTC] - US-003: Define registry contract
 Thread:
 Run: 20260518-183418-2827287 (iteration 3)
