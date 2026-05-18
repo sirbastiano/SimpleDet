@@ -5,10 +5,33 @@ import types
 import unittest
 from unittest.mock import patch
 
-from simpledet.extensions import DETECTORS
+from simpledet.extensions import DETECTORS, ENCODERS, HEADS, NECKS
 from simpledet.suite import build_custom_detector, build_detector, build_neck
 
 _COUNTER = itertools.count()
+_NATIVE_REGISTRIES = (DETECTORS, ENCODERS, HEADS, NECKS)
+
+
+def _clear_native_modules():
+    for module_name in list(sys.modules):
+        if module_name == "simpledet.native" or module_name.startswith("simpledet.native."):
+            sys.modules.pop(module_name, None)
+
+
+def _snapshot_native_registries():
+    return [(registry, dict(registry._items), dict(registry._metadata)) for registry in _NATIVE_REGISTRIES]
+
+
+def _clear_native_registries():
+    for registry in _NATIVE_REGISTRIES:
+        registry._items = {}
+        registry._metadata = {}
+
+
+def _restore_native_registries(snapshots):
+    for registry, items, metadata in snapshots:
+        registry._items = items
+        registry._metadata = metadata
 
 
 class _FeatureInfo:
@@ -235,20 +258,33 @@ class NativeComponentTests(unittest.TestCase):
                 "torchvision.models.detection.retinanet": fake_retinanet_module,
             }
         )
-        with patch.dict(sys.modules, fake_modules):
-            from simpledet.native.backbones import build_native_backbone
-            from simpledet.native.heads import build_native_head
-            from simpledet.native.necks import build_native_neck
-            from simpledet.suite import compile_native_detector_plan
+        snapshots = _snapshot_native_registries()
+        _clear_native_modules()
+        _clear_native_registries()
+        try:
+            with patch.dict(sys.modules, fake_modules):
+                from simpledet.native.backbones import build_native_backbone
+                from simpledet.native.heads import build_native_head
+                from simpledet.native.necks import build_native_neck
+                from simpledet.suite import compile_native_detector_plan
 
-            spec = build_detector("retinanet", num_classes=2, encoder="resnet18.a1_in1k")
-            plan = compile_native_detector_plan(spec)
-            backbone, backbone_spec = build_native_backbone(plan.encoder)
-            neck, neck_spec = build_native_neck(plan.neck, feature_channels=backbone_spec.feature_channels)
-            head, head_spec = build_native_head(plan.head, out_channels=neck_spec.out_channels, num_classes=2)
+                spec = build_detector("retinanet", num_classes=2, encoder="resnet18.a1_in1k")
+                plan = compile_native_detector_plan(spec)
+                backbone, backbone_spec = build_native_backbone(plan.encoder)
+                neck, neck_spec = build_native_neck(plan.neck, feature_channels=backbone_spec.feature_channels)
+                head, head_spec = build_native_head(plan.head, out_channels=neck_spec.out_channels, num_classes=2)
 
-            neck_outputs = neck(backbone("tensor"))
-            head_outputs = head(neck_outputs)
+                module_cls = fake_modules["torch.nn"].Module
+                self.assertIsInstance(backbone, module_cls)
+                self.assertIsInstance(neck, module_cls)
+                self.assertIsInstance(head, module_cls)
+                self.assertTrue(type(backbone).__module__.startswith("simpledet.native."))
+                self.assertTrue(type(neck).__module__.startswith("simpledet.native."))
+                self.assertTrue(type(head).__module__.startswith("simpledet.native."))
+                neck_outputs = neck(backbone("tensor"))
+                head_outputs = head(neck_outputs)
+        finally:
+            _restore_native_registries(snapshots)
 
         self.assertEqual(backbone_spec.feature_channels, (64, 128, 256, 512))
         self.assertEqual(neck_spec.out_channels, 256)
@@ -422,13 +458,28 @@ class NativeComponentTests(unittest.TestCase):
                 "torchvision.models.detection.retinanet": fake_retinanet_module,
             }
         )
-        with patch.dict(sys.modules, fake_modules):
-            from simpledet.native.modeling import build_native_model
+        snapshots = _snapshot_native_registries()
+        _clear_native_modules()
+        _clear_native_registries()
+        try:
+            with patch.dict(sys.modules, fake_modules):
+                from simpledet.native.modeling import build_native_model
 
-            spec = build_detector("retinanet", num_classes=2, encoder="resnet18.a1_in1k")
-            model = build_native_model("retinanet", num_classes=2, detector_spec=spec)
+                spec = build_detector("retinanet", num_classes=2, encoder="resnet18.a1_in1k")
+                model = build_native_model("retinanet", num_classes=2, detector_spec=spec)
+        finally:
+            _restore_native_registries(snapshots)
 
+        module_cls = fake_modules["torch.nn"].Module
         self.assertEqual(type(model).__name__, "NativeRetinaNetModel")
+        self.assertIsInstance(model, module_cls)
+        for component_name in ("backbone", "neck", "head", "loss_fn", "decoder"):
+            component = getattr(model, component_name)
+            self.assertIsInstance(component, module_cls)
+            self.assertTrue(
+                type(component).__module__.startswith("simpledet.native."),
+                f"{component_name} came from {type(component).__module__}",
+            )
         self.assertEqual(model.head_spec.name, "RetinaHead")
         self.assertEqual(model.neck_spec.out_channels, 256)
 

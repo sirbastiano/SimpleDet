@@ -13,6 +13,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     import tomli as tomllib
 
+from ._legacy import legacy_py_config_error
 from .suite.specs import DetectorSpec
 
 DEFAULT_IMAGE_SUBDIR = "imgs"
@@ -22,8 +23,6 @@ DEFAULT_SPLIT_FILENAMES = {
     "val": "val_annotations.json",
     "test": "test_annotations.json",
 }
-
-
 @dataclass(frozen=True)
 class ProjectLayout:
     """Convention-based dataset layout for a native detector project."""
@@ -161,6 +160,8 @@ class ProjectConfig:
             payload = json.loads(config_path.read_text(encoding="utf-8"))
         elif suffix == ".toml":
             payload = tomllib.loads(config_path.read_text(encoding="utf-8"))
+        elif suffix == ".py":
+            raise legacy_py_config_error(config_path)
         else:
             raise ValueError(
                 f"Unsupported project config format '{config_path.suffix}'. Use .json or .toml."
@@ -257,6 +258,8 @@ def init_project_config(
     overwrite: bool = False,
 ) -> str:
     config_path = Path(path).expanduser()
+    if config_path.suffix.lower() == ".py":
+        raise legacy_py_config_error(config_path)
     resolved_format = (format or config_path.suffix.lstrip(".") or "toml").lower()
     if resolved_format not in {"toml", "json"}:
         raise ValueError("Unsupported project config format. Use 'toml' or 'json'.")

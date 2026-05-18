@@ -222,22 +222,19 @@ def patch_model_num_classes(
     return patch_summary
 
 
-_FALLBACK_NATIVE_HEADS = ("FCOSHead", "RetinaHead")
-_FALLBACK_NATIVE_NECKS = ("ChannelMapper", "FPN")
-
-
 def _list_registered_model_components(kind: str) -> list[str]:
     registry = {"head": HEADS, "neck": NECKS}.get(kind)
     if registry is None:
         return []
-    names = sorted(registry.names())
-    if names:
-        return names
-    if kind == "head":
-        return sorted(_FALLBACK_NATIVE_HEADS)
-    if kind == "neck":
-        return sorted(_FALLBACK_NATIVE_NECKS)
-    return []
+    _load_native_component_registries()
+    return sorted(registry.names())
+
+
+def _load_native_component_registries() -> None:
+    try:
+        import_module("simpledet.native")
+    except ImportError:
+        return
 
 
 def _patch_head_consumers(

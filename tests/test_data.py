@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from simpledet.detectors.data import list_formats, load_dataset, _detect_dataset_format
+from simpledet.detectors.data import create_config, list_formats, load_dataset, _detect_dataset_format
 
 
 def _write_dummy_png(path: Path, width: int = 10, height: int = 10) -> None:
@@ -62,3 +62,15 @@ class TestDataAdapters(unittest.TestCase):
         with self.assertRaises(FileNotFoundError) as context:
             load_dataset(missing, format="coco")
         self.assertIn("not found", str(context.exception))
+
+    def test_legacy_python_config_paths_are_rejected(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "legacy.py"
+            path.write_text("model = dict(type='RetinaNet')\n", encoding="utf-8")
+
+            with self.assertRaises(ValueError) as context:
+                create_config(str(path))
+
+        message = str(context.exception)
+        self.assertIn("Legacy MMDetection .py config import/conversion is unsupported", message)
+        self.assertIn("specific converter", message)

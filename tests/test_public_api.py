@@ -86,6 +86,29 @@ class PublicApiTests(unittest.TestCase):
 
         self.assertIn("[runtime]", written_text)
 
+    def test_legacy_python_project_config_paths_are_rejected(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            from simpledet.api import init_project_config, load_project_config
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                config_path = Path(tmpdir) / "legacy.py"
+                config_path.write_text("model = dict(type='RetinaNet')\n", encoding="utf-8")
+
+                with self.assertRaises(ValueError) as load_context:
+                    load_project_config(config_path)
+                with self.assertRaises(ValueError) as init_context:
+                    init_project_config(config_path, overwrite=True)
+                with self.assertRaises(ValueError) as explicit_format_context:
+                    init_project_config(config_path, format="toml", overwrite=True)
+
+        for message in (
+            str(load_context.exception),
+            str(init_context.exception),
+            str(explicit_format_context.exception),
+        ):
+            self.assertIn("Legacy MMDetection .py config import/conversion is unsupported", message)
+            self.assertIn("specific converter", message)
+
     def test_validate_project_config_reports_missing_paths(self):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
             from simpledet.api import validate_project_config

@@ -163,6 +163,7 @@
           <ul>
             <li>Maintained package code does not import or reference <code>mmdet</code>, <code>mmcv</code>, or <code>mmengine</code>; <code>tests/test_repo_audit.py</code> enforces this for package paths.</li>
             <li>Docs and README do not present MMDetection or MMEngine as a runtime path.</li>
+            <li>Legacy MMDetection <code>.py</code> config paths fail with an explicit unsupported import/conversion error unless a specific converter is added.</li>
             <li>Legacy references remain outside the maintained package surface, mainly in <code>MyConfigs/</code>, <code>notebooks/</code>, <code>runscripts/</code>, <code>studies/</code>, <code>PLANS.md</code>, <code>deploy.sh</code>, and <code>ext.txt</code>.</li>
             <li>Those legacy configs and notebooks are evidence of historical experiments only. They must not be counted as supported detector families.</li>
           </ul>

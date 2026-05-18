@@ -46,7 +46,38 @@ OPTIONAL_DEPS = {
     "onnxruntime",
     "pycocotools",
 }
-FORBIDDEN_LEGACY_IMPORTS = re.compile(r"\b(mmdet|mmcv|mmengine)\b")
+FORBIDDEN_LEGACY_MODULES = {"mmdet", "mmcv", "mmengine"}
+FORBIDDEN_LEGACY_TEXT = re.compile(r"\b(mmdet|mmcv|mmengine)\b")
+
+
+def _root_module(module_name):
+    return str(module_name).split(".", 1)[0]
+
+
+def _constant_string(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    return None
+
+
+def _legacy_stack_import_references(tree):
+    offenders = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if _root_module(alias.name) in FORBIDDEN_LEGACY_MODULES:
+                    offenders.append((node.lineno, alias.name))
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and _root_module(node.module) in FORBIDDEN_LEGACY_MODULES:
+                offenders.append((node.lineno, node.module))
+        elif isinstance(node, ast.Call):
+            function_name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
+            if function_name not in {"import_module", "__import__"} or not node.args:
+                continue
+            module_name = _constant_string(node.args[0])
+            if module_name and _root_module(module_name) in FORBIDDEN_LEGACY_MODULES:
+                offenders.append((node.lineno, module_name))
+    return offenders
 
 
 class TestRepoAudit(unittest.TestCase):
@@ -145,9 +176,46 @@ class TestRepoAudit(unittest.TestCase):
 
     def test_maintained_package_paths_do_not_reference_legacy_mmdet_stack(self):
         offenders = []
+        text_offenders = []
         for path in sorted(self._python_files()):
             text = path.read_text(encoding="utf-8")
-            if FORBIDDEN_LEGACY_IMPORTS.search(text):
-                offenders.append(str(path.relative_to(PACKAGE_ROOT)))
+            if FORBIDDEN_LEGACY_TEXT.search(text):
+                text_offenders.append(str(path.relative_to(PACKAGE_ROOT)))
+            tree = ast.parse(text, filename=str(path))
+            references = _legacy_stack_import_references(tree)
+            for line_no, module_name in references:
+                offenders.append(f"{path.relative_to(PACKAGE_ROOT)}:{line_no}: {module_name}")
 
-        self.assertEqual(offenders, [], "Found legacy MMDet/MMCV/MMEngine references:\n" + "\n".join(offenders))
+        self.assertEqual(
+            text_offenders,
+            [],
+            "Found legacy MMDet/MMCV/MMEngine references:\n" + "\n".join(text_offenders),
+        )
+        self.assertEqual(offenders, [], "Found legacy MMDet/MMCV/MMEngine imports:\n" + "\n".join(offenders))
+
+    def test_legacy_stack_import_audit_helper_detects_static_and_dynamic_imports(self):
+        tree = ast.parse(
+            "\n".join(
+                [
+                    "import mmdet.models",
+                    "from mmengine.config import Config",
+                    "import_module('mmcv.ops')",
+                    "__import__('mmdet.apis')",
+                    "importlib.import_module('mmengine.runner')",
+                    "text = 'mmdet is mentioned but not imported'",
+                ]
+            )
+        )
+
+        offenders = _legacy_stack_import_references(tree)
+
+        self.assertEqual(
+            offenders,
+            [
+                (1, "mmdet.models"),
+                (2, "mmengine.config"),
+                (3, "mmcv.ops"),
+                (4, "mmdet.apis"),
+                (5, "mmengine.runner"),
+            ],
+        )

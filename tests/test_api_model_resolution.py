@@ -30,7 +30,36 @@ class _DummyEncoder:
 class ModelResolutionTests(unittest.TestCase):
     def _fake_modules(self):
         torch = types.ModuleType("torch")
+        torch_nn = types.ModuleType("torch.nn")
+        torch_nn_functional = types.ModuleType("torch.nn.functional")
         torch_vision = types.ModuleType("torchvision")
+
+        class Module:
+            def __init__(self, *args, **kwargs):
+                pass
+
+        class ModuleList(list):
+            pass
+
+        class Sequential(Module):
+            def __init__(self, *layers):
+                self.layers = list(layers)
+
+        class Linear(Module):
+            pass
+
+        class Embedding(Module):
+            def __init__(self, num_embeddings, embedding_dim):
+                self.weight = f"embedding-{num_embeddings}-{embedding_dim}"
+
+        torch_nn.Module = Module
+        torch_nn.ModuleList = ModuleList
+        torch_nn.Sequential = Sequential
+        torch_nn.Conv2d = lambda *args, **kwargs: object()
+        torch_nn.Linear = Linear
+        torch_nn.Embedding = Embedding
+        torch_nn.ReLU = lambda *args, **kwargs: object()
+        torch.nn = torch_nn
 
         timm = types.ModuleType("timm")
         model_names = ["tiny_encoder", "wide_encoder", "headless_encoder"]
@@ -41,6 +70,8 @@ class ModelResolutionTests(unittest.TestCase):
 
         return {
             "torch": torch,
+            "torch.nn": torch_nn,
+            "torch.nn.functional": torch_nn_functional,
             "timm": timm,
             "torchvision": torch_vision,
         }
@@ -140,13 +171,54 @@ class ModelResolutionTests(unittest.TestCase):
             HEADS._items = {"FCOSHead": FCOSHead}
             NECKS._items = {"FPN": FPN}
 
-            with patch.dict(sys.modules, self._fake_modules()):
+            with patch.dict(sys.modules, self._fake_modules()), patch(
+                "simpledet._model_resolution._load_native_component_registries"
+            ):
                 self.assertEqual(list_available_encoders(pattern="tiny*"), ["tiny_encoder"])
                 self.assertEqual(list_available_necks(), ["FPN"])
                 self.assertEqual(list_available_heads(), ["FCOSHead"])
         finally:
             HEADS._items = head_items
             NECKS._items = neck_items
+
+    def test_runtime_list_helpers_load_native_registries_without_fallback_lists(self):
+        head_items = dict(HEADS._items)
+        head_metadata = dict(HEADS._metadata)
+        neck_items = dict(NECKS._items)
+        neck_metadata = dict(NECKS._metadata)
+        try:
+            HEADS._items = {}
+            HEADS._metadata = {}
+            NECKS._items = {}
+            NECKS._metadata = {}
+            for module_name in list(sys.modules):
+                if module_name == "simpledet.native" or module_name.startswith("simpledet.native."):
+                    sys.modules.pop(module_name, None)
+
+            with patch.dict(sys.modules, self._fake_modules()):
+                self.assertIn("RetinaHead", list_available_heads())
+                self.assertIn("FPN", list_available_necks())
+
+            HEADS._items = {}
+            HEADS._metadata = {}
+            NECKS._items = {}
+            NECKS._metadata = {}
+            with patch("simpledet._model_resolution._load_native_component_registries"):
+                self.assertEqual(list_available_heads(), [])
+                self.assertEqual(list_available_necks(), [])
+
+            HEADS._items = {}
+            HEADS._metadata = {}
+            NECKS._items = {}
+            NECKS._metadata = {}
+            with patch("simpledet._model_resolution.import_module", side_effect=ImportError("missing torch")):
+                self.assertEqual(list_available_heads(), [])
+                self.assertEqual(list_available_necks(), [])
+        finally:
+            HEADS._items = head_items
+            HEADS._metadata = head_metadata
+            NECKS._items = neck_items
+            NECKS._metadata = neck_metadata
 
 
 

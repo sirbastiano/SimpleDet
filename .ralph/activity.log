@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-18 20:45:06 | run=20260518-183418-2827287 | iter=3 | mode=build | story=US-003 | duration=2908s | status=success
 - 2026-05-18 19:56:33 | run=20260518-183418-2827287 | iter=2 | mode=build | story=US-002 | duration=2508s | status=success
 - 2026-05-18 19:14:11 | run=20260518-183418-2827287 | iter=1 | mode=build | story=US-001 | duration=2310s | status=success
 
@@ -30,3 +31,10 @@
 [2026-05-18 20:42:15] US-003 security performance regression review completed; no unresolved findings before commit
 [2026-05-18 20:43:32] US-003 progress log updated with commit and verification details
 [2026-05-18 20:44:39] US-003 docs reference updated for registry contract; docs-check passed
+[2026-05-18 20:45:06] ITERATION 3 end (duration=2908s)
+[2026-05-18 20:45:10] ITERATION 4 start (mode=build story=US-004)
+[2026-05-18 20:47:11] Start work on US-004 replace legacy fallback assumptions; guardrails/errors/PRD reviewed
+[2026-05-18 21:05:56] US-004 code and tests updated: native registry-only listing, legacy config rejection, repo audit, retinanet ownership coverage
+[2026-05-18 21:18:16] US-004 review findings addressed: optional-dependency-safe registry listing, strict .py path rejection, restored legacy text audit
+[2026-05-18 21:21:23] US-004 verification completed: focused tests, python3 full unittest, make test, docs-check, build, verify-dist passed; exact python gate unavailable
+[2026-05-18 21:29:35] US-004 security performance regression review completed before commit; no unresolved findings

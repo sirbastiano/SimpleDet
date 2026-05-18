@@ -12,6 +12,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, ClassVar, TypeVar
 
+from .._legacy import legacy_py_config_error
+
+
 class UnsupportedFormatError(ValueError):
     """Raised when a requested dataset format is not registered."""
 
@@ -1717,6 +1720,8 @@ def create_config(config_path: str, **overrides: Any):
                 ) from exc
         with path.open("rb") as handle:
             payload = tomllib.load(handle)
+    elif suffix == ".py":
+        raise legacy_py_config_error(path)
     else:
         raise ValueError(
             f"Unsupported config format '{path.suffix or '<none>'}'. Expected '.json' or '.toml'."
