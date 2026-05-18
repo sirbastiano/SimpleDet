@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Package Surface Audit</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+          <a class="nav-link" href="roadmap-changelog.html">Roadmap</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+    <main class="main">
+      <section class="hero">
+        <p class="hero-kicker">US-001 audit</p>
+        <h1>Current package surface</h1>
+        <p class="subtle">
+          This audit records the package, docs, tests, dependency extras, detector aliases, and legacy references
+          observed before the object-detection package expansion work.
+        </p>
+        <div class="btn-row">
+          <a class="btn" href="developer-guide.html">Developer Guide</a>
+          <a class="btn" href="api-reference.html">API Reference</a>
+          <a class="btn" href="roadmap-changelog.html">Roadmap</a>
+        </div>
+        <p class="hero-context">Use this page as a factual baseline for later PRD stories. It does not update PRD status.</p>
+      </section>
+
+      <section class="content">
+        <article class="section">
+          <h2>Package modules</h2>
+          <p class="section-lead">The installable package lives under <code>simpledet/simpledet/</code>. Current modules are:</p>
+          <ul>
+            <li><code>__init__.py</code>, <code>__main__.py</code>, <code>api.py</code>, <code>cli.py</code>, <code>bench.py</code>, and <code>_model_resolution.py</code></li>
+            <li><code>detectors/</code>: dependency hints, CLI adapter, dataset adapters, training, inference, and evaluation helpers</li>
+            <li><code>extensions/</code>: explicit registries for encoders, necks, heads, decoders, and detectors</li>
+            <li><code>suite/</code>: public dataclass specs, builder helpers, native plan compiler, and architecture catalog</li>
+            <li><code>native/</code>: backbone, neck, head, dense ops, ROI, transformer ops, Lightning engine, runtime, modeling, and assembler code</li>
+          </ul>
+        </article>
+
+        <article class="section">
+          <h2>Public API surface</h2>
+          <ul>
+            <li><code>simpledet</code>: lazy exports for <code>train</code>, <code>detect</code>, <code>evaluate</code>, <code>suite</code>, <code>native</code>, <code>extensions</code>, <code>detectors</code>, project config dataclasses, config helpers, and project/direct run helpers.</li>
+            <li><code>simpledet.api</code>: <code>ProjectLayout</code>, <code>DatasetConfig</code>, <code>RuntimeConfig</code>, <code>OptimizationConfig</code>, <code>ProjectConfig</code>, <code>load_project_config</code>, <code>project_config_template</code>, <code>init_project_config</code>, <code>validate_project_config</code>, <code>run_project</code>, <code>run_training</code>, <code>run_inference</code>, <code>run_evaluation</code>, <code>run_native_training</code>, <code>run_native_inference</code>, <code>run_native_evaluation</code>, and <code>list_available_*</code> helpers.</li>
+            <li><code>simpledet.suite</code>: <code>EncoderSpec</code>, <code>NeckSpec</code>, <code>HeadSpec</code>, <code>DecoderSpec</code>, <code>DetectorSpec</code>, component builders, custom builders, native registry list/inspect/resolve helpers, and <code>compile_native_detector_plan</code>.</li>
+            <li><code>simpledet.native</code>: native component builders, model component assembly, dense and ROI model boundaries, Lightning runtime helpers, and native project execution helpers.</li>
+            <li><code>simpledet.detectors</code>: legacy-compatible public helpers for <code>train</code>, <code>detect</code>, <code>evaluate</code>, dataset loading, and CLI forwarding.</li>
+            <li><code>simpledet.extensions</code>: <code>ExtensionRegistry</code>, <code>ENCODERS</code>, <code>NECKS</code>, <code>HEADS</code>, <code>DECODERS</code>, and <code>DETECTORS</code>.</li>
+            <li>Console script: <code>simpledet = simpledet.cli:main</code>.</li>
+          </ul>
+        </article>
+
+        <article class="section">
+          <h2>Optional extras</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Scope or extra</th>
+                <th>Current dependencies</th>
+                <th>Audit note</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Base install</td>
+                <td>None</td>
+                <td>Base install is intentionally lightweight and is not a named optional extra.</td>
+              </tr>
+              <tr>
+                <td><code>cpu</code></td>
+                <td><code>torch</code>, <code>torchvision</code>, <code>pytorch-lightning</code>, <code>numpy</code>, <code>scipy</code>, <code>shapely</code>, <code>pycocotools</code>, <code>terminaltables</code>, <code>timm</code>, <code>matplotlib</code></td>
+                <td>Runtime dependencies are grouped together today; later stories split TIMM and docs more explicitly.</td>
+              </tr>
+              <tr>
+                <td><code>geo</code></td>
+                <td><code>pandas</code>, <code>rasterio</code>, <code>geopandas</code></td>
+                <td>Geospatial data support remains optional.</td>
+              </tr>
+              <tr>
+                <td><code>plots</code></td>
+                <td><code>SciencePlots</code>, <code>matplotlib</code></td>
+                <td>Plotting support remains optional.</td>
+              </tr>
+              <tr>
+                <td><code>dev</code></td>
+                <td><code>build</code>, <code>coverage</code>, <code>tomli</code> for Python &lt; 3.11, <code>twine</code>, <code>ruff</code></td>
+                <td>Development tooling only.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="section">
+          <h2>Test coverage</h2>
+          <ul>
+            <li><code>tests/test_public_api.py</code> and <code>tests/test_api_model_resolution.py</code>: project API, runtime delegation, model patch helpers, and registry list helpers.</li>
+            <li><code>tests/test_cli.py</code>: CLI diagnostics, detector listing, project config commands, and direct train/infer/eval argument routing.</li>
+            <li><code>tests/test_suite.py</code> and <code>tests/test_native_backend_plan.py</code>: suite specs, aliases, custom components, plan compilation, and registry primitives.</li>
+            <li><code>tests/test_native_components.py</code>, <code>tests/test_native_backbones.py</code>, <code>tests/test_native_runtime.py</code>, and <code>tests/test_native_api_routing.py</code>: native component assembly, selected tensor-like smoke paths, ROI behavior, native runtime manifests, and API routing.</li>
+            <li><code>tests/test_data.py</code>: CSV, JSON/JSONL, YOLO, COCO, and VOC dataset adapter behavior.</li>
+            <li><code>tests/test_deps.py</code>: optional dependency error messages.</li>
+            <li><code>tests/test_packaging.py</code> and <code>tests/test_repo_audit.py</code>: package metadata, dist contents, safe imports, Python compilation, and maintained-package legacy reference checks.</li>
+          </ul>
+        </article>
+
+        <article class="section">
+          <h2>Docs pages</h2>
+          <p class="section-lead">The static site currently includes these HTML pages:</p>
+          <p>
+            <a href="index.html">index</a>,
+            <a href="overview.html">overview</a>,
+            <a href="getting-started.html">getting-started</a>,
+            <a href="quickstart.html">quickstart</a>,
+            <a href="installation.html">installation</a>,
+            <a href="core-concepts.html">core-concepts</a>,
+            <a href="configuration-guide.html">configuration-guide</a>,
+            <a href="api-reference.html">api-reference</a>,
+            <a href="cli-reference.html">cli-reference</a>,
+            <a href="developer-guide.html">developer-guide</a>,
+            <a href="datasets.html">datasets</a>,
+            <a href="training.html">training</a>,
+            <a href="inference.html">inference</a>,
+            <a href="evaluation.html">evaluation</a>,
+            <a href="examples.html">examples</a>,
+            <a href="diagrams.html">diagrams</a>,
+            <a href="experiments-reproducibility.html">experiments-reproducibility</a>,
+            <a href="screenshots.html">screenshots</a>,
+            <a href="troubleshooting.html">troubleshooting</a>,
+            <a href="faq.html">faq</a>,
+            <a href="package-surface-audit.html">package-surface-audit</a>, and
+            <a href="roadmap-changelog.html">roadmap-changelog</a>.
+          </p>
+          <p>Docs validation runs through <code>scripts/verify_docs.py</code>, <code>scripts/docs_audit.py</code>, and <code>make docs-check</code>.</p>
+        </article>
+
+        <article class="section">
+          <h2>Legacy references</h2>
+          <ul>
+            <li>Maintained package code does not import or reference <code>mmdet</code>, <code>mmcv</code>, or <code>mmengine</code>; <code>tests/test_repo_audit.py</code> enforces this for package paths.</li>
+            <li>Docs and README do not present MMDetection or MMEngine as a runtime path.</li>
+            <li>Legacy references remain outside the maintained package surface, mainly in <code>MyConfigs/</code>, <code>notebooks/</code>, <code>runscripts/</code>, <code>studies/</code>, <code>PLANS.md</code>, <code>deploy.sh</code>, and <code>ext.txt</code>.</li>
+            <li>Those legacy configs and notebooks are evidence of historical experiments only. They must not be counted as supported detector families.</li>
+          </ul>
+        </article>
+
+        <article class="section">
+          <h2>Detector alias audit</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Detector aliases</th>
+                <th>Evidence and caveat</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Native runtime registered</td>
+                <td><code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>faster_rcnn</code>, <code>faster-rcnn</code>, <code>mask_rcnn</code>, <code>mask-rcnn</code>, <code>grid_rcnn</code>, <code>gridrcnn</code>, <code>cascade_rcnn</code>, <code>cascadercnn</code></td>
+                <td>Registered in <code>native/assemblers.py</code> and covered by suite/native tests. ROI families use the compact native ROI model boundary.</td>
+              </tr>
+              <tr>
+                <td>Native compatible, not architecture-faithful yet</td>
+                <td><code>gfl</code>, <code>vfnet</code>, <code>fovea</code>, <code>foveabox</code>, <code>reppoints</code>, <code>yolof</code>, <code>centernet</code>, <code>yolo</code>, <code>yolo3</code>, <code>yolo4</code>, <code>yolo_v3</code>, <code>yolov3</code>, <code>yolov4</code>, <code>yolov5</code>, <code>yolov6</code>, <code>yolov7</code>, <code>yolov8</code>, <code>yolov9</code>, <code>yolov10</code>, <code>yolox</code>, <code>rtmdet</code>, <code>rtmdet_tiny</code>, <code>rtmdet_s</code>, <code>rtmdet_m</code>, <code>rtmdet_l</code>, <code>ssd</code>, <code>ssd300</code>, <code>ssd512</code>, <code>ssdlite</code>, <code>sabl</code>, <code>tood</code>, <code>solov2</code>, <code>solov2_light</code></td>
+                <td>Aliases build native modules, but several reuse ATSS or FCOS-style losses/decoders or alias heads. They are not enough for future architecture-faithful support claims without tensor-contract and family-specific validation.</td>
+              </tr>
+              <tr>
+                <td>Native transformer scaffold</td>
+                <td><code>detr</code>, <code>deformable_detr</code>, <code>conditional_detr</code>, <code>dino</code></td>
+                <td>Registered through one transformer assembler and compact decoder/loss/postprocessor. Treat as a scaffold for query-detector rollout, not complete DETR-family parity.</td>
+              </tr>
+              <tr>
+                <td>Missing from package catalog/runtime</td>
+                <td>Fast R-CNN, RPN detector, Cascade Mask R-CNN, Libra R-CNN, Double-Head R-CNN, Dynamic R-CNN, Sparse R-CNN, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, EfficientDet, CornerNet, DAB-DETR, DDOD, AutoAssign, NAS-FCOS</td>
+                <td>No package-level catalog entry plus native assembler was found. Existing legacy configs, if any, do not count as support.</td>
+              </tr>
+              <tr>
+                <td>Config-only or historical</td>
+                <td>Legacy MMDetection config files under <code>MyConfigs/</code> and older notebooks/scripts</td>
+                <td>These reference <code>mmdet</code>, <code>mmcv</code>, or <code>mmengine</code> and are outside the maintained package runtime.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="section">
+          <h2>Minimum next order</h2>
+          <ol>
+            <li><strong>Normalize packaging extras</strong>: split lightweight base, CPU runtime, TIMM, docs, geo, plots, and dev expectations. Maps to US-002, US-036, and US-040.</li>
+            <li><strong>Lock the registry contract</strong>: add explicit metadata for aliases, component kind, dependencies, tensor contracts, validation status, and duplicate-alias handling before adding more families. Maps to US-003 and US-027.</li>
+            <li><strong>Quarantine legacy runtime paths</strong>: keep MMDetection-era files out of maintained package claims and add explicit audit coverage for that boundary. Maps to US-004 and US-041.</li>
+            <li><strong>Add tensor-contract fixtures</strong>: create reusable CPU tensor fixtures before expanding heads, necks, losses, and detectors. Maps to US-005, US-042, US-043, and US-044.</li>
+            <li><strong>Build shared primitives first</strong>: backbones, TIMM adapter, necks, geometry, assignment, losses, and ROI utilities should precede family claims. Maps to US-006 through US-012.</li>
+            <li><strong>Promote detector claims by family</strong>: implement heads and detector composition in order: core dense, advanced dense, lightweight dense, transformer/query, ROI bbox, then mask/grid. Maps to US-013 through US-025.</li>
+            <li><strong>Expose and document only validated support</strong>: public builders, CLI discovery, model coverage docs, setup doctor, examples, architecture docs, error taxonomy, and release gates should follow validated runtime support. Maps to US-026 through US-046.</li>
+          </ol>
+        </article>
+      </section>
+    </main>
+    <footer>SimpleDet documentation - Package surface audit</footer>
+  </body>
+</html>

@@ -47,20 +47,24 @@
             <li><code>tests/</code> for unit tests and repo audit</li>
             <li><code>docs/</code> for this static HTML site</li>
           </ul>
+          <p>For the current baseline of modules, APIs, tests, docs, optional extras, and detector alias status, see the <a href="package-surface-audit.html">package surface audit</a>.</p>
         </article>
         <article class="section">
           <h2>How to add a new detector family</h2>
           <ol>
             <li>Add the architecture and family mapping in <code>suite/catalog.py</code>.</li>
-            <li>Add the template mapping in <code>suite/compiler.py</code>.</li>
-            <li>Extend compiler logic only if the family needs custom adaptation rules.</li>
-            <li>Add coverage in <code>tests/test_suite.py</code>.</li>
+            <li>Add the native component, head, decoder/loss, or ROI/query primitive needed for the family.</li>
+            <li>Register a native detector assembler in <code>native/assemblers.py</code>.</li>
+            <li>Extend compiler logic only if the family needs custom planning rules.</li>
+            <li>Add suite, runtime, and tensor validation coverage. A catalog entry or legacy config alone is not support.</li>
           </ol>
         </article>
         <article class="section">
           <h2>Testing</h2>
           <pre><code>PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'
-python3 scripts/verify_docs.py</code></pre>
+python3 scripts/verify_docs.py
+python3 scripts/docs_audit.py
+make docs-check</code></pre>
         </article>
       </section>
     </main>
