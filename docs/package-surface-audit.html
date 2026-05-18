@@ -83,12 +83,17 @@
               </tr>
               <tr>
                 <td><code>cpu</code></td>
-                <td><code>torch</code>, <code>torchvision</code>, <code>pytorch-lightning</code>, <code>numpy</code>, <code>scipy</code>, <code>shapely</code>, <code>pycocotools</code>, <code>terminaltables</code>, <code>timm</code>, <code>matplotlib</code></td>
-                <td>Runtime dependencies are grouped together today; later stories split TIMM and docs more explicitly.</td>
+                <td><code>torch</code>, <code>torchvision</code>, <code>pytorch-lightning</code>, <code>numpy</code>, <code>scipy</code>, <code>pycocotools</code>, <code>terminaltables</code></td>
+                <td>CPU runtime dependencies only; TIMM, plotting, and geospatial libraries remain separate extras.</td>
+              </tr>
+              <tr>
+                <td><code>timm</code></td>
+                <td><code>timm</code></td>
+                <td>TIMM encoder support remains optional so base and CPU installs stay smaller.</td>
               </tr>
               <tr>
                 <td><code>geo</code></td>
-                <td><code>pandas</code>, <code>rasterio</code>, <code>geopandas</code></td>
+                <td><code>pandas</code>, <code>rasterio</code>, <code>geopandas</code>, <code>shapely</code></td>
                 <td>Geospatial data support remains optional.</td>
               </tr>
               <tr>
@@ -100,6 +105,11 @@
                 <td><code>dev</code></td>
                 <td><code>build</code>, <code>coverage</code>, <code>tomli</code> for Python &lt; 3.11, <code>twine</code>, <code>ruff</code></td>
                 <td>Development tooling only.</td>
+              </tr>
+              <tr>
+                <td><code>docs</code></td>
+                <td>None</td>
+                <td>Explicit documentation workflow extra reserved for future docs tooling.</td>
               </tr>
             </tbody>
           </table>

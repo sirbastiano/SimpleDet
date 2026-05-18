@@ -14,7 +14,7 @@ help:
 	@echo "  make sync-cpu       Create/update .venv and install the supported CPU runtime"
 	@echo "  make install        Install project from source"
 	@echo "  make install-runtime Install the supported CPU runtime from source"
-	@echo "  make install-editable Install editable package with the CPU runtime"
+	@echo "  make install-editable Install editable package with CPU, TIMM, and dev extras"
 	@echo "  make bootstrap      Ensure build/publishing tools are up to date"
 	@echo "  make build          Build source distribution and wheel"
 	@echo "  make sdist           Build source distribution only"
@@ -43,7 +43,7 @@ install-runtime:
 	$(PYTHON) -m pip install ".[cpu]"
 
 install-editable:
-	$(PYTHON) -m pip install -e ".[cpu]"
+	$(PYTHON) -m pip install -e ".[cpu,timm,dev]"
 
 bootstrap:
 	$(PYTHON) -m pip install -U pip build

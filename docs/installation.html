@@ -38,7 +38,7 @@
       <section class="hero">
         <p class="hero-kicker">SimpleDet Docs</p>
         <h1>Installation</h1>
-        <p class="subtle">Install the package from source, add the CPU runtime extras, then verify the suite and native runtime entry points.</p>
+        <p class="subtle">Install the lightweight base package, add only the extras needed for CPU, TIMM, geospatial, plotting, docs, or development workflows, then verify the runtime entry points.</p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
           <a class="btn" href="quickstart.html">Quickstart</a>
@@ -61,20 +61,27 @@
           <h2>Requirements</h2>
           <ul>
             <li>Python <code>&gt;=3.10</code></li>
-            <li>PyTorch runtime compatible with your CPU or CUDA environment</li>
-            <li><code>simpledet[cpu]</code> for the public package runtime</li>
-            <li><code>timm</code> if you want suite-driven backbone swapping</li>
+            <li>PyTorch runtime compatible with your CPU or CUDA environment when using <code>simpledet[cpu]</code></li>
+            <li><code>simpledet[timm]</code> if you want suite-driven TIMM backbone swapping</li>
           </ul>
         </article>
 
         <article class="section" id="source-install">
+          <h2>Install commands</h2>
+          <pre><code>python -m pip install simpledet
+python -m pip install 'simpledet[cpu]'
+python -m pip install 'simpledet[timm]'</code></pre>
+
+          <p>The base install is intentionally metadata-only for lightweight imports. Add <code>cpu</code> for the native PyTorch runtime, <code>timm</code> for TIMM-backed encoders, <code>geo</code> for geospatial helpers, <code>plots</code> for plotting utilities, <code>docs</code> for documentation workflows, and <code>dev</code> for release tooling.</p>
+        </article>
+
+        <article class="section">
           <h2>Install from source</h2>
           <pre><code>git clone https://github.com/sirbastiano/SimpleDet.git
 cd SimpleDet
-python -m pip install -e .
-python -m pip install ".[cpu]"</code></pre>
+python -m pip install -e '.[cpu,timm,dev]'</code></pre>
 
-          <p>The bundled extras currently include <code>cpu</code> for runtime dependencies, <code>geo</code> for geospatial helpers, and <code>plots</code> for plotting utilities.</p>
+          <p>This editable development install includes the CPU runtime, TIMM encoders, and development dependencies without requiring MMDetection, MMEngine, or MMCV.</p>
         </article>
 
         <article class="section" id="verify">
@@ -101,7 +108,8 @@ TimmEncoder</code></pre>
           <h2>Notes</h2>
           <ul>
             <li>The documented training, inference, and evaluation flow is native-only.</li>
-            <li>Use <code>simpledet[cpu]</code> before importing <code>simpledet.native</code> or running the CLI.</li>
+            <li>Use <code>simpledet[cpu]</code> before importing <code>simpledet.native</code> or running CPU runtime commands.</li>
+            <li>Use <code>simpledet[timm]</code> before building TIMM-backed encoders.</li>
             <li><code>device="auto"</code> in the lightweight inference helper currently resolves to CPU.</li>
           </ul>
           <p class="notice">If <code>python -m simpledet --check-runtime</code> fails, fix the environment before debugging runtime code.</p>

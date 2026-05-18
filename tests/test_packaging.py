@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 import tarfile
 import unittest
 import zipfile
@@ -22,10 +25,63 @@ class TestPackagingMetadata(unittest.TestCase):
 
         self.assertEqual(project["requires-python"], ">=3.10,<3.13")
         self.assertEqual(project["license"], "MIT")
-        self.assertIn("cpu", extras)
-        self.assertIn("geo", extras)
-        self.assertIn("plots", extras)
+        self.assertEqual(project["dependencies"], [])
+        self.assertEqual(set(extras), {"cpu", "dev", "docs", "geo", "plots", "timm"})
         self.assertIn("Programming Language :: Python :: 3.12", project["classifiers"])
+
+    def test_optional_extras_keep_runtime_groups_explicit(self):
+        payload = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
+        extras = payload["project"]["optional-dependencies"]
+
+        self.assertIn("torch>=2.4,<2.11", extras["cpu"])
+        self.assertIn("torchvision>=0.19,<0.26", extras["cpu"])
+        self.assertIn("pytorch-lightning>=2.4,<3", extras["cpu"])
+        self.assertNotIn("timm>=1.0,<2", extras["cpu"])
+        self.assertNotIn("matplotlib>=3.8,<4", extras["cpu"])
+        self.assertNotIn("shapely>=2,<3", extras["cpu"])
+        self.assertEqual(extras["docs"], [])
+        self.assertEqual(extras["timm"], ["timm>=1.0,<2"])
+        self.assertIn("rasterio>=1.4,<2", extras["geo"])
+        self.assertIn("shapely>=2,<3", extras["geo"])
+        self.assertIn("matplotlib>=3.8,<4", extras["plots"])
+        self.assertFalse(
+            any(
+                "mmdet" in dependency.lower() or "mmcv" in dependency.lower()
+                for values in extras.values()
+                for dependency in values
+            )
+        )
+
+    def test_base_package_import_does_not_require_optional_runtime_extras(self):
+        script = r"""
+import importlib.abc
+import sys
+
+blocked = {"matplotlib", "rasterio", "timm", "torch"}
+
+class BlockOptionalExtras(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split(".", 1)[0] in blocked:
+            message = f"blocked optional dependency: {fullname}"
+            raise ModuleNotFoundError(message, name=fullname)
+        return None
+
+sys.meta_path.insert(0, BlockOptionalExtras())
+import simpledet
+print(simpledet.__version__)
+"""
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(REPO_ROOT / "simpledet")
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=REPO_ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
 
     def test_license_file_exists(self):
         self.assertTrue((REPO_ROOT / "LICENSE").is_file())
@@ -37,7 +93,9 @@ class TestBuiltDistributions(unittest.TestCase):
         cls.wheel_path = next(DIST_DIR.glob("*.whl"), None)
         cls.sdist_path = next(DIST_DIR.glob("*.tar.gz"), None)
         if cls.wheel_path is None or cls.sdist_path is None:
-            raise unittest.SkipTest("Build artifacts not present in dist/. Run python3 -m build first.")
+            raise unittest.SkipTest(
+                "Build artifacts not present in dist/. Run python3 -m build first."
+            )
         source_inputs = [
             REPO_ROOT / "pyproject.toml",
             REPO_ROOT / "README.md",
@@ -46,18 +104,49 @@ class TestBuiltDistributions(unittest.TestCase):
             REPO_ROOT / "assets" / "simpledet-logo.svg",
             REPO_ROOT / "notebooks" / "Tools" / "simpledet_showcase.ipynb",
         ]
-        latest_source_mtime = max(path.stat().st_mtime for path in source_inputs if path.exists())
-        earliest_dist_mtime = min(cls.wheel_path.stat().st_mtime, cls.sdist_path.stat().st_mtime)
+        latest_source_mtime = max(
+            path.stat().st_mtime for path in source_inputs if path.exists()
+        )
+        earliest_dist_mtime = min(
+            cls.wheel_path.stat().st_mtime, cls.sdist_path.stat().st_mtime
+        )
         if earliest_dist_mtime < latest_source_mtime:
-            raise unittest.SkipTest("Build artifacts are stale for the current source tree.")
+            raise unittest.SkipTest(
+                "Build artifacts are stale for the current source tree."
+            )
 
     def test_wheel_metadata_advertises_cpu_runtime_extra(self):
         with zipfile.ZipFile(self.wheel_path) as wheel:
-            metadata_name = next(name for name in wheel.namelist() if name.endswith(".dist-info/METADATA"))
+            metadata_name = next(
+                name for name in wheel.namelist() if name.endswith(".dist-info/METADATA")
+            )
             metadata = wheel.read(metadata_name).decode("utf-8")
 
         self.assertIn("Requires-Python: <3.13,>=3.10", metadata)
         self.assertIn("Provides-Extra: cpu", metadata)
+        self.assertIn("Provides-Extra: docs", metadata)
+        self.assertIn("Provides-Extra: timm", metadata)
+        requirements = [
+            line for line in metadata.splitlines() if line.startswith("Requires-Dist: ")
+        ]
+        self.assertTrue(
+            any(
+                line.startswith("Requires-Dist: timm") and 'extra == "timm"' in line
+                for line in requirements
+            )
+        )
+        self.assertFalse(
+            any(
+                line.startswith("Requires-Dist: timm") and 'extra == "cpu"' in line
+                for line in requirements
+            )
+        )
+        self.assertFalse(
+            any(
+                line.startswith("Requires-Dist: matplotlib") and 'extra == "cpu"' in line
+                for line in requirements
+            )
+        )
         self.assertNotIn("Provides-Extra: openmmlab", metadata)
         self.assertNotIn("mmcv-lite", metadata)
 

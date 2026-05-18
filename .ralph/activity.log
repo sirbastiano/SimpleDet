@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-18 19:14:11 | run=20260518-183418-2827287 | iter=1 | mode=build | story=US-001 | duration=2310s | status=success
 
 ## Events
 
@@ -11,3 +12,9 @@
 [2026-05-18 19:00:58] US-001 reviewer findings addressed in docs audit artifact
 [2026-05-18 19:04:37] US-001 final verification completed; reviewing security performance regression before commit
 [2026-05-18 19:09:45] US-001 progress log updated
+[2026-05-18 19:12:52] ITERATION 1 end (duration=2310s)
+[2026-05-18 19:14:32] ITERATION 2 start (mode=build story=US-002)
+[2026-05-18 19:23:05] Start work on US-002 normalize package metadata and extras
+[2026-05-18 19:37:58] US-002 metadata extras, docs, runtime dependency checks, and packaging tests updated
+[2026-05-18 19:44:15] US-002 verification completed: python3 packaging/full tests, docs-check, build, and verify-dist passed; exact python command unavailable
+[2026-05-18 19:49:00] US-002 final verification rerun completed: build, verify-dist, and full python3 unittest discovery passed

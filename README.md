@@ -61,17 +61,21 @@ python -m pip install simpledet
 ```
 
 ```bash
-python -m pip install "simpledet[cpu]"
+python -m pip install 'simpledet[cpu]'
 ```
 
 ```bash
-python -m pip install "simpledet[geo,plots]"
+python -m pip install 'simpledet[timm]'
+```
+
+```bash
+python -m pip install 'simpledet[geo,plots]'
 ```
 
 ```bash
 git clone https://github.com/sirbastiano/SimpleDet.git
 cd SimpleDet
-python -m pip install -e ".[cpu]"
+python -m pip install -e '.[cpu,timm,dev]'
 ```
 
 ```bash
@@ -83,7 +87,7 @@ python -m simpledet --check-runtime
 
 - Platforms: Linux, macOS, Windows
 - Python: 3.10, 3.11, 3.12
-- Runtime support: CPU stack via `simpledet[cpu]` (wheel-compatible dependencies are required for supported OS/Python pairs)
+- Runtime support: CPU stack via `simpledet[cpu]`, TIMM encoders via `simpledet[timm]` (wheel-compatible dependencies are required for supported OS/Python pairs)
 
 ## Core workflow
 

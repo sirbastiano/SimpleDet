@@ -23,7 +23,7 @@ def require_dependency(module_name: str, feature: str) -> None:
 
 def require_detector_runtime(feature: str = "detectors") -> None:
     """Validate optional runtime dependencies used by training and inference APIs."""
-    for dependency in ("torch", "torchvision", "timm"):
+    for dependency in ("torch", "torchvision"):
         require_dependency(dependency, feature)
 
 

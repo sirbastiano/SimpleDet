@@ -46,10 +46,11 @@
         <article class="section">
           <h2>1. Install and verify</h2>
           <p class="section-lead">
-            Install the package and CPU runtime first, then verify the command-line surface before working through the examples.
+            Install the package, CPU runtime, and TIMM encoder extra first, then verify the command-line surface before working through the examples.
           </p>
-          <pre><code>python -m pip install -e .
-python -m pip install ".[cpu]"
+          <pre><code>python -m pip install simpledet
+python -m pip install 'simpledet[cpu]'
+python -m pip install 'simpledet[timm]'
 python -m simpledet --check-runtime</code></pre>
         </article>
         <article class="section">

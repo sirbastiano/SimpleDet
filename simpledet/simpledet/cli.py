@@ -324,7 +324,7 @@ def _check_runtime() -> int:
     try:
         from .detectors._deps import require_dependency
 
-        for dependency in ("torch", "torchvision", "timm", "pytorch_lightning", "numpy"):
+        for dependency in ("torch", "torchvision", "pytorch_lightning", "numpy"):
             require_dependency(dependency, "simpledet runtime")
     except ModuleNotFoundError as exc:
         dependency = getattr(exc, "name", "")
