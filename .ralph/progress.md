@@ -5,6 +5,48 @@ Started: Mon May 18 18:34:17 UTC 2026
 - (add reusable patterns here)
 
 ---
+## [2026-05-18 20:42:38 UTC] - US-003: Define registry contract
+Thread:
+Run: 20260518-183418-2827287 (iteration 3)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-3.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-3.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 401b63b feat(registry): define component contract
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_native_backend_plan tests.test_suite tests.test_native_components tests.test_native_api_routing tests.test_api_model_resolution tests.test_deps` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_native_backend_plan tests.test_suite tests.test_native_components tests.test_native_api_routing tests.test_api_model_resolution tests.test_deps` -> PASS (56 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (113 tests, 9 skipped)
+  - Command: `make test` -> PASS (113 tests, 9 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+  - Command: `PYTHONPATH=simpledet python3 - <<'PY' ... registry alias smoke ... PY` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/extensions/__init__.py
+  - simpledet/simpledet/extensions/registry.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/backbones.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/native/necks.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_backend_plan.py
+- What was implemented
+  - Added `ComponentMetadata`, `DependencyRequirement`, alias-aware lookup, duplicate alias/name rejection, dependency requirement checks, and actionable kind-scoped unknown lookup errors to the extension registry.
+  - Registered metadata for native backbones, heads, necks, and detector families including aliases for VFNet, FOVEA/FoveaBox, RepPoints, YOLOF, CenterNet, Grid R-CNN, Cascade R-CNN, Faster R-CNN, and Mask R-CNN.
+  - Updated suite inspection/resolution and native model lookup to use registry resolution instead of scattered case-only maps.
+  - Added tests for alias normalization, duplicate alias and normalized name rejection, missing dependency messages, unknown lookup guidance, and inherited metadata on exact alias names.
+  - Security/performance/regression review: registry remains stdlib-only, optional dependency imports stay explicit/lazy, lookup work is bounded to small in-memory registries, review findings on alias metadata precedence were fixed, and full regression gates passed.
+- **Learnings for future iterations:**
+  - `python` is still unavailable; the Makefile and successful checks use `python3`.
+  - Stacked decorator registrations need metadata propagation so exact public aliases do not lose dependency or validation contract details.
+  - Alias resolution must prefer explicit aliases before compact canonical-name matching to avoid sparse secondary metadata entries.
+---
 ## [2026-05-18 19:52:23 UTC] - US-002: Normalize package metadata and extras
 Thread:
 Run: 20260518-183418-2827287 (iteration 2)
