@@ -202,3 +202,41 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - This environment has `python3` but no bare `python`; the Makefile uses `python3`.
   - Several aliases are native-compatible scaffolds, not architecture-faithful detector implementations yet.
 ---
+## [2026-05-18 22:15:37 UTC] - US-006: Implement backbone registry aliases
+Thread:
+Run: 20260518-183418-2827287 (iteration 6)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-6.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-6.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 8cd96ae feat(backbones): add native aliases
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_native_backbones tests.test_native_backend_plan tests.test_suite` -> PASS (29 tests)
+  - Command: `python3 -m py_compile simpledet/simpledet/suite/backbone_aliases.py simpledet/simpledet/suite/catalog.py simpledet/simpledet/native/backbones.py tests/test_native_backbones.py tests/test_native_backend_plan.py` -> PASS
+  - Command: `git diff --check` -> PASS
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (127 tests, 11 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - docs/configuration-guide.html
+  - simpledet/simpledet/native/backbones.py
+  - simpledet/simpledet/suite/__init__.py
+  - simpledet/simpledet/suite/backbone_aliases.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_backbones.py
+  - tests/test_native_backend_plan.py
+- What was implemented
+  - Added a native backbone alias catalog with ResNet, ResNeXt, Res2Net, HRNet, CSPDarkNet, CSPNeXt, MobileNetV2, MobileNetV3, EfficientNet, ConvNeXt, Swin Transformer, and Vision Transformer aliases plus stage-channel metadata.
+  - Exposed `build_backbone`, `list_backbones`, and `inspect_backbone` through `simpledet.suite`; `build_backbone("resnet50", out_indices=(1, 2, 3, 4))` now returns four-stage feature metadata.
+  - Registered aliases in the native `ENCODERS` registry and updated native backbone construction so alias plans pass resolved TIMM model names, out indices, input channels, and extra kwargs while preserving custom feature-channel metadata.
+  - Added alias discovery, negative unknown-backbone, output-channel metadata, registry metadata, raw TIMM regression, and native alias build tests.
+  - Security/performance/regression review: no new shell execution or untrusted dynamic imports, alias resolution is a small static lookup, raw TIMM behavior remains unchanged, and full regression gates passed via the repo-supported `python3` runner.
+- **Learnings for future iterations:**
+  - Registry alias validation normalizes separators, so duplicate aliases such as `ResNet-50` and `resnet_50` collide even though canonical names still resolve separator variants.
+  - Registered aliases backed by `TimmFeatureBackbone` must carry `model_name`; otherwise native construction cannot instantiate the adapter.
+  - This environment still has no bare `python`; use `python3` or Makefile defaults for executable validation.
+---
