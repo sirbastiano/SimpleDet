@@ -5,6 +5,43 @@ Started: Mon May 18 18:34:17 UTC 2026
 - (add reusable patterns here)
 
 ---
+## [2026-05-18 23:47:02 UTC] - US-010: Implement assignment and sampling utilities
+Thread:
+Run: 20260518-183418-2827287 (iteration 10)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-10.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-10.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 7f9ff69 feat(assignment): add native assigners
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `python3 -m py_compile simpledet/simpledet/native/assignment.py simpledet/simpledet/native/dense_ops.py simpledet/simpledet/native/transformer_ops.py simpledet/simpledet/native/__init__.py tests/test_native_assignment.py` -> PASS
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_assignment.py'` -> PASS (7 skipped; torch CPU extra unavailable)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (150 tests, 27 skipped)
+  - Command: `make test` -> PASS (150 tests, 27 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/assignment.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/native/transformer_ops.py
+  - tests/test_native_assignment.py
+- What was implemented
+  - Added registry-backed native assignment utilities for MaxIoU, ATSS, task-aligned, center-region, Hungarian, simOTA, and point-based matching plus deterministic balanced sampling.
+  - Rewired RetinaNet, ATSS/GFL, FCOS, and DETR training losses to consume native assignment results, including ignored priors and all-background no-ground-truth targets.
+  - Added CPU unit coverage for ATSS positive/negative/ignored labels, no-ground-truth assignment, ATSS no-GT loss handling, point/center-region matching, task-aligned/simOTA matching, Hungarian one-to-one matching, and sampler behavior.
+  - Security/performance/regression review: tensor-only utilities, no new file/network/secret handling, vectorized IoU/top-k matching with a bounded exact Hungarian solver, and native registry/model/runtime regressions passed.
+- **Learnings for future iterations:**
+  - Registry aliases normalize punctuation and case, so only one spelling per normalized alias key should be registered.
+  - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
+  - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
+---
 ## [2026-05-18 23:03:35 UTC] - US-008: Implement neck registry coverage
 Thread:
 Run: 20260518-183418-2827287 (iteration 8)
