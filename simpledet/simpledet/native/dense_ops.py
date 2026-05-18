@@ -9,6 +9,21 @@ import torch  # noqa: E402
 import torch.nn as nn  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 
+from .geometry import (  # noqa: E402
+    DEFAULT_ANCHOR_SIZES,
+    build_feature_map_specs,
+    clip_boxes_to_image,
+    decode_boxes,
+    decode_point_boxes,
+    encode_boxes,
+    encode_point_boxes,
+    generate_anchors,
+    generate_points,
+    make_batched_nms_payload,
+    prediction_payload_to_dict,
+    select_prediction_payload,
+)
+
 
 class DenseRetinaNetDecoder(nn.Module):
     def __init__(
@@ -24,38 +39,24 @@ class DenseRetinaNetDecoder(nn.Module):
         self.detections_per_img = int(detections_per_img)
 
     def forward(self, image, feature_maps, head_outputs):
-        from torchvision.models.detection._utils import BoxCoder
-        from torchvision.models.detection.image_list import ImageList
         from torchvision.ops import batched_nms
 
-        box_coder = BoxCoder(weights=(1.0, 1.0, 1.0, 1.0))
-        anchors = build_anchor_generator(len(feature_maps))(
-            ImageList(image.unsqueeze(0), [tuple(image.shape[-2:])]),
-            list(feature_maps),
-        )[0]
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        anchors = _anchor_priors_for_image(image, feature_maps)
         cls_logits = flatten_cls_logits(head_outputs["cls_logits"])
         bbox_regression = flatten_bbox_regression(head_outputs["bbox_regression"])
         scores, labels = torch.sigmoid(cls_logits).max(dim=1)
-        decoded = box_coder.decode_single(bbox_regression, anchors)
+        decoded = clip_boxes_to_image(decode_boxes(anchors, bbox_regression), image_size)
 
         keep = scores >= self.score_threshold
-        decoded = decoded[keep]
-        scores = scores[keep]
-        labels = labels[keep] + 1
-        if decoded.numel() == 0:
-            return {
-                "boxes": decoded.view(0, 4),
-                "scores": scores,
-                "labels": labels,
-            }
+        payload = make_batched_nms_payload(decoded[keep], scores[keep], labels[keep] + 1)
+        if payload["boxes"].numel() == 0:
+            return prediction_payload_to_dict(payload)
 
-        keep_idx = batched_nms(decoded, scores, labels, self.nms_threshold)
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
         keep_idx = keep_idx[: self.detections_per_img]
-        return {
-            "boxes": decoded[keep_idx],
-            "scores": scores[keep_idx],
-            "labels": labels[keep_idx],
-        }
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
 
 
 class DenseRetinaNetLoss(nn.Module):
@@ -72,12 +73,8 @@ class DenseRetinaNetLoss(nn.Module):
             feature_pyramids,
             head_outputs_per_image,
         ):
-            from torchvision.models.detection.image_list import ImageList
-
-            anchors = build_anchor_generator(len(feature_maps))(
-                ImageList(image.unsqueeze(0), [tuple(image.shape[-2:])]),
-                list(feature_maps),
-            )[0]
+            feature_maps = _feature_sequence(feature_maps)
+            anchors = _anchor_priors_for_image(image, feature_maps)
             cls_logits = flatten_cls_logits(head_outputs["cls_logits"])
             bbox_regression = flatten_bbox_regression(head_outputs["bbox_regression"])
 
@@ -127,6 +124,9 @@ class DenseFCOSDecoder(nn.Module):
     def forward(self, image, feature_maps, head_outputs):
         from torchvision.ops import batched_nms
 
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        feature_specs = build_feature_map_specs(feature_maps, image_size=image_size)
         cls_logits = head_outputs["cls_logits"]
         bbox_regression = head_outputs["bbox_regression"]
         if "centerness" in head_outputs:
@@ -137,8 +137,8 @@ class DenseFCOSDecoder(nn.Module):
         boxes_per_level = []
         scores_per_level = []
         labels_per_level = []
-        for feature, logits, bbox, center in zip(feature_maps, cls_logits, bbox_regression, centerness):
-            points = build_fcos_points(feature)
+        points_per_level = generate_points(feature_specs, device=feature_maps[0].device, dtype=feature_maps[0].dtype)
+        for points, logits, bbox, center in zip(points_per_level, cls_logits, bbox_regression, centerness):
             logits_flat = logits.permute(0, 2, 3, 1).reshape(-1, logits.shape[1])
             bbox_flat = bbox.permute(0, 2, 3, 1).reshape(-1, 4)
             center_flat = center.permute(0, 2, 3, 1).reshape(-1)
@@ -148,27 +148,26 @@ class DenseFCOSDecoder(nn.Module):
             keep = scores >= self.score_threshold
             if not keep.any():
                 continue
-            boxes_per_level.append(decode_fcos_boxes(points[keep], bbox_flat[keep]))
+            boxes_per_level.append(clip_boxes_to_image(decode_point_boxes(points[keep], bbox_flat[keep]), image_size))
             scores_per_level.append(scores[keep])
             labels_per_level.append(labels[keep] + 1)
 
         if not boxes_per_level:
-            empty = image.new_zeros((0, 4))
-            return {
-                "boxes": empty,
-                "scores": image.new_zeros((0,)),
-                "labels": image.new_zeros((0,), dtype=torch.long),
-            }
+            return prediction_payload_to_dict(
+                make_batched_nms_payload(
+                    image.new_zeros((0, 4)),
+                    image.new_zeros((0,)),
+                    image.new_zeros((0,), dtype=torch.long),
+                )
+            )
 
         boxes = torch.cat(boxes_per_level, dim=0)
         scores = torch.cat(scores_per_level, dim=0)
         labels = torch.cat(labels_per_level, dim=0)
-        keep_idx = batched_nms(boxes, scores, labels, self.nms_threshold)[: self.detections_per_img]
-        return {
-            "boxes": boxes[keep_idx],
-            "scores": scores[keep_idx],
-            "labels": labels[keep_idx],
-        }
+        payload = make_batched_nms_payload(boxes, scores, labels)
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
+        keep_idx = keep_idx[: self.detections_per_img]
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
 
 
 class DenseFCOSLoss(nn.Module):
@@ -177,16 +176,22 @@ class DenseFCOSLoss(nn.Module):
         total_box = torch.tensor(0.0, device=images[0].device)
         total_ctr = torch.tensor(0.0, device=images[0].device)
 
-        for target, feature_maps, head_outputs in zip(targets, feature_pyramids, head_outputs_per_image):
+        for image, target, feature_maps, head_outputs in zip(images, targets, feature_pyramids, head_outputs_per_image):
+            feature_maps = _feature_sequence(feature_maps)
+            feature_specs = build_feature_map_specs(feature_maps, image_size=_image_size(image))
+            points_per_level = generate_points(
+                feature_specs,
+                device=feature_maps[0].device,
+                dtype=feature_maps[0].dtype,
+            )
             gt_boxes = target["boxes"]
             gt_labels = target["labels"]
-            for feature, logits, bbox, center in zip(
-                feature_maps,
+            for points, logits, bbox, center in zip(
+                points_per_level,
                 head_outputs["cls_logits"],
                 head_outputs["bbox_regression"],
                 head_outputs.get("centerness", []),
             ):
-                points = build_fcos_points(feature)
                 cls_logits = logits.permute(0, 2, 3, 1).reshape(-1, logits.shape[1])
                 bbox_reg = bbox.permute(0, 2, 3, 1).reshape(-1, 4)
                 centerness = center.permute(0, 2, 3, 1).reshape(-1)
@@ -199,7 +204,7 @@ class DenseFCOSLoss(nn.Module):
                 total_cls = total_cls + F.binary_cross_entropy_with_logits(cls_logits, class_targets, reduction="mean")
 
                 if positive_mask.any():
-                    regression_targets = encode_fcos_boxes(points[positive_mask], matched_boxes[positive_mask])
+                    regression_targets = encode_point_boxes(points[positive_mask], matched_boxes[positive_mask])
                     total_box = total_box + F.l1_loss(bbox_reg[positive_mask], regression_targets, reduction="mean")
                     total_ctr = total_ctr + F.binary_cross_entropy_with_logits(
                         centerness[positive_mask],
@@ -233,41 +238,27 @@ class DenseATSSDecoder(nn.Module):
         self.detections_per_img = int(detections_per_img)
 
     def forward(self, image, feature_maps, head_outputs):
-        from torchvision.models.detection._utils import BoxCoder
-        from torchvision.models.detection.image_list import ImageList
         from torchvision.ops import batched_nms
 
-        box_coder = BoxCoder(weights=(1.0, 1.0, 1.0, 1.0))
-        anchors = build_anchor_generator(len(feature_maps))(
-            ImageList(image.unsqueeze(0), [tuple(image.shape[-2:])]),
-            list(feature_maps),
-        )[0]
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        anchors = _anchor_priors_for_image(image, feature_maps)
         cls_logits = flatten_anchor_cls_logits(head_outputs["cls_logits"])
         bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
         centerness = flatten_anchor_centerness_logits(head_outputs["centerness"])
         class_scores = torch.sigmoid(cls_logits)
         center_scores = torch.sigmoid(centerness).unsqueeze(1)
         scores, labels = (class_scores * center_scores).max(dim=1)
-        decoded = box_coder.decode_single(bbox_regression, anchors)
+        decoded = clip_boxes_to_image(decode_boxes(anchors, bbox_regression), image_size)
 
         keep = scores >= self.score_threshold
-        decoded = decoded[keep]
-        scores = scores[keep]
-        labels = labels[keep] + 1
-        if decoded.numel() == 0:
-            return {
-                "boxes": decoded.view(0, 4),
-                "scores": scores,
-                "labels": labels,
-            }
+        payload = make_batched_nms_payload(decoded[keep], scores[keep], labels[keep] + 1)
+        if payload["boxes"].numel() == 0:
+            return prediction_payload_to_dict(payload)
 
-        keep_idx = batched_nms(decoded, scores, labels, self.nms_threshold)
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
         keep_idx = keep_idx[: self.detections_per_img]
-        return {
-            "boxes": decoded[keep_idx],
-            "scores": scores[keep_idx],
-            "labels": labels[keep_idx],
-        }
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
 
 
 class DenseATSSLoss(nn.Module):
@@ -282,12 +273,8 @@ class DenseATSSLoss(nn.Module):
             feature_pyramids,
             head_outputs_per_image,
         ):
-            from torchvision.models.detection.image_list import ImageList
-
-            anchors = build_anchor_generator(len(feature_maps))(
-                ImageList(image.unsqueeze(0), [tuple(image.shape[-2:])]),
-                list(feature_maps),
-            )[0]
+            feature_maps = _feature_sequence(feature_maps)
+            anchors = _anchor_priors_for_image(image, feature_maps)
             cls_logits = flatten_anchor_cls_logits(head_outputs["cls_logits"])
             bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
             centerness = flatten_anchor_centerness_logits(head_outputs["centerness"])
@@ -337,16 +324,80 @@ class DenseGFLLoss(DenseATSSLoss):
     """GFL currently reuses the anchor-based ATSS loss path."""
 
 
-def build_anchor_generator(num_levels: int):
-    from torchvision.models.detection.anchor_utils import AnchorGenerator
+class _NativeAnchorGenerator:
+    def __init__(self, num_levels: int) -> None:
+        self.num_levels = int(num_levels)
+        if self.num_levels <= 0:
+            raise ValueError("num_levels must be positive.")
+        self.base_sizes = tuple(
+            DEFAULT_ANCHOR_SIZES[min(index, len(DEFAULT_ANCHOR_SIZES) - 1)]
+            for index in range(self.num_levels)
+        )
 
-    base_sizes = [32, 64, 128, 256, 512]
-    sizes = tuple((base_sizes[min(index, len(base_sizes) - 1)],) for index in range(num_levels))
-    aspect_ratios = tuple((0.5, 1.0, 2.0) for _ in range(num_levels))
-    return AnchorGenerator(sizes=sizes, aspect_ratios=aspect_ratios)
+    def __call__(self, image_list, feature_maps):
+        feature_maps = _feature_sequence(feature_maps)
+        image_sizes = getattr(image_list, "image_sizes", None)
+        if image_sizes is None:
+            tensors = getattr(image_list, "tensors", None)
+            image_sizes = [tuple(tensors.shape[-2:])] if tensors is not None else None
+        if image_sizes is None:
+            raise ValueError("image_list must expose image_sizes or tensors.")
+        anchors = []
+        for image_size in image_sizes:
+            feature_specs = build_feature_map_specs(feature_maps, image_size=image_size)
+            anchors.append(
+                torch.cat(
+                    generate_anchors(
+                        feature_specs,
+                        base_sizes=self.base_sizes,
+                        device=feature_maps[0].device,
+                        dtype=feature_maps[0].dtype,
+                    ),
+                    dim=0,
+                )
+            )
+        return anchors
+
+
+def build_anchor_generator(num_levels: int):
+    return _NativeAnchorGenerator(num_levels)
+
+
+def _feature_sequence(feature_maps):
+    if isinstance(feature_maps, dict):
+        return tuple(feature_maps.values())
+    return tuple(feature_maps)
+
+
+def _image_size(image):
+    if not hasattr(image, "shape") or len(image.shape) < 2:
+        raise ValueError("image must expose spatial height and width dimensions.")
+    return tuple(int(value) for value in image.shape[-2:])
+
+
+def _anchor_priors_for_image(image, feature_maps):
+    feature_specs = build_feature_map_specs(feature_maps, image_size=_image_size(image))
+    return torch.cat(
+        generate_anchors(
+            feature_specs,
+            device=feature_maps[0].device,
+            dtype=feature_maps[0].dtype,
+        ),
+        dim=0,
+    )
+
+
+def _is_tensor_like(value):
+    return hasattr(value, "shape") and hasattr(value, "reshape") and hasattr(value, "dim")
 
 
 def flatten_cls_logits(logits_per_level):
+    if _is_tensor_like(logits_per_level):
+        if logits_per_level.dim() == 3:
+            return logits_per_level.reshape(-1, logits_per_level.shape[-1])
+        if logits_per_level.dim() == 4:
+            return logits_per_level.permute(0, 2, 3, 1).reshape(-1, logits_per_level.shape[1])
+        raise ValueError("cls logits must be a 3D flattened tensor or 4D NCHW tensor.")
     flattened = []
     for level in logits_per_level:
         flattened.append(level.permute(0, 2, 3, 1).reshape(-1, level.shape[1]))
@@ -354,6 +405,12 @@ def flatten_cls_logits(logits_per_level):
 
 
 def flatten_bbox_regression(regression_per_level):
+    if _is_tensor_like(regression_per_level):
+        if regression_per_level.dim() == 3:
+            return regression_per_level.reshape(-1, 4)
+        if regression_per_level.dim() == 4:
+            return regression_per_level.permute(0, 2, 3, 1).reshape(-1, 4)
+        raise ValueError("bbox regression must be a 3D flattened tensor or 4D NCHW tensor.")
     flattened = []
     for level in regression_per_level:
         flattened.append(level.permute(0, 2, 3, 1).reshape(-1, 4))
@@ -361,6 +418,12 @@ def flatten_bbox_regression(regression_per_level):
 
 
 def flatten_centerness_logits(centerness_per_level):
+    if _is_tensor_like(centerness_per_level):
+        if centerness_per_level.dim() == 2:
+            return centerness_per_level.reshape(-1)
+        if centerness_per_level.dim() == 4:
+            return centerness_per_level.permute(0, 2, 3, 1).reshape(-1)
+        raise ValueError("centerness logits must be a 2D flattened tensor or 4D NCHW tensor.")
     flattened = []
     for level in centerness_per_level:
         flattened.append(level.permute(0, 2, 3, 1).reshape(-1))
@@ -421,40 +484,12 @@ def match_anchors(anchors, target):
     return matched_boxes, matched_labels, positive_mask
 
 
-def encode_boxes(anchors, gt_boxes):
-    anchor_widths = anchors[:, 2] - anchors[:, 0]
-    anchor_heights = anchors[:, 3] - anchors[:, 1]
-    anchor_ctr_x = anchors[:, 0] + 0.5 * anchor_widths
-    anchor_ctr_y = anchors[:, 1] + 0.5 * anchor_heights
-
-    gt_widths = gt_boxes[:, 2] - gt_boxes[:, 0]
-    gt_heights = gt_boxes[:, 3] - gt_boxes[:, 1]
-    gt_ctr_x = gt_boxes[:, 0] + 0.5 * gt_widths
-    gt_ctr_y = gt_boxes[:, 1] + 0.5 * gt_heights
-
-    eps = torch.finfo(anchor_widths.dtype).eps
-    anchor_widths = anchor_widths.clamp(min=eps)
-    anchor_heights = anchor_heights.clamp(min=eps)
-    gt_widths = gt_widths.clamp(min=eps)
-    gt_heights = gt_heights.clamp(min=eps)
-
-    dx = (gt_ctr_x - anchor_ctr_x) / anchor_widths
-    dy = (gt_ctr_y - anchor_ctr_y) / anchor_heights
-    dw = torch.log(gt_widths / anchor_widths)
-    dh = torch.log(gt_heights / anchor_heights)
-    return torch.stack((dx, dy, dw, dh), dim=1)
-
-
-def build_fcos_points(feature_map):
-    _, _, height, width = feature_map.shape
-    device = feature_map.device
-    dtype = feature_map.dtype
-    ys, xs = torch.meshgrid(
-        torch.arange(height, device=device, dtype=dtype),
-        torch.arange(width, device=device, dtype=dtype),
-        indexing="ij",
-    )
-    return torch.stack((xs.reshape(-1), ys.reshape(-1)), dim=1)
+def build_fcos_points(feature_map, *, image_size=None, stride=None):
+    strides = None if stride is None else (stride,)
+    if image_size is None and strides is None:
+        strides = ((1.0, 1.0),)
+    feature_specs = build_feature_map_specs((feature_map,), image_size=image_size, strides=strides)
+    return generate_points(feature_specs, device=feature_map.device, dtype=feature_map.dtype)[0]
 
 
 def match_points_to_boxes(points, gt_boxes, gt_labels):
@@ -480,16 +515,8 @@ def match_points_to_boxes(points, gt_boxes, gt_labels):
 
 
 def encode_fcos_boxes(points, gt_boxes):
-    left = points[:, 0] - gt_boxes[:, 0]
-    top = points[:, 1] - gt_boxes[:, 1]
-    right = gt_boxes[:, 2] - points[:, 0]
-    bottom = gt_boxes[:, 3] - points[:, 1]
-    return torch.stack((left, top, right, bottom), dim=1).clamp(min=0)
+    return encode_point_boxes(points, gt_boxes)
 
 
 def decode_fcos_boxes(points, deltas):
-    x1 = points[:, 0] - deltas[:, 0]
-    y1 = points[:, 1] - deltas[:, 1]
-    x2 = points[:, 0] + deltas[:, 2]
-    y2 = points[:, 1] + deltas[:, 3]
-    return torch.stack((x1, y1, x2, y2), dim=1)
+    return decode_point_boxes(points, deltas)
