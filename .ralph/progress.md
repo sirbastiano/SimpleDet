@@ -27,6 +27,7 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
 - Files changed:
   - .ralph/activity.log
   - .ralph/progress.md
+  - docs/api-reference.html
   - simpledet/simpledet/extensions/__init__.py
   - simpledet/simpledet/extensions/registry.py
   - simpledet/simpledet/native/assemblers.py
@@ -41,6 +42,7 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Registered metadata for native backbones, heads, necks, and detector families including aliases for VFNet, FOVEA/FoveaBox, RepPoints, YOLOF, CenterNet, Grid R-CNN, Cascade R-CNN, Faster R-CNN, and Mask R-CNN.
   - Updated suite inspection/resolution and native model lookup to use registry resolution instead of scattered case-only maps.
   - Added tests for alias normalization, duplicate alias and normalized name rejection, missing dependency messages, unknown lookup guidance, and inherited metadata on exact alias names.
+  - Updated the API reference with the registry metadata fields, alias lookup behavior, dependency error intent, and test coverage anchor.
   - Security/performance/regression review: registry remains stdlib-only, optional dependency imports stay explicit/lazy, lookup work is bounded to small in-memory registries, review findings on alias metadata precedence were fixed, and full regression gates passed.
 - **Learnings for future iterations:**
   - `python` is still unavailable; the Makefile and successful checks use `python3`.

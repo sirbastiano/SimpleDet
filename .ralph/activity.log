@@ -29,3 +29,4 @@
 [2026-05-18 20:41:04] US-003 final verification rerun completed after review fixes: python3 full tests, make test, docs-check, build, verify-dist passed
 [2026-05-18 20:42:15] US-003 security performance regression review completed; no unresolved findings before commit
 [2026-05-18 20:43:32] US-003 progress log updated with commit and verification details
+[2026-05-18 20:44:39] US-003 docs reference updated for registry contract; docs-check passed
