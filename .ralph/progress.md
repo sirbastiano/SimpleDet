@@ -12,7 +12,7 @@ Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-18
 Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-10.md
 - Guardrails reviewed: yes
 - No-commit run: false
-- Commit: 7f9ff69 feat(assignment): add native assigners
+- Commit: 7f9ff69 feat(assignment): add native assigners; 75e6fd4 test(assignment): correct sampler expectation
 - Post-commit status: `clean`
 - Verification:
   - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
@@ -39,6 +39,7 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Security/performance/regression review: tensor-only utilities, no new file/network/secret handling, vectorized IoU/top-k matching with a bounded exact Hungarian solver, and native registry/model/runtime regressions passed.
 - **Learnings for future iterations:**
   - Registry aliases normalize punctuation and case, so only one spelling per normalized alias key should be registered.
+  - Sampler tests should size requested samples to the intended positive/negative split; otherwise deterministic fill can legitimately return extra negatives.
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
 ---

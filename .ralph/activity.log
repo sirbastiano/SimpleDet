@@ -92,3 +92,4 @@
 [2026-05-18 23:46:02] US-010 pre-commit security performance regression review completed: tensor-only assignment logic, no file/network/secret handling, vectorized IoU/top-k matching with bounded Hungarian solver, dense and transformer regression gates passed
 [2026-05-18 23:47:27] US-010 progress log updated with implementation commit 7f9ff69 and verification outcomes
 [2026-05-18 23:50:25] US-010 sampler test expectation corrected and verification rerun: python3 full tests, make test, docs-check, build, verify-dist, and diff check passed
+[2026-05-18 23:51:00] US-010 progress log updated with follow-up sampler test commit 75e6fd4
