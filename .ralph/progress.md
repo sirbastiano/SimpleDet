@@ -5,6 +5,46 @@ Started: Mon May 18 18:34:17 UTC 2026
 - (add reusable patterns here)
 
 ---
+## [2026-05-18 22:44:06 UTC] - US-007: Add TIMM encoder extra
+Thread:
+Run: 20260518-183418-2827287 (iteration 7)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-7.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-7.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: b08a64b feat(timm): add prefixed feature backbone adapter
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_deps tests.test_native_backbones` -> PASS (20 tests, 1 skipped)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_native_backend_plan tests.test_native_components tests.test_suite` -> PASS (41 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (134 tests, 12 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/configuration-guide.html
+  - simpledet/simpledet/detectors/_deps.py
+  - simpledet/simpledet/native/backbones.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_deps.py
+  - tests/test_native_backbones.py
+- What was implemented
+  - Added `build_backbone("timm:<model>", out_indices=...)` support that compiles to a TIMM encoder plan without importing TIMM during suite spec construction.
+  - Kept the TIMM optional extra isolated while adding a direct install hint for `python -m pip install 'simpledet[timm]'` on missing TIMM runtime imports.
+  - Updated `TimmFeatureBackbone` to force `features_only=True`, pass explicit `out_indices` when provided, expose `feature_info`, and derive `BackboneSpec.feature_channels` from runtime TIMM metadata.
+  - Added fake-runtime tests for prefixed TIMM plans, forced `features_only`, install hints, metadata extraction, and preservation of raw TIMM defaults when `out_indices` is omitted.
+  - Added a real CPU TIMM smoke test that skips clearly when `torch` or `timm` is not installed, plus docs for the `timm:` prefix.
+  - Security/performance/regression review: no new secret handling or shell execution, TIMM import remains lazy, no hot-path loops added, and a review-found raw TIMM `out_indices` regression was fixed before commit.
+- **Learnings for future iterations:**
+  - The `timm` extra was already present from packaging work; this story needed builder/runtime behavior and tests rather than metadata churn.
+  - `build_backbone("timm:<model>")` should stay spec-only; runtime feature channels come from `feature_info` inside `simpledet.native`.
+  - Raw `build_encoder(..., source="timm")` calls without `out_indices` must preserve TIMM's model-specific defaults for compatibility.
+  - This environment has no bare `python`, `torch`, or `timm`; use `python3` for repo validation and expect the real TIMM smoke test to skip here.
+---
 ## [2026-05-18 21:48:40 UTC] - US-005: Create native tensor contract tests
 Thread:
 Run: 20260518-183418-2827287 (iteration 5)
