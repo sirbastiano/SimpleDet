@@ -73,3 +73,4 @@
 [2026-05-18 23:00:12] Implemented US-008 neck registry classes, tensor-contract validation, exports, and tests
 [2026-05-18 23:01:51] Verification complete for US-008: focused tests, full unittest via python3, docs-check, build, and verify-dist run
 [2026-05-18 23:02:29] Pre-commit security performance regression review completed for US-008: no unsafe input handling, unbounded I/O, or default FPN regressions found
+[2026-05-18 23:04:28] US-008 progress log updated with implementation commit b2f85bf and verification outcomes

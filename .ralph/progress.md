@@ -5,6 +5,42 @@ Started: Mon May 18 18:34:17 UTC 2026
 - (add reusable patterns here)
 
 ---
+## [2026-05-18 23:03:35 UTC] - US-008: Implement neck registry coverage
+Thread:
+Run: 20260518-183418-2827287 (iteration 8)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-8.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-8.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: b2f85bf feat(necks): implement native registry coverage
+- Post-commit status: `clean`
+- Verification:
+  - Command: `python3 -m py_compile simpledet/simpledet/native/necks.py simpledet/simpledet/native/__init__.py tests/test_native_components.py` -> PASS
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest tests.test_native_components.NativeComponentTests.test_build_native_neck_aliases_resolved tests.test_native_components.NativeComponentTests.test_build_native_neck_aliases_normalized_names tests.test_native_components.NativeComponentTests.test_native_neck_alias_metadata_covers_required_families tests.test_native_components.NativeComponentTests.test_native_neck_aliases_forward_shapes_with_real_tensors tests.test_native_components.NativeComponentTests.test_native_neck_tensor_contract_rejects_level_mismatch tests.test_native_components.NativeComponentTests.test_native_neck_tensor_contract_rejects_channel_mismatch` -> PASS (6 tests, 3 skipped)
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest tests.test_native_components` -> PASS (26 tests, 3 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (138 tests, 15 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/necks.py
+  - tests/test_native_components.py
+- What was implemented
+  - Registered explicit native neck coverage for FPN, PAFPN, NASFPN, BiFPN, DilatedEncoder, HRFPN, SSDNeck, and YOLOXPAFPN with aliases, dependency metadata, tensor contracts, and exports.
+  - Added forward-time tensor-contract validation for feature-level count, NCHW shape, and channel mismatches before neck computation can silently truncate inputs.
+  - Added extra-output support so FPN-style and projection necks can produce `num_outs` levels greater than the input feature count.
+  - Added construction, alias metadata, forward-shape, and negative tensor-contract tests for the requested neck aliases.
+  - Security/performance/regression review: no new file, network, subprocess, or secret handling; added loops are bounded by feature levels/`num_outs`; existing default FPN fake-runtime and full unittest regression passed through the repo-supported `python3` runner.
+- **Learnings for future iterations:**
+  - The native neck builder injects backbone `feature_channels` as `in_channels` unless the neck plan passes explicit `in_channels`; single-level necks like DilatedEncoder should pass explicit one-level channels.
+  - Registry lookup already normalizes separators, so only one alias per normalized key should be registered to avoid collisions.
+  - This environment has no bare `python` and no torch/torchvision runtime; real tensor neck tests are present but skipped here until the CPU extra is installed.
+---
 ## [2026-05-18 22:44:06 UTC] - US-007: Add TIMM encoder extra
 Thread:
 Run: 20260518-183418-2827287 (iteration 7)
