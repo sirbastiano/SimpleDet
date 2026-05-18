@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-18 22:18:34 | run=20260518-183418-2827287 | iter=6 | mode=build | story=US-006 | duration=1675s | status=success
 - 2026-05-18 21:50:31 | run=20260518-183418-2827287 | iter=5 | mode=build | story=US-005 | duration=1054s | status=success
 - 2026-05-18 21:32:46 | run=20260518-183418-2827287 | iter=4 | mode=build | story=US-004 | duration=2845s | status=success
 - 2026-05-18 20:45:06 | run=20260518-183418-2827287 | iter=3 | mode=build | story=US-003 | duration=2908s | status=success
@@ -56,3 +57,11 @@
 [2026-05-18 22:07:21] Implemented US-006 backbone alias catalog, suite build helpers, native encoder registrations, and tests
 [2026-05-18 22:14:07] Completed US-006 verification: focused tests, full unittest discovery, docs-check, build, and verify-dist passed with python3
 [2026-05-18 22:16:22] Updated progress log for US-006 with commit 8cd96ae and verification outcomes
+[2026-05-18 22:18:30] ITERATION 6 end (duration=1675s)
+[2026-05-18 22:18:40] ITERATION 7 start (mode=build story=US-007)
+[2026-05-18 22:28:03] US-007 required guardrails errors PRD and command discovery reviewed
+[2026-05-18 22:33:32] US-007 code changes applied: timm prefix builder, lazy feature_info adapter, install hint, CPU skip tests, docs example
+[2026-05-18 22:38:01] US-007 verification completed: focused tests, python3 full unittest, docs-check, build, and verify-dist passed; exact python gate unavailable
+[2026-05-18 22:41:22] US-007 review finding addressed: raw TIMM encoders now preserve TIMM default out_indices unless explicitly provided
+[2026-05-18 22:42:37] US-007 final verification rerun completed after review fix: python3 full unittest, docs-check, build, and verify-dist passed
+[2026-05-18 22:43:14] US-007 security performance regression review completed before commit: no unresolved findings; raw TIMM default regression fixed

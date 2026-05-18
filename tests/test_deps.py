@@ -34,3 +34,14 @@ class TestDeps(unittest.TestCase):
             with self.assertRaises(ImportError) as context:
                 deps.require_dependency("torch", "train")
             self.assertIn("optional dependency 'torch'", str(context.exception))
+
+    def test_require_dependency_includes_timm_extra_hint(self):
+        with patch(
+            "simpledet.detectors._deps.import_module",
+            side_effect=ModuleNotFoundError("not found", name="timm"),
+        ):
+            with self.assertRaises(ImportError) as context:
+                deps.require_dependency("timm", "native backbones")
+
+        self.assertIn("optional dependency 'timm'", str(context.exception))
+        self.assertIn("python -m pip install 'simpledet[timm]'", str(context.exception))

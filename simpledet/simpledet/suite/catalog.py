@@ -16,6 +16,11 @@ from .backbone_aliases import (
 from .specs import DecoderSpec, DetectorSpec, EncoderSpec, HeadSpec, NeckSpec
 
 
+_DEFAULT_ALIAS_OUT_INDICES = (1, 2, 3, 4)
+_OUT_INDICES_UNSET = object()
+_TIMM_BACKBONE_PREFIX = "timm:"
+
+
 ARCHITECTURE_FAMILIES: dict[str, str] = {
     "retinanet": "dense",
     "retina": "dense",
@@ -340,12 +345,32 @@ def build_backbone(
     *,
     pretrained: bool = True,
     in_channels: int | None = None,
-    out_indices: tuple[int, ...] | list[int] | str | None = (1, 2, 3, 4),
+    out_indices: tuple[int, ...] | list[int] | str | None | object = _OUT_INDICES_UNSET,
     imports: tuple[str, ...] | list[str] | None = None,
     **extra: Any,
 ) -> EncoderSpec:
+    timm_model_name = _timm_backbone_model_name(name)
+    if timm_model_name is not None:
+        if out_indices is _OUT_INDICES_UNSET or out_indices is None:
+            raise ValueError(
+                "TIMM backbone names require explicit out_indices, for example "
+                "build_backbone('timm:resnet18', out_indices=(1, 2, 3, 4))."
+            )
+        return build_encoder(
+            timm_model_name,
+            source="timm",
+            pretrained=pretrained,
+            in_channels=in_channels,
+            imports=imports,
+            out_indices=_normalize_timm_out_indices(out_indices),
+            **extra,
+        )
+
     alias = resolve_backbone_alias(name)
-    resolved_out_indices = normalize_out_indices(alias, out_indices)
+    alias_out_indices = (
+        _DEFAULT_ALIAS_OUT_INDICES if out_indices is _OUT_INDICES_UNSET else out_indices
+    )
+    resolved_out_indices = normalize_out_indices(alias, alias_out_indices)
     feature_channels = select_feature_channels(alias, resolved_out_indices)
     backbone_cfg: dict[str, Any] = {
         "type": alias.name,
@@ -365,6 +390,32 @@ def build_backbone(
         feature_channels=feature_channels,
         imports=imports,
     )
+
+
+def _timm_backbone_model_name(name: str) -> str | None:
+    requested = str(name).strip()
+    if not requested.lower().startswith(_TIMM_BACKBONE_PREFIX):
+        return None
+    model_name = requested[len(_TIMM_BACKBONE_PREFIX):].strip()
+    if not model_name:
+        raise ValueError("TIMM backbone names must include a model after 'timm:'.")
+    return model_name
+
+
+def _normalize_timm_out_indices(
+    out_indices: tuple[int, ...] | list[int] | str | object,
+) -> tuple[int, ...]:
+    if isinstance(out_indices, str):
+        values = tuple(
+            int(item.strip()) for item in out_indices.split(",") if item.strip()
+        )
+    else:
+        values = tuple(int(item) for item in out_indices)  # type: ignore[arg-type]
+    if not values:
+        raise ValueError("TIMM backbone out_indices must contain at least one stage index.")
+    if any(index < 0 for index in values):
+        raise ValueError("TIMM backbone out_indices must be non-negative stage indices.")
+    return values
 
 
 def build_neck(

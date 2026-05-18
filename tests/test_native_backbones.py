@@ -1,6 +1,7 @@
 import sys
 import types
 import unittest
+from importlib.util import find_spec
 from unittest.mock import patch
 
 from simpledet.suite import (
@@ -161,6 +162,36 @@ class NativeBackboneTests(unittest.TestCase):
         self.assertEqual(plan.encoder.params["model_name"], "resnet18.a1_in1k")
         self.assertEqual(plan.encoder.params["out_indices"], [0, 2])
 
+    def test_build_backbone_timm_prefix_compiles_to_timm_plan(self):
+        encoder = build_backbone(
+            name="timm:resnet18",
+            pretrained=False,
+            in_channels=4,
+            out_indices=(1, 2, 3, 4),
+            drop_rate=0.1,
+        )
+        spec = build_detector("retinanet", num_classes=2, encoder=encoder)
+        plan = compile_native_detector_plan(spec)
+
+        self.assertEqual(encoder.source, "timm")
+        self.assertEqual(encoder.name, "resnet18")
+        self.assertIsNone(encoder.feature_channels)
+        self.assertEqual(plan.encoder.type, "timm")
+        self.assertEqual(plan.encoder.source, "timm")
+        self.assertEqual(plan.encoder.params["model_name"], "resnet18")
+        self.assertEqual(plan.encoder.params["pretrained"], False)
+        self.assertEqual(plan.encoder.params["in_channels"], 4)
+        self.assertEqual(plan.encoder.params["out_indices"], (1, 2, 3, 4))
+        self.assertEqual(plan.encoder.params["drop_rate"], 0.1)
+
+    def test_build_backbone_timm_prefix_requires_explicit_out_indices(self):
+        with self.assertRaises(ValueError) as context:
+            build_backbone(name="timm:resnet18", pretrained=False)
+
+        message = str(context.exception)
+        self.assertIn("TIMM backbone names require explicit out_indices", message)
+        self.assertIn("build_backbone('timm:resnet18'", message)
+
     def test_build_native_backbone_resolves_registered_alias(self):
         captured = {}
         fake_timm = types.ModuleType("timm")
@@ -265,6 +296,89 @@ class NativeBackboneTests(unittest.TestCase):
         self.assertEqual(captured["kwargs"]["out_indices"], (0, 2))
         self.assertEqual(captured["kwargs"]["drop_rate"], 0.2)
 
+    def test_timm_backbone_forces_features_only_and_exposes_feature_info(self):
+        captured = {}
+
+        fake_timm = types.ModuleType("timm")
+
+        def create_model(model_name, **kwargs):
+            captured["model_name"] = model_name
+            captured["kwargs"] = dict(kwargs)
+            return _FakeEncoder([64, 128, 256, 512])
+
+        fake_timm.create_model = create_model
+
+        fake_modules = _fake_torch_modules()
+        fake_modules["timm"] = fake_timm
+        with patch.dict(sys.modules, fake_modules):
+            from simpledet.native.backbones import build_native_backbone
+
+            encoder = build_backbone(
+                "timm:resnet18",
+                pretrained=False,
+                in_channels=4,
+                out_indices=(1, 2, 3, 4),
+                features_only=False,
+                drop_rate=0.2,
+            )
+            spec = build_detector("retinanet", num_classes=2, encoder=encoder)
+            plan = compile_native_detector_plan(spec)
+            backbone, metadata = build_native_backbone(plan.encoder)
+
+        self.assertEqual(captured["model_name"], "resnet18")
+        self.assertTrue(captured["kwargs"]["features_only"])
+        self.assertEqual(captured["kwargs"]["in_chans"], 4)
+        self.assertEqual(captured["kwargs"]["pretrained"], False)
+        self.assertEqual(captured["kwargs"]["out_indices"], (1, 2, 3, 4))
+        self.assertEqual(captured["kwargs"]["drop_rate"], 0.2)
+        self.assertIs(backbone.feature_info, backbone.encoder.feature_info)
+        self.assertEqual(metadata.feature_channels, (64, 128, 256, 512))
+
+    def test_timm_backbone_without_out_indices_preserves_timm_default(self):
+        captured = {}
+
+        fake_timm = types.ModuleType("timm")
+
+        def create_model(model_name, **kwargs):
+            captured["model_name"] = model_name
+            captured["kwargs"] = dict(kwargs)
+            return _FakeEncoder([16, 32, 64])
+
+        fake_timm.create_model = create_model
+
+        fake_modules = _fake_torch_modules()
+        fake_modules["timm"] = fake_timm
+        with patch.dict(sys.modules, fake_modules):
+            from simpledet.native.backbones import TimmFeatureBackbone
+
+            TimmFeatureBackbone(
+                model_name="resnet18.a1_in1k",
+                pretrained=False,
+                timm_kwargs={"features_only": False},
+            )
+
+        self.assertEqual(captured["model_name"], "resnet18.a1_in1k")
+        self.assertTrue(captured["kwargs"]["features_only"])
+        self.assertNotIn("out_indices", captured["kwargs"])
+
+    def test_timm_backbone_missing_extra_has_install_hint(self):
+        fake_modules = _fake_torch_modules()
+        with patch.dict(sys.modules, fake_modules):
+            from simpledet.native.backbones import TimmFeatureBackbone
+
+            with patch(
+                "simpledet.detectors._deps.import_module",
+                side_effect=ModuleNotFoundError("missing", name="timm"),
+            ):
+                with self.assertRaises(ImportError) as context:
+                    TimmFeatureBackbone(
+                        model_name="resnet18",
+                        pretrained=False,
+                        out_indices=(1, 2, 3, 4),
+                    )
+
+        self.assertIn("python -m pip install 'simpledet[timm]'", str(context.exception))
+
     def test_build_native_model_accepts_non_3_channel_input(self):
         captured = {}
 
@@ -360,3 +474,36 @@ class NativeBackboneTests(unittest.TestCase):
 
         self.assertEqual(outputs, (("feature", 3),))
         self.assertEqual(backbone.feature_channels, (16, 32, 64))
+
+    def test_real_timm_prefixed_backbone_runs_cpu_when_installed(self):
+        if find_spec("torch") is None:
+            raise unittest.SkipTest(
+                "PyTorch CPU runtime is not installed; install with python -m pip install 'simpledet[cpu]'."
+            )
+        if find_spec("timm") is None:
+            raise unittest.SkipTest(
+                "TIMM optional extra is not installed; install with python -m pip install 'simpledet[timm]'."
+            )
+
+        import torch
+
+        from simpledet.native.backbones import build_native_backbone
+
+        encoder = build_backbone(
+            name="timm:resnet18",
+            pretrained=False,
+            out_indices=(1, 2, 3, 4),
+        )
+        spec = build_detector("retinanet", num_classes=2, encoder=encoder)
+        plan = compile_native_detector_plan(spec)
+        backbone, metadata = build_native_backbone(plan.encoder)
+
+        with torch.no_grad():
+            features = backbone(torch.zeros(1, 3, 64, 64))
+
+        self.assertTrue(hasattr(backbone, "feature_info"))
+        self.assertEqual(len(features), 4)
+        self.assertEqual(
+            metadata.feature_channels,
+            tuple(int(feature.shape[1]) for feature in features),
+        )

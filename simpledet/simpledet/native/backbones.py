@@ -48,18 +48,22 @@ class TimmFeatureBackbone(nn.Module):
         self.model_name = str(model_name)
         self.pretrained = bool(pretrained)
         self.in_channels = int(in_channels)
-        self.out_indices = tuple(out_indices) if out_indices is not None else None
+        extra_kwargs = dict(timm_kwargs or {})
+        if out_indices is None and "out_indices" in extra_kwargs:
+            out_indices = extra_kwargs.pop("out_indices")
+        self.out_indices = _coerce_out_indices(out_indices)
         kwargs: dict[str, Any] = {
             "in_chans": self.in_channels,
             "pretrained": self.pretrained,
             "features_only": True,
         }
-        kwargs.update(dict(timm_kwargs or {}))
+        kwargs.update(extra_kwargs)
+        kwargs["features_only"] = True
         if self.out_indices is not None:
             kwargs["out_indices"] = self.out_indices
-        kwargs["features_only"] = bool(kwargs.get("features_only", True))
         self.encoder = timm.create_model(self.model_name, **kwargs)
-        self.feature_channels = _extract_feature_channels(self.encoder)
+        self.feature_info = _extract_feature_info(self.encoder)
+        self.feature_channels = _extract_feature_channels(self.feature_info)
 
     def __call__(self, x):
         return self.forward(x)
@@ -144,10 +148,14 @@ def _coerce_out_indices(out_indices: Any) -> tuple[int, ...] | None:
     return tuple(int(item) for item in out_indices)
 
 
-def _extract_feature_channels(model: Any) -> tuple[int, ...]:
+def _extract_feature_info(model: Any) -> Any:
     feature_info = getattr(model, "feature_info", None)
     if feature_info is None:
         raise ValueError("Native timm backbones require feature_info metadata.")
+    return feature_info
+
+
+def _extract_feature_channels(feature_info: Any) -> tuple[int, ...]:
     if hasattr(feature_info, "channels"):
         return tuple(int(channel) for channel in feature_info.channels())
     info = getattr(feature_info, "info", None)

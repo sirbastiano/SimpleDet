@@ -5,10 +5,21 @@ from __future__ import annotations
 from importlib import import_module
 
 
+_EXTRA_INSTALL_HINTS = {
+    "timm": "timm",
+}
+
+
 def _missing_dependency(module_name: str, feature: str) -> str:
+    extra = _EXTRA_INSTALL_HINTS.get(module_name)
+    install_hint = (
+        f" Install with `python -m pip install 'simpledet[{extra}]'`."
+        if extra is not None
+        else " Install this dependency before importing this symbol."
+    )
     return (
         f"simpledet public API '{feature}' requires the optional dependency "
-        f"'{module_name}'. Install this dependency before importing this symbol."
+        f"'{module_name}'.{install_hint}"
     )
 
 

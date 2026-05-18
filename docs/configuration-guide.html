@@ -74,6 +74,14 @@ spec = build_detector("retinanet", encoder=backbone, num_classes=5)</code></pre>
             Native assembly uses that metadata to adapt downstream channel settings for concise names such as <code>resnet50</code>,
             <code>ConvNeXt</code>, <code>Swin Transformer</code>, and <code>ViT</code> without manual channel tables.
           </p>
+          <pre><code>timm_backbone = build_backbone(
+    "timm:resnet18",
+    pretrained=False,
+    out_indices=(1, 2, 3, 4),
+)</code></pre>
+          <p>
+            Prefix a TIMM model name with <code>timm:</code> when you want runtime feature metadata discovered from <code>simpledet[timm]</code>.
+          </p>
         </article>
         <article class="section">
           <h2>Compile to a native build plan</h2>
