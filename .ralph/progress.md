@@ -316,3 +316,39 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Registered aliases backed by `TimmFeatureBackbone` must carry `model_name`; otherwise native construction cannot instantiate the adapter.
   - This environment still has no bare `python`; use `python3` or Makefile defaults for executable validation.
 ---
+## [2026-05-18 23:21:18 UTC] - US-009: Implement anchor and point utilities
+Thread:
+Run: 20260518-183418-2827287 (iteration 9)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-9.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-9.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 1f13f45 feat(geometry): add native dense priors
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_geometry.py'` -> PASS (5 skipped; torch CPU extra unavailable)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (143 tests, 20 skipped)
+  - Command: `make test` -> PASS (143 tests, 20 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/native/geometry.py
+  - tests/test_native_geometry.py
+- What was implemented
+  - Added native feature-map specs, stride inference, anchor priors, point priors, bbox encode/decode, point-distance encode/decode, IoU, clipping, scaling, and batched-NMS payload helpers.
+  - Rewired RetinaNet, FCOS, ATSS, and GFL dense decode/loss paths to share the geometry helpers while preserving public per-image prediction dictionaries.
+  - Added validation for invalid feature sizes, invalid strides, payload shape mismatches, and empty tensors before malformed priors or detections are emitted.
+  - Added unit coverage for anchor counts, point coordinates, bbox round trips, IoU, clipping, scaling, payload grouping, empty inputs, and negative validation cases.
+  - Security/performance/regression review: tensor-only utilities, no new trust boundary or file/network handling, vectorized prior/box math, existing dense prediction contracts preserved.
+- **Learnings for future iterations:**
+  - The native dense path previously used torchvision AnchorGenerator/BoxCoder in decode and loss paths; shared native geometry now owns that dependency direction.
+  - Retina-style anchor heads need nine anchors per location to match native head specs; the new default prior scales produce that count.
+  - This environment still has no bare `python` and no installed torch CPU extra; use `python3`/Makefile gates, and tensor-heavy tests run when the CPU extra is available.
+---
