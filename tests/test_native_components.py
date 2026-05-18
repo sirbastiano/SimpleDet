@@ -6,7 +6,14 @@ import unittest
 from unittest.mock import patch
 
 from simpledet.extensions import DETECTORS, ENCODERS, HEADS, NECKS
-from simpledet.suite import build_custom_detector, build_detector, build_neck
+from simpledet.suite import (
+    build_custom_detector,
+    build_custom_encoder,
+    build_detector,
+    build_neck,
+    compile_native_detector_plan,
+)
+from native_tensor_contracts import require_torch
 
 _COUNTER = itertools.count()
 _NATIVE_REGISTRIES = (DETECTORS, ENCODERS, HEADS, NECKS)
@@ -127,6 +134,27 @@ def _fake_torch_modules():
     }
 
 
+def _require_torchvision():
+    try:
+        import torchvision  # noqa: F401
+    except ImportError as exc:
+        raise unittest.SkipTest("Torchvision CPU runtime is not installed.") from exc
+
+
+def _make_tensor_features(channels, spatial_shapes, *, batch_size=2):
+    torch = require_torch()
+    features = []
+    for level, (channel, (height, width)) in enumerate(zip(channels, spatial_shapes)):
+        features.append(
+            torch.full(
+                (batch_size, int(channel), int(height), int(width)),
+                fill_value=float(level + 1) / 10.0,
+                dtype=torch.float32,
+            )
+        )
+    return tuple(features)
+
+
 class NativeComponentTests(unittest.TestCase):
     def test_build_native_neck_aliases_resolved(self):
         fake_timm = types.ModuleType("timm")
@@ -154,19 +182,33 @@ class NativeComponentTests(unittest.TestCase):
         )
         with patch.dict(sys.modules, fake_modules):
             from simpledet.native.necks import build_native_neck
-            from simpledet.suite import compile_native_detector_plan
 
-            for neck_name in ("FPN", "FPNLite", "FPNLiteNeck", "PAN", "PANET", "BiFPN", "BiFPNV2", "PAFPN", "NASFPN"):
+            neck_cases = {
+                "FPN": ((64, 128, 256, 512), {}),
+                "FPNLite": ((64, 128, 256, 512), {}),
+                "FPNLiteNeck": ((64, 128, 256, 512), {}),
+                "PAN": ((64, 128, 256, 512), {}),
+                "PANET": ((64, 128, 256, 512), {}),
+                "BiFPN": ((64, 128, 256, 512), {}),
+                "BiFPNV2": ((64, 128, 256, 512), {}),
+                "PAFPN": ((64, 128, 256, 512), {}),
+                "NASFPN": ((64, 128, 256, 512), {}),
+                "DilatedEncoder": ((256,), {"in_channels": [256], "num_outs": 1}),
+                "HRFPN": ((32, 64, 128, 256), {}),
+                "SSDNeck": ((64, 128, 256), {"num_outs": 4}),
+                "YOLOXPAFPN": ((64, 128, 256), {}),
+            }
+            for neck_name, (feature_channels, neck_kwargs) in neck_cases.items():
                 detector_spec = build_detector(
                     "retinanet",
                     num_classes=2,
                     encoder="resnet18.a1_in1k",
-                    neck=build_neck(neck_name, out_channels=256),
+                    neck=build_neck(neck_name, out_channels=256, **neck_kwargs),
                 )
                 plan = compile_native_detector_plan(detector_spec)
-                _, neck_spec = build_native_neck(plan.neck, feature_channels=(64, 128, 256, 512))
+                _, neck_spec = build_native_neck(plan.neck, feature_channels=feature_channels)
                 self.assertEqual(neck_spec.out_channels, 256)
-                self.assertEqual(neck_spec.num_outs, len((64, 128, 256, 512)))
+                self.assertEqual(neck_spec.num_outs, int(neck_kwargs.get("num_outs", len(feature_channels))))
 
     def test_build_native_neck_aliases_normalized_names(self):
         fake_ops = types.ModuleType("torchvision.ops")
@@ -191,16 +233,142 @@ class NativeComponentTests(unittest.TestCase):
         with patch.dict(sys.modules, fake_modules):
             from simpledet.native.necks import build_native_neck
 
-            for neck_name in ("fpn-lite", "PANET", "PAN"):
+            aliases = {
+                "fpn-lite": ("FPNLite", (64, 128, 256, 512)),
+                "PANET": ("PANET", (64, 128, 256, 512)),
+                "PAN": ("PAN", (64, 128, 256, 512)),
+                "pa-fpn": ("PAFPN", (64, 128, 256, 512)),
+                "nas-fpn": ("NASFPN", (64, 128, 256, 512)),
+                "bi-fpn": ("BiFPN", (64, 128, 256, 512)),
+                "dilated-encoder": ("DilatedEncoder", (256,)),
+                "hr-fpn": ("HRFPN", (32, 64, 128, 256)),
+                "ssd-neck": ("SSDNeck", (64, 128, 256)),
+                "yolox-pafpn": ("YOLOXPAFPN", (64, 128, 256)),
+            }
+            for neck_name, (expected_name, feature_channels) in aliases.items():
                 class _NeckPlan:
                     type = neck_name
                     params = {}
 
-                _, neck_spec = build_native_neck(_NeckPlan(), feature_channels=(64, 128, 256, 512))
-                if neck_name == "PAN":
-                    self.assertEqual(neck_spec.name, "PAN")
-                else:
-                    self.assertEqual(neck_spec.name, "FPNLite" if neck_name == "fpn-lite" else "PANET")
+                _, neck_spec = build_native_neck(_NeckPlan(), feature_channels=feature_channels)
+                self.assertEqual(neck_spec.name, expected_name)
+
+    def test_native_neck_alias_metadata_covers_required_families(self):
+        fake_ops = types.ModuleType("torchvision.ops")
+
+        class _FakeFPN:
+            def __init__(self, *args, **kwargs):
+                pass
+
+        fake_ops.FeaturePyramidNetwork = _FakeFPN
+        fake_torchvision = types.ModuleType("torchvision")
+
+        fake_modules = _fake_torch_modules()
+        fake_modules.update(
+            {
+                "torchvision": fake_torchvision,
+                "torchvision.ops": fake_ops,
+            }
+        )
+        with patch.dict(sys.modules, fake_modules):
+            import simpledet.native.necks  # noqa: F401
+
+        aliases = {
+            "fpn": "FPN",
+            "pa_fpn": "PAFPN",
+            "nas_fpn": "NASFPN",
+            "bi_fpn": "BiFPN",
+            "dilated_encoder": "DilatedEncoder",
+            "hr_fpn": "HRFPN",
+            "ssd_neck": "SSDNeck",
+            "yolox_pafpn": "YOLOXPAFPN",
+        }
+        for alias, expected_name in aliases.items():
+            with self.subTest(alias=alias):
+                metadata = NECKS.lookup(alias)
+                self.assertEqual(metadata.name, expected_name)
+                self.assertEqual(metadata.family, "neck")
+                self.assertTrue(metadata.required_dependencies)
+                self.assertTrue(metadata.tensor_contracts)
+                self.assertNotEqual(metadata.validation_status, "unvalidated")
+
+    def test_native_neck_aliases_forward_shapes_with_real_tensors(self):
+        torch = require_torch()
+        _require_torchvision()
+
+        from simpledet.native.necks import build_native_neck
+
+        cases = [
+            ("fpn", [8, 16, 32, 64], ((32, 32), (16, 16), (8, 8), (4, 4)), 12, 5),
+            ("pa_fpn", [8, 16, 32, 64], ((32, 32), (16, 16), (8, 8), (4, 4)), 12, 5),
+            ("nas_fpn", [8, 16, 32, 64], ((32, 32), (16, 16), (8, 8), (4, 4)), 12, 5),
+            ("bi_fpn", [8, 16, 32, 64], ((32, 32), (16, 16), (8, 8), (4, 4)), 12, 5),
+            ("dilated_encoder", [32], ((16, 16),), 16, 1),
+            ("hr_fpn", [8, 16, 32, 64], ((32, 32), (16, 16), (8, 8), (4, 4)), 12, 5),
+            ("ssd_neck", [8, 16, 32], ((32, 32), (16, 16), (8, 8)), 12, 5),
+            ("yolox_pafpn", [8, 16, 32], ((32, 32), (16, 16), (8, 8)), 12, 3),
+        ]
+        for name, in_channels, input_shapes, out_channels, num_outs in cases:
+            with self.subTest(name=name):
+                detector_spec = build_detector(
+                    "retinanet",
+                    num_classes=2,
+                    encoder=build_custom_encoder(
+                        "UnitBackbone",
+                        imports=(),
+                        feature_channels=in_channels,
+                    ),
+                    neck=build_neck(
+                        name,
+                        in_channels=in_channels,
+                        out_channels=out_channels,
+                        num_outs=num_outs,
+                    ),
+                )
+                plan = compile_native_detector_plan(detector_spec)
+                neck, neck_spec = build_native_neck(plan.neck, feature_channels=tuple(in_channels))
+                neck.eval()
+                features = _make_tensor_features(in_channels, input_shapes)
+
+                with torch.no_grad():
+                    outputs = neck(features)
+
+                self.assertEqual(neck_spec.num_outs, num_outs)
+                self.assertEqual(len(outputs), num_outs)
+                self.assertTrue(all(tuple(output.shape[:2]) == (2, out_channels) for output in outputs))
+                self.assertEqual(tuple(outputs[0].shape[-2:]), tuple(input_shapes[0]))
+
+    def test_native_neck_tensor_contract_rejects_level_mismatch(self):
+        require_torch()
+
+        from simpledet.native.necks import TensorContractError, build_native_neck
+
+        plan = type(
+            "NeckPlan",
+            (),
+            {"type": "ssd_neck", "params": {"in_channels": [8, 16, 32], "out_channels": 12}},
+        )()
+        neck, _ = build_native_neck(plan, feature_channels=(8, 16, 32))
+        features = _make_tensor_features([8, 16], ((16, 16), (8, 8)))
+
+        with self.assertRaisesRegex(TensorContractError, "tensor contract feature level mismatch"):
+            neck(features)
+
+    def test_native_neck_tensor_contract_rejects_channel_mismatch(self):
+        require_torch()
+
+        from simpledet.native.necks import TensorContractError, build_native_neck
+
+        plan = type(
+            "NeckPlan",
+            (),
+            {"type": "ssd_neck", "params": {"in_channels": [8, 16], "out_channels": 12}},
+        )()
+        neck, _ = build_native_neck(plan, feature_channels=(8, 16))
+        features = _make_tensor_features([8, 12], ((16, 16), (8, 8)))
+
+        with self.assertRaisesRegex(TensorContractError, "tensor contract channel mismatch"):
+            neck(features)
 
     def test_build_native_head_aliases_normalized_names(self):
         fake_modules = _fake_torch_modules()
