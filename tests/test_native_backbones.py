@@ -3,7 +3,14 @@ import types
 import unittest
 from unittest.mock import patch
 
-from simpledet.suite import build_detector, compile_native_detector_plan
+from simpledet.suite import (
+    build_backbone,
+    build_detector,
+    build_encoder,
+    compile_native_detector_plan,
+    inspect_backbone,
+    list_backbones,
+)
 
 
 class _FeatureInfo:
@@ -87,6 +94,136 @@ def _fake_torch_modules():
 
 
 class NativeBackboneTests(unittest.TestCase):
+    def test_backbone_alias_discovery_covers_required_families(self):
+        self.assertIn("resnet50", list_backbones())
+
+        expected_aliases = {
+            "ResNet": ("resnet50", "ResNet"),
+            "ResNeXt": ("resnext50_32x4d", "ResNeXt"),
+            "Res2Net": ("res2net50_26w_4s", "Res2Net"),
+            "HRNet": ("hrnet_w18", "HRNet"),
+            "CSPDarkNet": ("cspdarknet53", "CSPDarkNet"),
+            "CSPNeXt": ("cspnext_tiny", "CSPNeXt"),
+            "MobileNetV2": ("mobilenetv2_100", "MobileNetV2"),
+            "MobileNetV3": ("mobilenetv3_large_100", "MobileNetV3"),
+            "EfficientNet": ("efficientnet_b0", "EfficientNet"),
+            "ConvNeXt": ("convnext_tiny", "ConvNeXt"),
+            "Swin Transformer": ("swin_tiny_patch4_window7_224", "Swin Transformer"),
+            "Vision Transformer": ("vit_base_patch16_224", "Vision Transformer"),
+        }
+        for alias, (expected_name, expected_family) in expected_aliases.items():
+            with self.subTest(alias=alias):
+                metadata = inspect_backbone(alias)
+                self.assertEqual(metadata["name"], expected_name)
+                self.assertEqual(metadata["family"], expected_family)
+                self.assertEqual(len(metadata["feature_channels"]), 4)
+
+    def test_build_backbone_returns_expected_stage_metadata(self):
+        backbone = build_backbone(
+            name="resnet50",
+            pretrained=False,
+            in_channels=4,
+            out_indices=(1, 2, 3, 4),
+        )
+        self.assertEqual(backbone.source, "native")
+        self.assertEqual(backbone.name, "resnet50")
+        self.assertEqual(backbone.feature_channels, (256, 512, 1024, 2048))
+        self.assertEqual(backbone.backbone_cfg["type"], "resnet50")
+        self.assertEqual(backbone.backbone_cfg["model_name"], "resnet50")
+        self.assertEqual(backbone.backbone_cfg["pretrained"], False)
+        self.assertEqual(backbone.backbone_cfg["in_channels"], 4)
+        self.assertEqual(backbone.backbone_cfg["out_indices"], (1, 2, 3, 4))
+
+        spec = build_detector("retinanet", num_classes=2, encoder=backbone)
+        plan = compile_native_detector_plan(spec)
+
+        self.assertEqual(plan.encoder.type, "resnet50")
+        self.assertEqual(plan.encoder.source, "native")
+        self.assertEqual(plan.encoder.params["model_name"], "resnet50")
+        self.assertEqual(plan.encoder.params["feature_channels"], [256, 512, 1024, 2048])
+
+    def test_build_backbone_unknown_name_is_actionable(self):
+        with self.assertRaises(ValueError) as context:
+            build_backbone(name="resnet999")
+
+        message = str(context.exception)
+        self.assertIn("Unknown backbone 'resnet999'", message)
+        self.assertIn("Supported backbone aliases", message)
+        self.assertIn("list_backbones()", message)
+
+    def test_build_encoder_raw_timm_string_still_compiles_to_timm_plan(self):
+        encoder = build_encoder("resnet18.a1_in1k", source="timm", out_indices=[0, 2])
+        spec = build_detector("retinanet", num_classes=2, encoder=encoder)
+        plan = compile_native_detector_plan(spec)
+
+        self.assertEqual(plan.encoder.type, "timm")
+        self.assertEqual(plan.encoder.source, "timm")
+        self.assertEqual(plan.encoder.params["model_name"], "resnet18.a1_in1k")
+        self.assertEqual(plan.encoder.params["out_indices"], [0, 2])
+
+    def test_build_native_backbone_resolves_registered_alias(self):
+        captured = {}
+        fake_timm = types.ModuleType("timm")
+
+        def create_model(model_name, **kwargs):
+            captured["model_name"] = model_name
+            captured["kwargs"] = dict(kwargs)
+            return _FakeEncoder([256, 512, 1024, 2048])
+
+        fake_timm.create_model = create_model
+        fake_modules = _fake_torch_modules()
+        fake_modules["timm"] = fake_timm
+
+        with patch.dict(sys.modules, fake_modules):
+            from simpledet.native.backbones import build_native_backbone
+
+            encoder = build_backbone(
+                "ResNet",
+                pretrained=False,
+                in_channels=4,
+                out_indices=(1, 2, 3, 4),
+                drop_rate=0.1,
+            )
+            spec = build_detector("retinanet", num_classes=2, encoder=encoder)
+            plan = compile_native_detector_plan(spec)
+            backbone, metadata = build_native_backbone(plan.encoder)
+
+        self.assertEqual(captured["model_name"], "resnet50")
+        self.assertEqual(captured["kwargs"]["pretrained"], False)
+        self.assertEqual(captured["kwargs"]["in_chans"], 4)
+        self.assertEqual(captured["kwargs"]["out_indices"], (1, 2, 3, 4))
+        self.assertEqual(captured["kwargs"]["drop_rate"], 0.1)
+        self.assertEqual(backbone.feature_channels, (256, 512, 1024, 2048))
+        self.assertEqual(metadata.name, "resnet50")
+        self.assertEqual(metadata.source, "native")
+        self.assertEqual(metadata.feature_channels, (256, 512, 1024, 2048))
+
+    def test_build_native_backbone_preserves_custom_feature_channel_metadata(self):
+        fake_modules = _fake_torch_modules()
+        with patch.dict(sys.modules, fake_modules):
+            from simpledet.extensions import ENCODERS
+            from simpledet.native.backbones import build_native_backbone
+
+            class UnitTestBackbone(fake_modules["torch.nn"].Module):
+                def __init__(self, *, depth):
+                    super().__init__()
+                    self.depth = depth
+
+            ENCODERS.register("UnitTestBackboneUS006")(UnitTestBackbone)
+            plan = type(
+                "Plan",
+                (),
+                {
+                    "type": "UnitTestBackboneUS006",
+                    "source": "native",
+                    "params": {"depth": 12, "feature_channels": [7, 8, 9]},
+                },
+            )()
+            backbone, metadata = build_native_backbone(plan)
+
+        self.assertEqual(backbone.depth, 12)
+        self.assertEqual(metadata.feature_channels, (7, 8, 9))
+
     def test_timm_backbone_forwards_extra_params_and_out_indices(self):
         captured = {}
 

@@ -6,6 +6,13 @@ from dataclasses import replace
 from importlib import import_module
 from typing import Any
 
+from .backbone_aliases import (
+    inspect_backbone_alias,
+    list_backbone_aliases,
+    normalize_out_indices,
+    resolve_backbone_alias,
+    select_feature_channels,
+)
 from .specs import DecoderSpec, DetectorSpec, EncoderSpec, HeadSpec, NeckSpec
 
 
@@ -195,6 +202,16 @@ def inspect_native_detector_family(name: str) -> dict[str, Any]:
     return _inspect_native_family("detector", name)
 
 
+def list_backbones(pattern: str | None = None) -> list[str]:
+    """Return registered native backbone aliases."""
+    return list_backbone_aliases(pattern)
+
+
+def inspect_backbone(name: str) -> dict[str, Any]:
+    """Return metadata for a registered native backbone alias."""
+    return inspect_backbone_alias(name)
+
+
 def resolve_native_encoder_family(name: str | None = None) -> Any:
     return _resolve_native_family("encoder", name, default="timm")
 
@@ -315,6 +332,38 @@ def build_encoder(
         feature_channels=tuple(feature_channels) if feature_channels is not None else None,
         imports=tuple(imports or ()),
         extra=extra,
+    )
+
+
+def build_backbone(
+    name: str,
+    *,
+    pretrained: bool = True,
+    in_channels: int | None = None,
+    out_indices: tuple[int, ...] | list[int] | str | None = (1, 2, 3, 4),
+    imports: tuple[str, ...] | list[str] | None = None,
+    **extra: Any,
+) -> EncoderSpec:
+    alias = resolve_backbone_alias(name)
+    resolved_out_indices = normalize_out_indices(alias, out_indices)
+    feature_channels = select_feature_channels(alias, resolved_out_indices)
+    backbone_cfg: dict[str, Any] = {
+        "type": alias.name,
+        "model_name": alias.model_name,
+        "pretrained": pretrained,
+        "out_indices": resolved_out_indices,
+    }
+    if in_channels is not None:
+        backbone_cfg["in_channels"] = int(in_channels)
+    backbone_cfg.update(extra)
+    return build_encoder(
+        alias.name,
+        source="native",
+        pretrained=pretrained,
+        in_channels=in_channels,
+        backbone_cfg=backbone_cfg,
+        feature_channels=feature_channels,
+        imports=imports,
     )
 
 

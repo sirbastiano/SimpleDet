@@ -283,6 +283,33 @@ class ExtensionRegistryTests(unittest.TestCase):
                 self.assertTrue(alias_metadata.tensor_contracts)
                 self.assertNotEqual(alias_metadata.validation_status, "unvalidated")
 
+    def test_native_backbone_registry_exposes_major_alias_metadata(self):
+        with patch.dict(sys.modules, _fake_torch_modules()):
+            import simpledet.native.backbones  # noqa: F401
+
+        aliases = {
+            "ResNet": ("resnet50", "ResNet"),
+            "ResNeXt": ("resnext50_32x4d", "ResNeXt"),
+            "Res2Net": ("res2net50_26w_4s", "Res2Net"),
+            "HRNet": ("hrnet_w18", "HRNet"),
+            "CSPDarkNet": ("cspdarknet53", "CSPDarkNet"),
+            "CSPNeXt": ("cspnext_tiny", "CSPNeXt"),
+            "MobileNetV2": ("mobilenetv2_100", "MobileNetV2"),
+            "MobileNetV3": ("mobilenetv3_large_100", "MobileNetV3"),
+            "EfficientNet": ("efficientnet_b0", "EfficientNet"),
+            "ConvNeXt": ("convnext_tiny", "ConvNeXt"),
+            "Swin Transformer": ("swin_tiny_patch4_window7_224", "Swin Transformer"),
+            "Vision Transformer": ("vit_base_patch16_224", "Vision Transformer"),
+        }
+        for alias, (expected_name, expected_family) in aliases.items():
+            with self.subTest(alias=alias):
+                metadata = ENCODERS.lookup(alias)
+                self.assertEqual(metadata.name, expected_name)
+                self.assertEqual(metadata.family, expected_family)
+                self.assertTrue(metadata.required_dependencies)
+                self.assertIn("feature_channels", metadata.tensor_contracts)
+                self.assertNotEqual(metadata.validation_status, "unvalidated")
+
     def test_detector_alias_names_inherit_component_contract_metadata(self):
         with patch.dict(sys.modules, _fake_torch_modules()):
             import simpledet.native.assemblers  # noqa: F401

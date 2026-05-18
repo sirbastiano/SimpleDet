@@ -7,6 +7,7 @@ from typing import Any
 
 from ..detectors._deps import require_dependency
 from ..extensions import ENCODERS
+from ..suite.backbone_aliases import BACKBONE_ALIASES
 
 require_dependency("torch", "native backbones")
 import torch.nn as nn  # noqa: E402
@@ -67,6 +68,18 @@ class TimmFeatureBackbone(nn.Module):
         return tuple(self.encoder(x))
 
 
+for _backbone_alias in BACKBONE_ALIASES:
+    ENCODERS.register(
+        _backbone_alias.name,
+        aliases=_backbone_alias.aliases,
+        required_dependencies=(("torch", "cpu"), ("timm", "timm")),
+        tensor_contracts=("features_only_backbone", "feature_channels"),
+        validation_status="metadata_validated",
+        family=_backbone_alias.family,
+        summary=_backbone_alias.summary,
+    )(TimmFeatureBackbone)
+
+
 def build_native_backbone(encoder_plan) -> tuple[Any, BackboneSpec]:
     """Build a native backbone instance from a native component plan."""
     if encoder_plan is None:
@@ -95,10 +108,25 @@ def build_native_backbone(encoder_plan) -> tuple[Any, BackboneSpec]:
         )
         return backbone, spec
 
-    factory = ENCODERS.get(encoder_plan.type)
     params = dict(encoder_plan.params)
+    configured_channels = tuple(
+        int(channel) for channel in params.pop("feature_channels", ())
+    )
+    factory = ENCODERS.get(encoder_plan.type)
+    if factory is TimmFeatureBackbone:
+        timm_kwargs = dict(params.pop("timm_kwargs", {}) or {})
+        for key in list(params):
+            if key not in {"model_name", "pretrained", "in_channels", "out_indices"}:
+                timm_kwargs[key] = params.pop(key)
+        if timm_kwargs:
+            params["timm_kwargs"] = timm_kwargs
     backbone = factory(**params)
-    feature_channels = tuple(int(channel) for channel in params.get("feature_channels", ()))
+    runtime_channels = getattr(backbone, "feature_channels", None)
+    feature_channels = (
+        tuple(int(channel) for channel in runtime_channels)
+        if runtime_channels is not None
+        else configured_channels
+    )
     spec = BackboneSpec(
         name=str(encoder_plan.type),
         source=str(getattr(encoder_plan, "source", "custom") or "custom"),
