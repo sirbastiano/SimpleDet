@@ -1,0 +1,4 @@
+include LICENSE
+include README.md
+include assets/simpledet-logo.svg
+include notebooks/Tools/simpledet_showcase.ipynb

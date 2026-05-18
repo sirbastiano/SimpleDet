@@ -1,7 +1,7 @@
 # SimpleDet
 
 <p align="center">
-  <img src="assets/simpledet-logo.svg" alt="SimpleDet logo" width="620" />
+  <img src="https://raw.githubusercontent.com/sirbastiano/SimpleDet/main/assets/simpledet-logo.svg" alt="SimpleDet logo" width="620" />
 </p>
 
 <p align="center">
@@ -100,6 +100,7 @@ python -m simpledet --check-runtime
 - [Quickstart](docs/quickstart.html)
 - [CLI reference](docs/cli-reference.html)
 - [Core concepts](docs/core-concepts.html)
+- Executed showcase notebook: `notebooks/Tools/simpledet_showcase.ipynb`
 - [Roadmap / changelog](docs/roadmap-changelog.html)
 
 ### Repository workflow commands

@@ -7,9 +7,9 @@ from typing import Any
 from ..detectors._deps import require_dependency
 from ..suite.catalog import resolve_architecture_name
 require_dependency("torch", "native")
-import torch
-import torch.nn as nn
-from .roi import NativeRoIBackbone
+import torch  # noqa: E402
+import torch.nn as nn  # noqa: E402
+from .roi import NativeRoIBackbone  # noqa: E402
 
 
 SUPPORTED_NATIVE_ARCHITECTURES = {

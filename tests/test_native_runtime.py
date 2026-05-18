@@ -267,12 +267,23 @@ class NativeRuntimeTests(unittest.TestCase):
                             return None
 
                     class _FakeTrainer:
+                        checkpoint_callback = types.SimpleNamespace(
+                            last_model_path=str(output / "checkpoints" / "epoch_001.ckpt"),
+                            best_model_path=None,
+                        )
+
                         def fit(self, module, datamodule=None):
                             datamodule.setup("fit")
                             return None
 
-                    fake_pl = types.SimpleNamespace(LightningModule=_FakeModule, Trainer=lambda **kwargs: _FakeTrainer())
-                    fake_checkpoint = lambda **kwargs: object()
+                    def _build_fake_trainer(**kwargs):
+                        return _FakeTrainer()
+
+                    def _build_fake_checkpoint(**kwargs):
+                        return object()
+
+                    fake_pl = types.SimpleNamespace(LightningModule=_FakeModule, Trainer=_build_fake_trainer)
+                    fake_checkpoint = _build_fake_checkpoint
                     load_lightning.return_value = (fake_pl, fake_checkpoint)
 
                     result = run_native_training(
@@ -285,6 +296,7 @@ class NativeRuntimeTests(unittest.TestCase):
                     )
 
             self.assertEqual(result["backend"], "native_lightning")
+            self.assertEqual(result["checkpoint_path"], str(output / "checkpoints" / "epoch_001.ckpt"))
             self.assertTrue((output / "native-manifest.json").exists())
 
     def test_native_evaluation_returns_predictions(self):
@@ -292,6 +304,9 @@ class NativeRuntimeTests(unittest.TestCase):
             root = Path(tmpdir) / "dataset"
             output = Path(tmpdir) / "runs"
             self._write_dataset(root)
+            checkpoint_path = output / "checkpoints" / "epoch_002.ckpt"
+            checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+            checkpoint_path.write_text("checkpoint", encoding="utf-8")
             spec = build_detector("retinanet", num_classes=1, encoder="resnet18.a1_in1k")
 
             with patch.dict(sys.modules, self._tensor_runtime_modules()):
@@ -339,15 +354,22 @@ class NativeRuntimeTests(unittest.TestCase):
                             return None
 
                     class _FakeTrainer:
-                        def test(self, module, datamodule=None):
+                        def test(self, module, datamodule=None, ckpt_path=None):
                             datamodule.setup("test")
+                            assert ckpt_path == str(output / "checkpoints" / "epoch_002.ckpt")
                             image = roi_module.torch.tensor(np.zeros((3, 8, 8), dtype=np.float32))
                             target = {"image_id": [1], "boxes": [], "labels": []}
                             module.test_step(([image], [target]), 0)
                             return None
 
-                    fake_pl = types.SimpleNamespace(LightningModule=_FakeModule, Trainer=lambda **kwargs: _FakeTrainer())
-                    fake_checkpoint = lambda **kwargs: object()
+                    def _build_fake_trainer(**kwargs):
+                        return _FakeTrainer()
+
+                    def _build_fake_checkpoint(**kwargs):
+                        return object()
+
+                    fake_pl = types.SimpleNamespace(LightningModule=_FakeModule, Trainer=_build_fake_trainer)
+                    fake_checkpoint = _build_fake_checkpoint
                     load_lightning.return_value = (fake_pl, fake_checkpoint)
 
                     result = run_native_evaluation(
@@ -356,10 +378,12 @@ class NativeRuntimeTests(unittest.TestCase):
                             categories=("wake",),
                             detector_spec=spec,
                             output_dir=str(output),
+                            checkpoint_path=str(checkpoint_path),
                         )
                     )
 
             self.assertEqual(result["backend"], "native_lightning")
+            self.assertEqual(result["checkpoint_path"], str(checkpoint_path))
             self.assertTrue((output / "native-manifest.json").exists())
             prediction = result["predictions"][0]
             self.assertEqual(prediction["image_id"], 1)
@@ -369,6 +393,55 @@ class NativeRuntimeTests(unittest.TestCase):
             self.assertEqual(len(prediction["boxes"]), 4)
             self.assertEqual(len(prediction["scores"]), 4)
             self.assertEqual(len(prediction["labels"]), 4)
+
+    def test_native_evaluation_requires_existing_checkpoint(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "dataset"
+            output = Path(tmpdir) / "runs"
+            self._write_dataset(root)
+            spec = build_detector("retinanet", num_classes=1, encoder="resnet18.a1_in1k")
+
+            with patch.dict(sys.modules, self._fake_runtime_modules()):
+                from simpledet.native.runtime import NativeProjectConfig, run_native_evaluation
+
+                with patch(
+                    "simpledet.native.engine.build_native_model",
+                    return_value=types.SimpleNamespace(parameters=lambda: []),
+                ), patch("simpledet.native.engine._load_lightning") as load_lightning:
+                    class _FakeModule:
+                        def __init__(self, *args, **kwargs):
+                            pass
+
+                        def log(self, *args, **kwargs):
+                            return None
+
+                    class _FakeTrainer:
+                        def test(self, module, datamodule=None, ckpt_path=None):
+                            raise AssertionError("trainer.test should not run when the checkpoint is missing")
+
+                    def _build_fake_trainer(**kwargs):
+                        return _FakeTrainer()
+
+                    def _build_fake_checkpoint(**kwargs):
+                        return object()
+
+                    fake_pl = types.SimpleNamespace(
+                        LightningModule=_FakeModule,
+                        Trainer=_build_fake_trainer,
+                    )
+                    fake_checkpoint = _build_fake_checkpoint
+                    load_lightning.return_value = (fake_pl, fake_checkpoint)
+
+                    with self.assertRaises(FileNotFoundError):
+                        run_native_evaluation(
+                            NativeProjectConfig(
+                                dataset_root=str(root),
+                                categories=("wake",),
+                                detector_spec=spec,
+                                output_dir=str(output),
+                                checkpoint_path=str(output / "checkpoints" / "missing.ckpt"),
+                            )
+                        )
 
     def test_native_runtime_passes_detector_spec_into_model_builder(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -395,8 +468,14 @@ class NativeRuntimeTests(unittest.TestCase):
                         def fit(self, module, datamodule=None):
                             return None
 
-                    fake_pl = types.SimpleNamespace(LightningModule=_FakeModule, Trainer=lambda **kwargs: _FakeTrainer())
-                    fake_checkpoint = lambda **kwargs: object()
+                    def _build_fake_trainer(**kwargs):
+                        return _FakeTrainer()
+
+                    def _build_fake_checkpoint(**kwargs):
+                        return object()
+
+                    fake_pl = types.SimpleNamespace(LightningModule=_FakeModule, Trainer=_build_fake_trainer)
+                    fake_checkpoint = _build_fake_checkpoint
                     load_lightning.return_value = (fake_pl, fake_checkpoint)
 
                     run_native_training(

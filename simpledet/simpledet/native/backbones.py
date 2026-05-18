@@ -9,7 +9,7 @@ from ..detectors._deps import require_dependency
 from ..extensions import ENCODERS
 
 require_dependency("torch", "native backbones")
-import torch.nn as nn
+import torch.nn as nn  # noqa: E402
 
 
 @dataclass(slots=True, frozen=True)

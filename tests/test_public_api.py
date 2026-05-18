@@ -118,12 +118,17 @@ class PublicApiTests(unittest.TestCase):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
             from simpledet.api import run_project
 
+            train_result = {
+                "backend": "native_lightning",
+                "stages": ["fit"],
+                "checkpoint_path": "/results/checkpoints/epoch_001.ckpt",
+            }
             with patch(
                 "simpledet.native.runtime.run_native_inference",
                 return_value={"backend": "native_lightning", "stages": ["test"]},
             ) as infer_mock, patch(
                 "simpledet.native.runtime.run_native_training",
-                return_value={"backend": "native_lightning", "stages": ["fit"]},
+                return_value=train_result,
             ) as train_mock:
                 result = run_project(
                     {
@@ -150,8 +155,10 @@ class PublicApiTests(unittest.TestCase):
 
         train_mock.assert_called_once()
         infer_mock.assert_called_once()
+        self.assertEqual(infer_mock.call_args.args[0].checkpoint_path, train_result["checkpoint_path"])
         self.assertEqual(result["stages"], ["build", "train", "test"])
         self.assertEqual(result["backend"], "native_lightning")
+        self.assertEqual(result["train"]["checkpoint_path"], train_result["checkpoint_path"])
 
     def test_run_training_uses_native_runtime(self):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
@@ -159,7 +166,10 @@ class PublicApiTests(unittest.TestCase):
 
             with patch(
                 "simpledet.native.runtime.run_native_training",
-                return_value={"backend": "native_lightning"},
+                return_value={
+                    "backend": "native_lightning",
+                    "checkpoint_path": "/results/checkpoints/epoch_001.ckpt",
+                },
             ) as patched:
                 result = run_training(
                     dataset_root="/dataset",
@@ -176,14 +186,19 @@ class PublicApiTests(unittest.TestCase):
 
         patched.assert_called_once()
         self.assertEqual(result["backend"], "native_lightning")
+        self.assertEqual(result["checkpoint_path"], "/results/checkpoints/epoch_001.ckpt")
 
     def test_run_inference_uses_native_runtime(self):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
             from simpledet.api import run_inference
 
+            checkpoint_path = "/dataset/runs/simpledet/checkpoints/epoch_003.ckpt"
             with patch(
                 "simpledet.native.runtime.run_native_inference",
-                return_value={"backend": "native_lightning"},
+                return_value={
+                    "backend": "native_lightning",
+                    "checkpoint_path": checkpoint_path,
+                },
             ) as patched:
                 result = run_inference(
                     dataset_root="/dataset",
@@ -195,11 +210,14 @@ class PublicApiTests(unittest.TestCase):
                         "num_classes": 1,
                         "encoder": {"name": "resnet18.a1_in1k", "source": "timm"},
                     },
+                    checkpoint_path=checkpoint_path,
                     validate=False,
                 )
 
         patched.assert_called_once()
+        self.assertEqual(patched.call_args.args[0].checkpoint_path, checkpoint_path)
         self.assertEqual(result["backend"], "native_lightning")
+        self.assertEqual(result["checkpoint_path"], checkpoint_path)
 
     def test_run_evaluation_delegates_to_inference(self):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
@@ -219,9 +237,11 @@ class PublicApiTests(unittest.TestCase):
                         "num_classes": 1,
                         "encoder": {"name": "resnet18.a1_in1k", "source": "timm"},
                     },
+                    checkpoint_path="/dataset/runs/simpledet/checkpoints/epoch_003.ckpt",
                 )
 
         patched.assert_called_once()
+        self.assertEqual(patched.call_args.kwargs["checkpoint_path"], "/dataset/runs/simpledet/checkpoints/epoch_003.ckpt")
         self.assertEqual(result["backend"], "native_lightning")
 
     def test_run_training_rejects_model_cfg(self):

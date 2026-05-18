@@ -74,10 +74,6 @@ def _fake_torch_modules():
         def forward(self, x):
             return x
 
-    class Linear(Module):
-        def forward(self, x):
-            return x
-
     class Embedding(Module):
         def __init__(self, num_embeddings, embedding_dim):
             super().__init__()
@@ -427,7 +423,7 @@ class NativeComponentTests(unittest.TestCase):
             }
         )
         with patch.dict(sys.modules, fake_modules):
-            from simpledet.native.modeling import NativeRetinaNetModel, build_native_model
+            from simpledet.native.modeling import build_native_model
 
             spec = build_detector("retinanet", num_classes=2, encoder="resnet18.a1_in1k")
             model = build_native_model("retinanet", num_classes=2, detector_spec=spec)
@@ -762,7 +758,7 @@ class NativeComponentTests(unittest.TestCase):
             }
         )
         with patch.dict(sys.modules, fake_modules):
-            from simpledet.native.modeling import NativeRetinaNetModel, build_native_model
+            from simpledet.native.modeling import build_native_model
 
             spec = build_detector("fcos", num_classes=3, encoder="resnet18.a1_in1k")
             model = build_native_model("fcos", num_classes=3, detector_spec=spec)
@@ -796,7 +792,7 @@ class NativeComponentTests(unittest.TestCase):
             }
         )
         with patch.dict(sys.modules, fake_modules):
-            from simpledet.native.modeling import NativeRetinaNetModel, build_native_model
+            from simpledet.native.modeling import build_native_model
 
             spec = build_detector("atss", num_classes=3, encoder="resnet18.a1_in1k")
             model = build_native_model("atss", num_classes=3, detector_spec=spec)
@@ -831,7 +827,7 @@ class NativeComponentTests(unittest.TestCase):
             }
         )
         with patch.dict(sys.modules, fake_modules):
-            from simpledet.native.modeling import NativeRetinaNetModel, build_native_model
+            from simpledet.native.modeling import build_native_model
 
             spec = build_detector("gfl", num_classes=3, encoder="resnet18.a1_in1k")
             model = build_native_model("gfl", num_classes=3, detector_spec=spec)

@@ -338,6 +338,7 @@ def _build_native_project_config(
         categories=tuple(categories),
         detector_spec=detector_spec,
         output_dir=result_folder or str(Path(dataset_root).expanduser() / "runs" / "simpledet"),
+        checkpoint_path=kwargs.get("checkpoint_path") or kwargs.get("ckpt_path"),
         in_channels=int(in_channels),
         batch_size=int(kwargs.get("batch_size", 2)),
         num_workers=int(kwargs.get("num_workers", 0)),
@@ -445,7 +446,11 @@ def run_project(
         if stage == "build":
             continue
         if stage == "train":
-            result["train"] = _run_native_training(native_config)
+            train_result = _run_native_training(native_config)
+            result["train"] = train_result
+            checkpoint_path = train_result.get("checkpoint_path")
+            if checkpoint_path:
+                native_config.checkpoint_path = str(checkpoint_path)
         else:
             result["test"] = _run_native_inference(native_config)
     return result

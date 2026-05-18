@@ -10,7 +10,7 @@ import inspect
 from collections.abc import Mapping
 from typing import Any
 
-from ._deps import require_dependency, require_detector_runtime
+from ._deps import require_dependency
 from .data import load_dataset
 
 

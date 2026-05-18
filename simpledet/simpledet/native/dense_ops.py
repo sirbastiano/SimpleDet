@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from ..detectors._deps import require_dependency
 
 require_dependency("torch", "native dense ops")
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+import torch  # noqa: E402
+import torch.nn as nn  # noqa: E402
+import torch.nn.functional as F  # noqa: E402
 
 
 class DenseRetinaNetDecoder(nn.Module):

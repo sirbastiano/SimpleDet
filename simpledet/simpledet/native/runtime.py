@@ -18,6 +18,7 @@ class NativeProjectConfig:
     categories: tuple[str, ...]
     detector_spec: DetectorSpec
     output_dir: str
+    checkpoint_path: str | None = None
     in_channels: int = 3
     batch_size: int = 2
     num_workers: int = 0
@@ -26,6 +27,48 @@ class NativeProjectConfig:
     max_epochs: int = 1
     accelerator: str = "cpu"
     devices: int = 1
+
+
+def _default_checkpoint_path(output_dir: str) -> Path:
+    return Path(output_dir).expanduser() / "checkpoints" / "last.ckpt"
+
+
+def _resolved_checkpoint_path(config: NativeProjectConfig) -> Path:
+    checkpoint_path = config.checkpoint_path
+    resolved = (
+        Path(checkpoint_path).expanduser()
+        if checkpoint_path
+        else _default_checkpoint_path(config.output_dir)
+    )
+    if resolved.exists():
+        return resolved
+    if checkpoint_path:
+        raise FileNotFoundError(f"Missing native checkpoint: {resolved}")
+    raise FileNotFoundError(
+        "Missing native checkpoint. Train first so "
+        f"'{resolved}' exists, or pass `checkpoint_path` explicitly."
+    )
+
+
+def _trainer_checkpoint_path(trainer: Any, output_dir: str) -> Path:
+    checkpoint_callback = getattr(trainer, "checkpoint_callback", None)
+    if checkpoint_callback is not None:
+        for candidate in (
+            getattr(checkpoint_callback, "last_model_path", None),
+            getattr(checkpoint_callback, "best_model_path", None),
+        ):
+            if candidate:
+                return Path(str(candidate)).expanduser()
+    return _default_checkpoint_path(output_dir)
+
+
+def _call_trainer_test(trainer: Any, module: Any, *, datamodule: Any, checkpoint_path: Path) -> Any:
+    try:
+        return trainer.test(module, datamodule=datamodule, ckpt_path=str(checkpoint_path))
+    except TypeError as exc:
+        if "ckpt_path" not in str(exc):
+            raise
+        return trainer.test(module, datamodule=datamodule)
 
 
 def run_native_training(config: NativeProjectConfig) -> dict[str, Any]:
@@ -53,6 +96,7 @@ def run_native_training(config: NativeProjectConfig) -> dict[str, Any]:
     )
     trainer = build_native_trainer(payload.config)
     trainer.fit(module, datamodule=data)
+    checkpoint_path = _trainer_checkpoint_path(trainer, config.output_dir)
 
     result = {
         "backend": "native_lightning",
@@ -60,6 +104,7 @@ def run_native_training(config: NativeProjectConfig) -> dict[str, Any]:
         "architecture": config.detector_spec.architecture,
         "output_dir": str(Path(config.output_dir).expanduser()),
         "checkpoint_dir": str(Path(config.output_dir).expanduser() / "checkpoints"),
+        "checkpoint_path": str(checkpoint_path),
     }
     _write_native_manifest(config.output_dir, result)
     return result
@@ -89,13 +134,15 @@ def run_native_evaluation(config: NativeProjectConfig) -> dict[str, Any]:
         )
     )
     trainer = build_native_trainer(payload.config)
-    trainer.test(module, datamodule=data)
+    checkpoint_path = _resolved_checkpoint_path(config)
+    _call_trainer_test(trainer, module, datamodule=data, checkpoint_path=checkpoint_path)
     result = {
         "backend": "native_lightning",
         "stages": ["test"],
         "architecture": config.detector_spec.architecture,
         "predictions": payload.latest_predictions,
         "output_dir": str(Path(config.output_dir).expanduser()),
+        "checkpoint_path": str(checkpoint_path),
     }
     _write_native_manifest(config.output_dir, result)
     return result

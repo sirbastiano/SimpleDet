@@ -42,6 +42,9 @@ class TestBuiltDistributions(unittest.TestCase):
             REPO_ROOT / "pyproject.toml",
             REPO_ROOT / "README.md",
             REPO_ROOT / "LICENSE",
+            REPO_ROOT / "MANIFEST.in",
+            REPO_ROOT / "assets" / "simpledet-logo.svg",
+            REPO_ROOT / "notebooks" / "Tools" / "simpledet_showcase.ipynb",
         ]
         latest_source_mtime = max(path.stat().st_mtime for path in source_inputs if path.exists())
         earliest_dist_mtime = min(cls.wheel_path.stat().st_mtime, cls.sdist_path.stat().st_mtime)
@@ -70,3 +73,12 @@ class TestBuiltDistributions(unittest.TestCase):
             names = archive.getnames()
 
         self.assertTrue(any(name.endswith("/LICENSE") for name in names))
+
+    def test_sdist_includes_showcase_assets(self):
+        with tarfile.open(self.sdist_path, "r:gz") as archive:
+            names = archive.getnames()
+
+        self.assertTrue(any(name.endswith("/assets/simpledet-logo.svg") for name in names))
+        self.assertTrue(
+            any(name.endswith("/notebooks/Tools/simpledet_showcase.ipynb") for name in names)
+        )

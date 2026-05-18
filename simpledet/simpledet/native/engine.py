@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..detectors._deps import require_dependency
 from .modeling import build_native_model
 
 

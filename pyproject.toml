@@ -59,9 +59,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sirbastiano/MDet"
-Source = "https://github.com/sirbastiano/MDet"
-Documentation = "https://github.com/sirbastiano/MDet/tree/main/docs"
+Homepage = "https://github.com/sirbastiano/SimpleDet"
+Source = "https://github.com/sirbastiano/SimpleDet"
+Documentation = "https://github.com/sirbastiano/SimpleDet/tree/main/docs"
 
 [project.scripts]
 simpledet = "simpledet.cli:main"

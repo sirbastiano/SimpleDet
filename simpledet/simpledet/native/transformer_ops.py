@@ -5,8 +5,8 @@ from __future__ import annotations
 from ..detectors._deps import require_dependency
 
 require_dependency("torch", "native transformer ops")
-import torch
-import torch.nn as nn
+import torch  # noqa: E402
+import torch.nn as nn  # noqa: E402
 
 
 class NativeDetrDecoder(nn.Module):
