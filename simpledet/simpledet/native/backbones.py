@@ -19,7 +19,15 @@ class BackboneSpec:
     feature_channels: tuple[int, ...]
 
 
-@ENCODERS.register("timm")
+@ENCODERS.register(
+    "timm",
+    aliases=("TimmEncoder",),
+    required_dependencies=(("torch", "cpu"), ("timm", "timm")),
+    tensor_contracts=("features_only_backbone", "feature_channels"),
+    validation_status="runtime_validated",
+    family="backbone",
+    summary="TIMM feature-map backbone adapter.",
+)
 class TimmFeatureBackbone(nn.Module):
     """Feature-extracting backbone backed by timm."""
 

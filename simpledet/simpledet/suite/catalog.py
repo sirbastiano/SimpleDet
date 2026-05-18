@@ -228,16 +228,7 @@ def _inspect_native_family(kind: str, name: str) -> dict[str, Any]:
     if not _native_registries_available():
         _raise_native_registries_error()
     registry = _native_registry(kind)
-    component_name = _resolve_registered_name(registry, name)
-    component = registry.get(component_name)
-    return {
-        "kind": kind,
-        "name": component_name,
-        "module": str(getattr(component, "__module__", "")),
-        "callable": component.__name__
-        if hasattr(component, "__name__")
-        else component.__class__.__name__,
-    }
+    return registry.lookup(name).as_dict()
 
 
 def _resolve_native_family(kind: str, name: str | None, *, default: str) -> Any:
@@ -257,12 +248,7 @@ def _resolve_registered_name(registry: Any, name: str) -> str:
     normalized = str(name).strip()
     if not normalized:
         raise ValueError("Native component name must be a non-empty string.")
-    names = registry.names()
-    lower_to_original = {item.lower(): item for item in names}
-    resolved = lower_to_original.get(normalized.lower())
-    if resolved is not None:
-        return resolved
-    raise KeyError(f"Unknown {registry.kind} family '{normalized}'. Available: {', '.join(names)}.")
+    return registry.resolve_name(normalized)
 
 
 _NATIVE_REGISTRY_IMPORTED: bool = False

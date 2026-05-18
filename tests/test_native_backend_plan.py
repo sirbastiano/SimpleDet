@@ -1,6 +1,9 @@
 import unittest
+import sys
+import types
+from unittest.mock import patch
 
-from simpledet.extensions import DECODERS, ENCODERS, HEADS, NECKS
+from simpledet.extensions import DECODERS, DETECTORS, ENCODERS, HEADS, NECKS, ExtensionRegistry
 from simpledet.suite import (
     ComponentPlan,
     DetectorBuildPlan,
@@ -11,6 +14,52 @@ from simpledet.suite import (
     build_detector,
     compile_native_detector_plan,
 )
+
+
+def _fake_torch_modules():
+    fake_torch = types.ModuleType("torch")
+    fake_nn = types.ModuleType("torch.nn")
+    fake_f = types.ModuleType("torch.nn.functional")
+
+    class Module:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class ModuleList(list):
+        pass
+
+    class Sequential(Module):
+        def __init__(self, *layers):
+            super().__init__()
+            self.layers = list(layers)
+
+    class Conv2d(Module):
+        pass
+
+    class Linear(Module):
+        pass
+
+    class Embedding(Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.weight = object()
+
+    class ReLU(Module):
+        pass
+
+    fake_nn.Module = Module
+    fake_nn.ModuleList = ModuleList
+    fake_nn.Sequential = Sequential
+    fake_nn.Conv2d = Conv2d
+    fake_nn.Linear = Linear
+    fake_nn.Embedding = Embedding
+    fake_nn.ReLU = ReLU
+    fake_torch.nn = fake_nn
+    return {
+        "torch": fake_torch,
+        "torch.nn": fake_nn,
+        "torch.nn.functional": fake_f,
+    }
 
 
 class NativeBuildPlanTests(unittest.TestCase):
@@ -92,3 +141,166 @@ class ExtensionRegistryTests(unittest.TestCase):
         self.assertIs(NECKS.get("UnitTestNeck"), UnitTestNeck)
         self.assertIs(HEADS.get("UnitTestHead"), UnitTestHead)
         self.assertIs(DECODERS.get("UnitTestDecoder"), UnitTestDecoder)
+
+    def test_registry_lookup_normalizes_alias_case_and_separators(self):
+        registry = ExtensionRegistry("detector")
+
+        def factory():
+            return "vfnet"
+
+        registry.register(
+            "vfnet",
+            aliases=("VFNet",),
+            required_dependencies=(("torch", "cpu"),),
+            tensor_contracts=("feature_pyramid", "dense_predictions"),
+            validation_status="runtime_validated",
+            family="dense",
+            summary="VFNet detector family.",
+        )(factory)
+
+        lower = registry.lookup("vfnet")
+        mixed = registry.lookup("VFNet")
+        spaced = registry.lookup("vf net")
+        self.assertIs(lower, mixed)
+        self.assertIs(lower, spaced)
+        self.assertEqual(lower.name, "vfnet")
+        self.assertEqual(lower.kind, "detector")
+        self.assertIs(lower.factory, factory)
+        self.assertEqual(lower.required_dependencies[0].module, "torch")
+        self.assertEqual(lower.required_dependencies[0].extra, "cpu")
+        self.assertEqual(lower.tensor_contracts, ("feature_pyramid", "dense_predictions"))
+        self.assertEqual(lower.validation_status, "runtime_validated")
+        self.assertEqual(lower.family, "dense")
+        self.assertIn("VFNet", lower.aliases)
+
+    def test_registry_rejects_duplicate_aliases(self):
+        registry = ExtensionRegistry("head")
+
+        class FirstHead:
+            pass
+
+        class SecondHead:
+            pass
+
+        registry.register("FirstHead", aliases=("dense_alias",))(FirstHead)
+        with self.assertRaises(ValueError) as context:
+            registry.register("SecondHead", aliases=("Dense-Alias",))(SecondHead)
+        self.assertIn("head component 'SecondHead' conflicts", str(context.exception))
+        self.assertIn("FirstHead", str(context.exception))
+
+    def test_registry_rejects_duplicate_aliases_on_same_registration(self):
+        registry = ExtensionRegistry("detector")
+
+        def factory():
+            return "vfnet"
+
+        with self.assertRaises(ValueError) as context:
+            registry.register("vfnet", aliases=("VFNet", "VF Net"))(factory)
+        self.assertIn("detector component 'vfnet' repeats alias 'VF Net'", str(context.exception))
+
+    def test_registry_rejects_normalized_name_collisions(self):
+        registry = ExtensionRegistry("detector")
+
+        def first():
+            return "first"
+
+        def second():
+            return "second"
+
+        registry.register("vfnet")(first)
+        with self.assertRaises(ValueError) as context:
+            registry.register("VFNet")(second)
+        self.assertIn("detector component 'VFNet' conflicts", str(context.exception))
+
+    def test_registry_unknown_lookup_mentions_kind_names_and_aliases(self):
+        registry = ExtensionRegistry("detector")
+
+        def factory():
+            return "vfnet"
+
+        registry.register("vfnet", aliases=("VFNet",))(factory)
+
+        with self.assertRaises(KeyError) as context:
+            registry.lookup("unknown_detector")
+        message = str(context.exception)
+        self.assertIn("Unknown detector component 'unknown_detector'", message)
+        self.assertIn("Registered detector names: vfnet", message)
+        self.assertIn("Aliases: VFNet -> vfnet", message)
+
+    def test_registry_missing_dependency_message_includes_optional_extra(self):
+        registry = ExtensionRegistry("backbone")
+
+        class TimmBackbone:
+            pass
+
+        registry.register(
+            "timm",
+            aliases=("TimmEncoder",),
+            required_dependencies=(("missing_timm", "timm", "timm"),),
+        )(TimmBackbone)
+
+        with patch(
+            "simpledet.extensions.registry.import_module",
+            side_effect=ModuleNotFoundError("missing", name="missing_timm"),
+        ):
+            with self.assertRaises(ImportError) as context:
+                registry.require_dependencies("TimmEncoder")
+        message = str(context.exception)
+        self.assertIn("backbone component 'timm' requires optional dependencies", message)
+        self.assertIn("'missing_timm'", message)
+        self.assertIn("simpledet[timm]", message)
+
+    def test_native_detector_registry_exposes_major_alias_metadata(self):
+        with patch.dict(sys.modules, _fake_torch_modules()):
+            import simpledet.native.assemblers  # noqa: F401
+
+        metadata = DETECTORS.lookup("VFNet")
+        self.assertIs(metadata, DETECTORS.lookup("vfnet"))
+        self.assertEqual(metadata.name, "vfnet")
+        self.assertEqual(metadata.kind, "detector")
+        self.assertEqual(metadata.family, "dense")
+        self.assertIn("VFNet", metadata.aliases)
+        self.assertIn("dense_predictions", metadata.tensor_contracts)
+        self.assertEqual(metadata.required_dependencies[0].module, "torch")
+
+        aliases = {
+            "FOVEA": ("fovea", "dense"),
+            "FoveaBox": ("foveabox", "dense"),
+            "RepPoints": ("reppoints", "dense"),
+            "YOLOF": ("yolof", "dense"),
+            "CenterNet": ("centernet", "dense"),
+            "Faster R-CNN": ("faster_rcnn", "roi"),
+            "Mask R-CNN": ("mask_rcnn", "roi"),
+            "Grid R-CNN": ("grid_rcnn", "roi"),
+            "Cascade R-CNN": ("cascade_rcnn", "roi"),
+        }
+        for alias, (expected_name, expected_family) in aliases.items():
+            with self.subTest(alias=alias):
+                alias_metadata = DETECTORS.lookup(alias)
+                self.assertEqual(alias_metadata.name, expected_name)
+                self.assertEqual(alias_metadata.family, expected_family)
+                self.assertTrue(alias_metadata.required_dependencies)
+                self.assertTrue(alias_metadata.tensor_contracts)
+                self.assertNotEqual(alias_metadata.validation_status, "unvalidated")
+
+    def test_detector_alias_names_inherit_component_contract_metadata(self):
+        with patch.dict(sys.modules, _fake_torch_modules()):
+            import simpledet.native.assemblers  # noqa: F401
+
+        aliases = {
+            "retina": "dense",
+            "deformable_detr": "transformer",
+            "foveabox": "dense",
+            "faster-rcnn": "roi",
+            "mask-rcnn": "roi",
+            "gridrcnn": "roi",
+            "cascadercnn": "roi",
+        }
+        for alias, expected_family in aliases.items():
+            with self.subTest(alias=alias):
+                metadata = DETECTORS.lookup(alias)
+                self.assertEqual(metadata.name, alias)
+                self.assertEqual(metadata.family, expected_family)
+                self.assertTrue(metadata.required_dependencies)
+                self.assertTrue(metadata.tensor_contracts)
+                self.assertNotEqual(metadata.validation_status, "unvalidated")

@@ -19,7 +19,15 @@ class NeckSpec:
     num_outs: int
 
 
-@NECKS.register("FPN")
+@NECKS.register(
+    "FPN",
+    aliases=("fpn",),
+    required_dependencies=(("torch", "cpu"), ("torchvision", "cpu")),
+    tensor_contracts=("feature_sequence", "feature_pyramid"),
+    validation_status="runtime_validated",
+    family="neck",
+    summary="Feature pyramid network neck.",
+)
 class FeaturePyramidNeck(nn.Module):
     """Thin wrapper around torchvision FeaturePyramidNetwork."""
 
@@ -49,7 +57,15 @@ class FeaturePyramidNeck(nn.Module):
         return tuple(ordered[: self.num_outs])
 
 
-@NECKS.register("ChannelMapper")
+@NECKS.register(
+    "ChannelMapper",
+    aliases=("channel_mapper",),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_sequence", "projected_feature_sequence"),
+    validation_status="runtime_validated",
+    family="neck",
+    summary="Channel projection neck.",
+)
 class ChannelMapperNeck(nn.Module):
     """Minimal channel projection neck for transformer-style multiscale features."""
 
@@ -128,13 +144,10 @@ def _resolve_neck_name(requested: str) -> str:
     if not normalized:
         raise ValueError("Neck type cannot be empty.")
 
-    exact_name = str(requested).strip()
-    if exact_name in NECKS.names():
-        return exact_name
-    compact_name_map = {name.lower().replace("_", "").replace("-", ""): name for name in NECKS.names()}
-    resolved = compact_name_map.get(normalized)
-    if resolved is not None:
-        return resolved
+    try:
+        return NECKS.resolve_name(str(requested))
+    except KeyError:
+        pass
 
     if normalized.startswith("fpn"):
         return "FPN"
@@ -151,7 +164,7 @@ def _resolve_neck_name(requested: str) -> str:
     if normalized.startswith("fpnlite"):
         return "FPNLite"
 
-    raise KeyError(f"Unknown neck family '{requested}'. Available: {', '.join(NECKS.names())}.")
+    return NECKS.resolve_name(str(requested))
 
 
 def build_native_neck(neck_plan, *, feature_channels: tuple[int, ...]) -> tuple[Any, NeckSpec]:

@@ -21,7 +21,15 @@ class HeadSpec:
     num_anchors: int
 
 
-@HEADS.register("RetinaHead")
+@HEADS.register(
+    "RetinaHead",
+    aliases=("retina", "retina_head"),
+    required_dependencies=(("torch", "cpu"), ("torchvision", "cpu")),
+    tensor_contracts=("feature_pyramid", "retinanet_head_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="RetinaNet-compatible dense head.",
+)
 class RetinaDenseHead(nn.Module):
     """Thin wrapper around torchvision RetinaNetHead."""
 
@@ -53,7 +61,15 @@ class RetinaNetHead(RetinaDenseHead):
     """Compatibility alias used by external detector configs."""
 
 
-@HEADS.register("FCOSHead")
+@HEADS.register(
+    "FCOSHead",
+    aliases=("fcos", "fcos_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="FCOS-style dense head.",
+)
 class FCOSDenseHead(nn.Module):
     """Minimal native FCOS-like head placeholder with shared conv towers."""
 
@@ -123,7 +139,15 @@ class FCOSHeadV2(FCOSDenseHead):
     """Alternate alias for FCOS head naming."""
 
 
-@HEADS.register("ATSSHead")
+@HEADS.register(
+    "ATSSHead",
+    aliases=("atss", "atss_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="ATSS-style anchor-based dense head.",
+)
 class ATSSDenseHead(nn.Module):
     """Anchor-based dense head with centerness outputs for ATSS-style models."""
 
@@ -181,27 +205,58 @@ class ATSSV2Head(ATSSDenseHead):
     """Compatibility alias for ATSS-style variants."""
 
 
-@HEADS.register("VFNetHead")
+@HEADS.register(
+    "VFNetHead",
+    aliases=("VFNet",),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="VFNet-family head alias routed through ATSS-compatible outputs.",
+)
 class VFNetHead(ATSSDenseHead):
     """Dense alias for the VFNet head family."""
 
 
-@HEADS.register("RepPointsHead")
+@HEADS.register(
+    "RepPointsHead",
+    aliases=("RepPoints", "ReppointsHead"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="RepPoints-family head alias routed through ATSS-compatible outputs.",
+)
 class RepPointsHead(ATSSDenseHead):
     """Compatibility alias for Reppoints-style dense heads."""
 
 
-@HEADS.register("ReppointsHead")
 class ReppointsHead(RepPointsHead):
     """Alternate alias for Reppoints naming."""
 
 
-@HEADS.register("FoveaHead")
+@HEADS.register(
+    "FoveaHead",
+    aliases=("FOVEA",),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="Fovea-family head alias routed through ATSS-compatible outputs.",
+)
 class FoveaHead(ATSSDenseHead):
     """Compatibility alias for Fovea-style dense heads."""
 
 
-@HEADS.register("YOLOFHead")
+@HEADS.register(
+    "YOLOFHead",
+    aliases=("YOLOF",),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="YOLOF-family head alias routed through FCOS-compatible outputs.",
+)
 class YOLOFHead(FCOSDenseHead):
     """Anchor-free YOLOF-style head alias."""
 
@@ -236,12 +291,28 @@ class SOLOV2Head(FCOSDenseHead):
     """SOLOv2-style head alias for a single-stage segmentation-friendly path."""
 
 
-@HEADS.register("CenterNetHead")
+@HEADS.register(
+    "CenterNetHead",
+    aliases=("CenterNet",),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="CenterNet-family head alias routed through FCOS-compatible outputs.",
+)
 class CenterNetHead(FCOSDenseHead):
     """Compatibility alias for CenterNet-style dense heads."""
 
 
-@HEADS.register("GFLHead")
+@HEADS.register(
+    "GFLHead",
+    aliases=("gfl", "gfl_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="GFL-style dense head.",
+)
 class GFLDenseHead(ATSSDenseHead):
     """GFL-style dense head on the current anchor-based dense seam."""
 
@@ -256,13 +327,10 @@ def _resolve_head_name(requested: str) -> str:
     if not normalized:
         raise ValueError("Head type cannot be empty.")
 
-    exact_name = str(requested).strip()
-    if exact_name in HEADS.names():
-        return exact_name
-    compact_name_map = {name.lower().replace("_", "").replace("-", ""): name for name in HEADS.names()}
-    resolved = compact_name_map.get(normalized)
-    if resolved is not None:
-        return resolved
+    try:
+        return HEADS.resolve_name(str(requested))
+    except KeyError:
+        pass
 
     if normalized in {"retina", "retinanet", "retinanethead", "retinahead"}:
         return "RetinaHead"
@@ -295,7 +363,7 @@ def _resolve_head_name(requested: str) -> str:
     if normalized.startswith("solov2"):
         return "SOLOV2Head"
 
-    raise KeyError(f"Unknown head family '{requested}'. Available: {', '.join(HEADS.names())}.")
+    return HEADS.resolve_name(str(requested))
 
 
 def build_native_head(head_plan, *, out_channels: int, num_classes: int):

@@ -173,17 +173,19 @@ def build_native_model(
     from ..extensions import DETECTORS
     from .assemblers import build_native_components
 
-    if normalized not in SUPPORTED_NATIVE_ARCHITECTURES and normalized not in {
-        name.lower() for name in DETECTORS.names()
-    }:
+    try:
+        detector_name = DETECTORS.resolve_name(normalized)
+    except KeyError:
+        detector_name = ""
+
+    if normalized not in SUPPORTED_NATIVE_ARCHITECTURES and not detector_name:
         supported = ", ".join(sorted(set(SUPPORTED_NATIVE_ARCHITECTURES) | set(DETECTORS.names())))
         raise ValueError(
             f"Unsupported native architecture '{architecture}'. Supported: {supported}."
         )
 
     components = build_native_components(detector_spec)
-    registry_names = {name.lower(): name for name in DETECTORS.names()}
-    assembler = DETECTORS.get(registry_names.get(normalized, normalized))
+    assembler = DETECTORS.get(detector_name or normalized)
     return assembler(components, num_classes=int(num_classes))
 
 

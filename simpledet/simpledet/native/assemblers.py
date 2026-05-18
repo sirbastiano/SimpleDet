@@ -43,6 +43,11 @@ _TRANSFORMER_QUERY_DEFAULTS = {
     "dino": 300,
 }
 
+_DETECTOR_DEPENDENCIES = (("torch", "cpu"), ("torchvision", "cpu"))
+_DENSE_CONTRACTS = ("feature_pyramid", "dense_predictions", "postprocessed_boxes")
+_ROI_CONTRACTS = ("feature_pyramid", "roi_proposals", "postprocessed_boxes")
+_TRANSFORMER_CONTRACTS = ("feature_sequence", "set_predictions", "postprocessed_boxes")
+
 
 def build_native_components(detector_spec) -> NativeModelComponents:
     plan = compile_native_detector_plan(detector_spec)
@@ -108,7 +113,14 @@ def _assemble_dense_detector(
     )
 
 
-@DETECTORS.register("detr")
+@DETECTORS.register(
+    "detr",
+    aliases=("DETR",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_TRANSFORMER_CONTRACTS,
+    validation_status="runtime_validated",
+    family="transformer",
+)
 @DETECTORS.register("deformable_detr")
 @DETECTORS.register("conditional_detr")
 @DETECTORS.register("dino")
@@ -127,7 +139,14 @@ def assemble_transformer_detector(components: NativeModelComponents, *, num_clas
     )
 
 
-@DETECTORS.register("retinanet")
+@DETECTORS.register(
+    "retinanet",
+    aliases=("RetinaNet",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="runtime_validated",
+    family="dense",
+)
 @DETECTORS.register("retina")
 def assemble_retinanet_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
@@ -137,7 +156,14 @@ def assemble_retinanet_detector(components: NativeModelComponents, *, num_classe
     )
 
 
-@DETECTORS.register("fcos")
+@DETECTORS.register(
+    "fcos",
+    aliases=("FCOS",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="runtime_validated",
+    family="dense",
+)
 def assemble_fcos_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -146,7 +172,14 @@ def assemble_fcos_detector(components: NativeModelComponents, *, num_classes: in
     )
 
 
-@DETECTORS.register("atss")
+@DETECTORS.register(
+    "atss",
+    aliases=("ATSS",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="runtime_validated",
+    family="dense",
+)
 def assemble_atss_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -155,7 +188,14 @@ def assemble_atss_detector(components: NativeModelComponents, *, num_classes: in
     )
 
 
-@DETECTORS.register("gfl")
+@DETECTORS.register(
+    "gfl",
+    aliases=("GFL",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="runtime_validated",
+    family="dense",
+)
 def assemble_gfl_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -164,7 +204,15 @@ def assemble_gfl_detector(components: NativeModelComponents, *, num_classes: int
     )
 
 
-@DETECTORS.register("vfnet")
+@DETECTORS.register(
+    "vfnet",
+    aliases=("VFNet",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="VFNet detector family routed through native ATSS-compatible components.",
+)
 def assemble_vfnet_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -207,8 +255,15 @@ def assemble_rtmdet_detector(components: NativeModelComponents, *, num_classes: 
     )
 
 
-@DETECTORS.register("fovea")
-@DETECTORS.register("foveabox")
+@DETECTORS.register(
+    "fovea",
+    aliases=("FOVEA",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+@DETECTORS.register("foveabox", aliases=("FoveaBox",))
 def assemble_fovea_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -217,7 +272,14 @@ def assemble_fovea_detector(components: NativeModelComponents, *, num_classes: i
     )
 
 
-@DETECTORS.register("reppoints")
+@DETECTORS.register(
+    "reppoints",
+    aliases=("RepPoints",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
 def assemble_reppoints_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -250,7 +312,14 @@ def assemble_tood_detector(components: NativeModelComponents, *, num_classes: in
     )
 
 
-@DETECTORS.register("yolof")
+@DETECTORS.register(
+    "yolof",
+    aliases=("YOLOF",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
 def assemble_yolof_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -259,7 +328,14 @@ def assemble_yolof_detector(components: NativeModelComponents, *, num_classes: i
     )
 
 
-@DETECTORS.register("centernet")
+@DETECTORS.register(
+    "centernet",
+    aliases=("CenterNet",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
 def assemble_centernet_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
@@ -268,21 +344,49 @@ def assemble_centernet_detector(components: NativeModelComponents, *, num_classe
     )
 
 
-@DETECTORS.register("faster_rcnn")
+@DETECTORS.register(
+    "faster_rcnn",
+    aliases=("Faster R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_ROI_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+)
 @DETECTORS.register("faster-rcnn")
 def assemble_faster_rcnn_detector(components: NativeModelComponents, *, num_classes: int):
     return build_native_roi_detector("faster_rcnn", components, num_classes=int(num_classes))
 
 
-@DETECTORS.register("mask_rcnn")
+@DETECTORS.register(
+    "mask_rcnn",
+    aliases=("Mask R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_ROI_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+)
 @DETECTORS.register("mask-rcnn")
 def assemble_mask_rcnn_detector(components: NativeModelComponents, *, num_classes: int):
     return build_native_roi_detector("mask_rcnn", components, num_classes=int(num_classes))
 
 
-@DETECTORS.register("grid_rcnn")
+@DETECTORS.register(
+    "grid_rcnn",
+    aliases=("Grid R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_ROI_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="roi",
+)
 @DETECTORS.register("gridrcnn")
-@DETECTORS.register("cascade_rcnn")
+@DETECTORS.register(
+    "cascade_rcnn",
+    aliases=("Cascade R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_ROI_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="roi",
+)
 @DETECTORS.register("cascadercnn")
 def assemble_grid_or_cascade_rcnn_detector(components: NativeModelComponents, *, num_classes: int):
     return build_native_roi_detector(components.plan.architecture, components, num_classes=int(num_classes))
