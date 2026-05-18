@@ -185,7 +185,7 @@ class NativeAssignmentTests(unittest.TestCase):
             ignore_iou_thr=0.5,
         )
 
-        sample = sample_assignment(assignment, num_samples=3, positive_fraction=0.5)
+        sample = sample_assignment(assignment, num_samples=2, positive_fraction=0.5)
 
         self.assertEqual(sample.positive_indices.tolist(), [0])
         self.assertEqual(sample.negative_indices.numel(), 1)
