@@ -5,6 +5,43 @@ Started: Mon May 18 18:34:17 UTC 2026
 - (add reusable patterns here)
 
 ---
+## [2026-05-18 21:48:40 UTC] - US-005: Create native tensor contract tests
+Thread:
+Run: 20260518-183418-2827287 (iteration 5)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-5.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-5.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 69c4228 test(native): add tensor contract helpers
+- Post-commit status: `clean` after committing this progress entry
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_tensor_contracts.py'` -> PASS (3 tests, 2 skipped)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (120 tests, 11 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `python3 -m py_compile tests/native_tensor_contracts.py tests/test_native_tensor_contracts.py` -> PASS
+  - Command: `git diff --check` -> PASS
+  - Command: `tar -tzf dist/simpledet-0.1.0.tar.gz | rg 'tests/(native_tensor_contracts|test_native_tensor_contracts)\.py'` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - MANIFEST.in
+  - docs/developer-guide.html
+  - tests/native_tensor_contracts.py
+  - tests/test_native_tensor_contracts.py
+- What was implemented
+  - Added shared CPU tensor-contract helpers for dummy images, multiscale feature maps, boxes, labels, metadata, and native targets.
+  - Added dense-head contract assertions for required output keys, feature-level counts, batch dimensions, and spatial alignment.
+  - Added focused tests covering helper construction, FCOS dense-head tensor output behavior when PyTorch CPU is installed, and a clear mismatch assertion for missing feature levels.
+  - Documented the helper workflow in the developer guide and included the helper in the sdist manifest so packaged tests can import it.
+  - Security/performance/regression review: test/docs/manifest changes only, no new external input handling or secret paths, tiny deterministic CPU tensors, sdist helper inclusion verified, and final regression gates passed with `python3`/Makefile commands.
+- **Learnings for future iterations:**
+  - This base environment has no bare `python` and no PyTorch CPU runtime; real tensor helper tests skip until `simpledet[cpu]` is installed.
+  - Keep non-`test*.py` test helpers in `MANIFEST.in`; setuptools copied the new test module into the sdist before the helper until the manifest was updated.
+  - Dense-head smoke tests should call `assert_dense_head_output_contract(...)` before detector-family support is claimed so feature-level mismatches fail with actionable messages.
+---
 ## [2026-05-18 21:30:47 UTC] - US-004: Replace legacy fallback assumptions
 Thread:
 Run: 20260518-183418-2827287 (iteration 4)
