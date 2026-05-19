@@ -42,6 +42,46 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
 ---
+## [2026-05-19 02:34:28 UTC] - US-017: Register ROI bbox heads
+Thread:
+Run: 20260518-183418-2827287 (iteration 17)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-17.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-17.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: bc73c4a feat(heads): register roi bbox heads
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_roi.py'` -> PASS (10 tests, 9 skipped under base install)
+  - Command: `uv run --extra cpu python -m unittest discover -s tests -p 'test_native_roi.py'` -> PASS (10 real CPU tensor tests)
+  - Command: `PYTHONPATH=simpledet:tests python - <<'PY' ... ROI alias registry smoke ... PY` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_native_backend_plan tests.test_suite` -> PASS (21 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_api_model_resolution tests.test_suite` -> PASS (13 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_dense_heads.py'` -> PASS (21 skipped under base install)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (193 tests, 66 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/heads.py
+  - tests/test_native_roi.py
+- What was implemented
+  - Registered native ROI bbox heads for Shared2FCBBoxHead, ConvFCBBoxHead, DoubleConvFCBBoxHead, DynamicBBoxHead, CascadeBBoxHead, SABLHead, and SparseRoIHead with `family="roi"` metadata and snake-case aliases.
+  - Added background-aware ROI bbox outputs: `cls_score` shape `(N, num_classes + 1)` and class-specific or class-agnostic `bbox_pred` shapes aligned with existing ROI helpers.
+  - Added shared target/loss support using `build_roi_bbox_targets`, CE classification loss, SmoothL1 positive bbox loss, cascade refinement helper reuse, and explicit class-agnostic target-shape validation.
+  - Preserved dense `sabl` detector routing to `ATSSHead` while exposing `SABLHead` as an ROI bbox head.
+  - Added construction, forward-shape, direct `build_head(...)`, target/loss smoke, registry, and negative validation tests.
+  - Security/performance/regression review: no file/network/secret handling added; computation is bounded per ROI with explicit tensor shape validation; dense `sabl` default and native registry regressions passed.
+- **Learnings for future iterations:**
+  - Registry aliases normalize case and separators, so aliases like `shared_2fc_bbox_head` and `shared2fc_bbox_head` collide.
+  - `uv run --extra cpu` is available for real PyTorch execution and should be used for story-specific tensor tests when the base install skips them.
+  - A local `python` shim in `~/.local/bin` lets the required `python` gate run as written in this environment.
+---
 ## [2026-05-19 01:49:14 UTC] - US-015: Register YOLO SSD and efficient heads
 Thread:
 Run: 20260518-183418-2827287 (iteration 15)
