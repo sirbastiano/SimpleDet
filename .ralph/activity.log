@@ -216,3 +216,4 @@
 [2026-05-19 05:51:01] US-025 final verification rerun passed after sparse head validation: full unittest, docs-check, build, verify-dist, and diff check
 [2026-05-19 06:03:10] US-025 verification passed: targeted unittest slice, full unittest suite, docs-check, build, verify-dist, py_compile, and diff whitespace checks passed.
 [2026-05-19 06:03:35] US-025 final review complete: no secret-handling or command-execution changes; CornerNet pairing is top-k bounded; Sparse R-CNN stays RPN-free with sampled proposal features bound to selected proposals; regression gates passed.
+[2026-05-19 06:04:51] US-025 progress log updated with implementation commit 4d036a4 and final verification details.

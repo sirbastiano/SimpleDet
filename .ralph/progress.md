@@ -1002,3 +1002,54 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - EfficientDet defaults can compile without TIMM, but default native module construction uses the TIMM-backed EfficientNet alias and needs `simpledet[timm]`.
   - Tests importing `native_tensor_contracts` directly need `PYTHONPATH=simpledet:tests`; discovery mode adds the tests directory automatically.
 ---
+## [2026-05-19 06:04:09 UTC] - US-025: Register query and corner detector families
+Thread:
+Run: 20260518-183418-2827287 (iteration 25)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-25.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-25.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 4d036a4 feat(detectors): register query corner families
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `python -m py_compile simpledet/simpledet/suite/catalog.py simpledet/simpledet/suite/native_plan.py simpledet/simpledet/native/dense_ops.py simpledet/simpledet/native/assemblers.py simpledet/simpledet/native/modeling.py simpledet/simpledet/native/roi.py simpledet/simpledet/native/__init__.py simpledet/simpledet/cli.py tests/test_suite.py tests/test_native_backend_plan.py tests/test_native_query_detector.py tests/test_native_dense_detectors.py tests/test_native_two_stage.py tests/test_cli.py` -> PASS
+  - Command: `PYTHONPATH=simpledet:tests python -m unittest tests.test_suite tests.test_native_backend_plan tests.test_native_query_detector tests.test_native_dense_detectors tests.test_native_two_stage tests.test_cli` -> PASS (64 tests, 13 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (230 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/package-surface-audit.html
+  - docs/roadmap-changelog.html
+  - simpledet/simpledet/cli.py
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/native/roi.py
+  - simpledet/simpledet/suite/catalog.py
+  - simpledet/simpledet/suite/native_plan.py
+  - tests/test_cli.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_dense_detectors.py
+  - tests/test_native_query_detector.py
+  - tests/test_native_two_stage.py
+  - tests/test_suite.py
+- What was implemented
+  - Registered CornerNet, DETR, Conditional DETR, DAB-DETR, Deformable DETR, DINO, and Sparse R-CNN aliases through suite/native discovery, CLI help, and native runtime metadata.
+  - Added native CornerNet detector assembly with paired top-left/bottom-right heatmap targets, offset losses, associative embedding pull/push loss, bounded corner pairing, and NMS decode.
+  - Added native Sparse R-CNN detector assembly with learned proposal boxes/features, sparse proposal routing without RPN fallback, SparseRoIHead validation, and sampled proposal feature alignment.
+  - Made planned unsupported transformer variants such as DETR3D and v2 names fail with actionable planned-but-unsupported guidance instead of silently resolving to a supported base family.
+  - Added suite, CLI, build-plan, CPU construction, and minimal forward/loss tests for the registered aliases, including the `deformable_detr` QueryDetector example.
+  - Updated API/support docs and changelog notes for the new detector families and unsupported transformer guidance.
+  - Security/performance/regression review: no new secret, file, network, or shell execution paths; CornerNet pairing is bounded by `detections_per_img`; Sparse R-CNN proposal work is bounded by `num_proposals`; existing dense, ROI, query, docs, packaging, and build gates passed.
+- **Learnings for future iterations:**
+  - Query detector aliases were already mostly present from US-021; US-025 needed stronger alias coverage plus planned-variant rejection.
+  - Sparse R-CNN must bypass RPN validation and preserve learned proposal feature alignment after training proposal sampling.
+  - CornerNet needs separate paired-corner loss/decode contracts; treating it as a generic CenterNet heatmap detector would be too weak for the family.
+  - The base interpreter lacks optional `torch`, so direct default native smoke commands fail outside skip-aware tests; CPU forward tests run when the CPU extra is installed.
+---
