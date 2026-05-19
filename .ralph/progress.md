@@ -1718,3 +1718,36 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Construction-only matrix tests can use fake native modules for breadth in base environments without PyTorch, while real tensor forward checks should remain representative and skip cleanly when torch is absent.
   - Direct module unittest invocations that import `native_tensor_contracts` need `tests` on `PYTHONPATH`; discover mode from `tests/` matches the repo gate.
 ---
+## [2026-05-19 11:50:52 UTC] - US-044: Add CPU smoke workflow
+Thread:
+Run: 20260518-183418-2827287 (iteration 44)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-44.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-44.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 25129ae test(cpu-smoke): add project workflow smoke
+- Post-commit status: `clean` after implementation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_cpu_smoke_workflow` -> PASS (3 tests, 1 skipped)
+  - Command: `make test-cpu-smoke` -> FAIL (expected in this environment: optional CPU dependencies `torch` and `torchvision` are not installed, so the real CPU gate cannot false-pass)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (308 tests, 92 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (308 tests, 92 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS (wheel contents OK and 13 packaging tests)
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - Makefile
+  - README.md
+  - tests/test_cpu_smoke_workflow.py
+- What was implemented
+  - Added a tiny COCO-style project fixture builder and fast CPU workflow unittest that runs `run_project` through build, train, test, and infer stages, asserting manifest and prediction payloads.
+  - Added malformed fixture coverage that fails during dataset validation before native model construction or trainer entry.
+  - Added a documented optional `make test-cpu-smoke` gate for real `[cpu]` runtime installs; it fails loudly instead of skipping when required CPU dependencies are missing.
+  - Security/performance/regression review: test data is temp-local, no new external input execution or network access was added, normal discovery remains lightweight, and the opt-in real runtime target prevents false-positive CPU smoke results.
+- **Learnings for future iterations:**
+  - The base environment lacks `torch` and `torchvision`, so real CPU runtime checks need an explicit `[cpu]`-installed target instead of silently passing under default gates.
+  - SimpleDet's lazy `simpledet.native` import can recurse if cleanup uses `hasattr(simpledet, "native")`; use module dictionaries when cleaning fake native imports in tests.
+  - `run_project` can exercise manifest and prediction orchestration with a fast fake trainer, while the real runtime path should stay opt-in to keep the default unittest target practical.
+---
