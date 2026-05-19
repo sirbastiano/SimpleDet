@@ -41,7 +41,6 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Sampler tests should size requested samples to the intended positive/negative split; otherwise deterministic fill can legitimately return extra negatives.
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
----
 ## [2026-05-19 08:58:23 UTC] - US-033: Implement project config runner
 Thread:
 Run: 20260518-183418-2827287 (iteration 33)
@@ -1417,4 +1416,46 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `importlib.util.find_spec` is the right fit for setup diagnostics because base installs must not import torch, timm, rasterio, or plotting libraries.
   - Strict setup diagnostics should be separate from default doctor output so new users can inspect missing extras without turning warnings into command failures.
   - The repo's `python` binary is available in this iteration, so the exact global quality gate can run without falling back to `python3`.
+---
+## [2026-05-19 09:33:21 UTC] - US-035: Add example gallery
+Thread:
+Run: 20260518-183418-2827287 (iteration 35)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-35.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-35.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: d094f65 feat(examples): add runnable gallery
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_examples` -> PASS (8 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_packaging tests.test_public_api` -> PASS (23 tests, 1 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (292 tests, 90 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (292 tests, 90 skipped)
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - MANIFEST.in
+  - docs/examples.html
+  - examples/coco_training_config.py
+  - examples/load_ckpt_for_inference.py
+  - examples/quick_detector.py
+  - examples/registry_discovery.py
+  - examples/timm_retinanet.py
+  - examples/yolo_dataset_config.py
+  - tests/test_examples.py
+  - tests/test_packaging.py
+- What was implemented
+  - Added a top-level runnable example gallery for quick RetinaNet construction, TIMM RetinaNet with `encoder="timm:resnet18"`, COCO training config, YOLO dataset config, checkpoint inference, and registry discovery.
+  - Dataset and checkpoint examples default to repo-local sample paths and exit with explicit guidance when sample data is absent; examples avoid private local paths.
+  - Added example compile/import/help/runtime smoke tests, negative-path tests, private-path checks, and sdist inclusion checks for the gallery.
+  - Updated static examples docs and the source distribution manifest so the gallery ships in sdists.
+  - Security/performance/regression review: checkpoint loading is explicitly trusted-path gated; filesystem reads only occur after CLI invocation; metadata examples do not import heavy optional runtime modules; no private paths or legacy runtime references were introduced; full regression gates passed.
+- **Learnings for future iterations:**
+  - `.gitignore` ignores path names containing `checkpoint`, so example filenames should use `ckpt` when they must be staged by `git add -A`.
+  - `build_detector("retinanet", backbone="resnet18")` can compile without an explicit neck, so examples that print neck plan metadata should pass `build_neck("FPN", ...)`.
+  - Keep data-bearing examples path-driven and fail-fast; import tests should verify no script does filesystem work at import time.
 ---

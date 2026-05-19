@@ -301,3 +301,5 @@
 [2026-05-19 09:25:44] Added US-035 example gallery scripts, docs page updates, manifest entry, and example tests
 [2026-05-19 09:29:09] US-035 verification passed: examples tests, full unit suite, docs-check, build, verify-dist
 [2026-05-19 09:31:50] US-035 final verification passed after ckpt example rename: full unit suite, docs-check, build, verify-dist
+[2026-05-19 09:33:14] US-035 exact global unit gate passed with python: 292 tests, 90 skipped
+[2026-05-19 09:35:02] Updated US-035 progress log with commit and verification details
