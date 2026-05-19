@@ -24,6 +24,7 @@ __all__ = [
     "run_training",
     "run_inference",
     "run_evaluation",
+    "list_heads",
     "suite",
     "native",
     "extensions",
@@ -82,6 +83,7 @@ def __getattr__(name: str):
         "run_training",
         "run_inference",
         "run_evaluation",
+        "list_heads",
     }
     if name in exported:
         return getattr(api, name)

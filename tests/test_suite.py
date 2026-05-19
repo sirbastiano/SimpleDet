@@ -1,6 +1,7 @@
 import unittest
 
 from simpledet.suite import (
+    build_head,
     build_custom_detector,
     build_custom_encoder,
     build_detector,
@@ -36,6 +37,10 @@ class NativeSuiteTests(unittest.TestCase):
 
         self.assertEqual(detector.family, "transformer")
         self.assertIsNone(detector.head)
+
+    def test_build_head_rejects_non_positive_num_classes(self):
+        with self.assertRaisesRegex(ValueError, "num_classes.*positive integer"):
+            build_head("retina_head", num_classes=0)
 
     def test_build_transformer_name_aliases_normalize_to_transformer_family(self):
         aliases = {

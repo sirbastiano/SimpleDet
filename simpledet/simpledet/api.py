@@ -577,6 +577,12 @@ def list_available_heads() -> list[str]:
     return list_native_head_families()
 
 
+def list_heads(kind: str | None = None, pattern: str | None = None) -> list[str]:
+    from .suite.catalog import list_heads as _list_heads
+
+    return _list_heads(kind=kind, pattern=pattern)
+
+
 def print_available_encoders(pattern: str | None = None) -> None:
     for name in list_available_encoders(pattern):
         print(name)

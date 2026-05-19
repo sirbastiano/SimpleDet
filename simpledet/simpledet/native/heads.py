@@ -21,6 +21,13 @@ class HeadSpec:
     num_anchors: int
 
 
+def _positive_int(value: Any, name: str) -> int:
+    resolved = int(value)
+    if resolved <= 0:
+        raise ValueError(f"{name} must be a positive integer.")
+    return resolved
+
+
 @HEADS.register(
     "RetinaHead",
     aliases=("retina", "retina_head"),
@@ -41,12 +48,12 @@ class RetinaDenseHead(nn.Module):
         num_classes: int,
     ) -> None:
         super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_anchors = _positive_int(num_anchors, "num_anchors")
+        self.num_classes = _positive_int(num_classes, "num_classes")
         require_dependency("torchvision", "native heads")
         from torchvision.models.detection.retinanet import RetinaNetHead
 
-        self.in_channels = int(in_channels)
-        self.num_anchors = int(num_anchors)
-        self.num_classes = int(num_classes)
         self.head = RetinaNetHead(self.in_channels, self.num_anchors, self.num_classes)
 
     def __call__(self, features: list[Any] | tuple[Any, ...]):
@@ -59,6 +66,19 @@ class RetinaDenseHead(nn.Module):
 @HEADS.register("RetinaNetHead")
 class RetinaNetHead(RetinaDenseHead):
     """Compatibility alias used by external detector configs."""
+
+
+@HEADS.register(
+    "FreeAnchorRetinaHead",
+    aliases=("free_anchor", "free_anchor_head", "free_anchor_retina_head"),
+    required_dependencies=(("torch", "cpu"), ("torchvision", "cpu")),
+    tensor_contracts=("feature_pyramid", "free_anchor_head_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="FreeAnchor-compatible RetinaNet dense head.",
+)
+class FreeAnchorRetinaHead(RetinaDenseHead):
+    """Retina-style dense head used by FreeAnchor detector families."""
 
 
 @HEADS.register(
@@ -82,9 +102,9 @@ class FCOSDenseHead(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.in_channels = int(in_channels)
-        self.num_classes = int(num_classes)
-        self.num_convs = int(num_convs)
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.num_convs = _positive_int(num_convs, "num_convs")
         cls_tower = []
         box_tower = []
         current_channels = self.in_channels
@@ -140,6 +160,19 @@ class FCOSHeadV2(FCOSDenseHead):
 
 
 @HEADS.register(
+    "FSAFHead",
+    aliases=("fsaf", "fsaf_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="FSAF-style anchor-free dense head.",
+)
+class FSAFHead(FCOSDenseHead):
+    """Anchor-free dense head used by FSAF detector families."""
+
+
+@HEADS.register(
     "ATSSHead",
     aliases=("atss", "atss_head"),
     required_dependencies=(("torch", "cpu"),),
@@ -160,10 +193,10 @@ class ATSSDenseHead(nn.Module):
         num_convs: int = 4,
     ) -> None:
         super().__init__()
-        self.in_channels = int(in_channels)
-        self.num_classes = int(num_classes)
-        self.num_anchors = int(num_anchors)
-        self.num_convs = int(num_convs)
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.num_anchors = _positive_int(num_anchors, "num_anchors")
+        self.num_convs = _positive_int(num_convs, "num_convs")
         cls_tower = []
         box_tower = []
         current_channels = self.in_channels
@@ -203,6 +236,52 @@ class ATSSDenseHead(nn.Module):
 @HEADS.register("ATSSV2Head")
 class ATSSV2Head(ATSSDenseHead):
     """Compatibility alias for ATSS-style variants."""
+
+
+@HEADS.register(
+    "RPNHead",
+    aliases=("rpn", "rpn_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "rpn_head_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="Region proposal network dense head.",
+)
+class RPNHead(nn.Module):
+    """Class-agnostic dense proposal head with objectness and box deltas."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_anchors: int = 9,
+        num_convs: int = 1,
+    ) -> None:
+        super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.num_anchors = _positive_int(num_anchors, "num_anchors")
+        self.num_convs = _positive_int(num_convs, "num_convs")
+        tower = []
+        for _ in range(self.num_convs):
+            tower.append(nn.Conv2d(self.in_channels, self.in_channels, kernel_size=3, padding=1))
+            tower.append(nn.ReLU(inplace=True))
+        self.tower = nn.Sequential(*tower)
+        self.objectness_logits = nn.Conv2d(self.in_channels, self.num_anchors, kernel_size=1)
+        self.bbox_pred = nn.Conv2d(self.in_channels, self.num_anchors * 4, kernel_size=1)
+
+    def __call__(self, features: list[Any] | tuple[Any, ...]):
+        return self.forward(features)
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        objectness = []
+        bbox_reg = []
+        for feature in features:
+            proposal_feature = self.tower(feature)
+            objectness.append(self.objectness_logits(proposal_feature))
+            bbox_reg.append(self.bbox_pred(proposal_feature))
+        return {"objectness_logits": objectness, "bbox_regression": bbox_reg}
 
 
 @HEADS.register(
@@ -257,15 +336,15 @@ class ReppointsHead(RepPointsHead):
 
 @HEADS.register(
     "FoveaHead",
-    aliases=("FOVEA",),
+    aliases=("FOVEA", "fovea_head"),
     required_dependencies=(("torch", "cpu"),),
-    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
-    validation_status="compatibility_alias",
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
     family="dense",
-    summary="Fovea-family head alias routed through ATSS-compatible outputs.",
+    summary="Fovea-family anchor-free dense head.",
 )
-class FoveaHead(ATSSDenseHead):
-    """Compatibility alias for Fovea-style dense heads."""
+class FoveaHead(FCOSDenseHead):
+    """Anchor-free dense head used by Fovea-style detectors."""
 
 
 @HEADS.register(
@@ -354,6 +433,17 @@ def _resolve_head_name(requested: str) -> str:
 
     if normalized in {"retina", "retinanet", "retinanethead", "retinahead"}:
         return "RetinaHead"
+    if normalized in {
+        "freeanchor",
+        "freeanchorhead",
+        "freeanchorretina",
+        "freeanchorretinahead",
+    }:
+        return "FreeAnchorRetinaHead"
+    if normalized in {"rpn", "rpnhead"}:
+        return "RPNHead"
+    if normalized.startswith("fsaf"):
+        return "FSAFHead"
     if normalized.startswith("fcos"):
         if normalized in {"fcosheadv2", "fcosv2head"}:
             return "FCOSHeadV2"
@@ -395,9 +485,12 @@ def build_native_head(head_plan, *, out_channels: int, num_classes: int):
     params = dict(getattr(head_plan, "params", {}))
     params.setdefault("in_channels", int(out_channels))
     params.setdefault("num_classes", int(num_classes))
+    params["in_channels"] = _positive_int(params["in_channels"], "in_channels")
+    params["num_classes"] = _positive_int(params["num_classes"], "num_classes")
     factory = HEADS.get(head_type)
     if head_type in set(HEADS.names()) and _head_accepts_num_anchors(factory):
         params = _default_num_anchors(params)
+        params["num_anchors"] = _positive_int(params["num_anchors"], "num_anchors")
     head = factory(**params)
     spec = HeadSpec(
         name=head_type,

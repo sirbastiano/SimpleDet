@@ -83,6 +83,10 @@ class HeadSpec:
     def __post_init__(self) -> None:
         self.extra = _copy_mapping(self.extra)
         self.imports = _copy_imports(self.imports)
+        if self.num_classes is not None:
+            self.num_classes = int(self.num_classes)
+            if self.num_classes <= 0:
+                raise ValueError("`num_classes` must be a positive integer.")
         if self.head_cfg is not None:
             self.head_cfg = dict(self.head_cfg)
 

@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 00:31:58 | run=20260518-183418-2827287 | iter=12 | mode=build | story=US-012 | duration=1312s | status=success
 - 2026-05-19 00:10:01 | run=20260518-183418-2827287 | iter=11 | mode=build | story=US-011 | duration=1076s | status=success
 - 2026-05-18 23:51:55 | run=20260518-183418-2827287 | iter=10 | mode=build | story=US-010 | duration=1746s | status=success
 - 2026-05-18 23:22:39 | run=20260518-183418-2827287 | iter=9 | mode=build | story=US-009 | duration=983s | status=success
@@ -109,3 +110,9 @@
 [2026-05-19 00:28:17] US-012 verification completed: focused ROI tests, make test, docs-check, build, and verify-dist passed with python3; bare python unavailable
 [2026-05-19 00:28:39] US-012 pre-commit security performance regression review completed: no file/network/exec handling added, ROI helpers preserve tensor device/dtype and empty shapes, focused and full regression gates passed
 [2026-05-19 00:30:58] US-012 progress log updated with implementation commit 2a43559 and verification outcomes
+[2026-05-19 00:31:56] ITERATION 12 end (duration=1312s)
+[2026-05-19 00:32:01] ITERATION 13 start (mode=build story=US-013)
+[2026-05-19 00:33:37] Start US-013: register core dense heads
+[2026-05-19 00:46:42] Implemented US-013 dense head registrations, discovery API, validation, docs, and tests
+[2026-05-19 00:49:13] Focused US-013 tests completed; CPU tensor tests skipped where torch runtime is absent
+[2026-05-19 00:52:15] US-013 pre-commit security performance regression review completed: registry aliases validate normalized uniqueness, no file/network/secret handling added, dense ops remain tensor-local, and focused/full/package gates passed

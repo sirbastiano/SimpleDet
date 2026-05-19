@@ -183,6 +183,39 @@ def list_native_head_families(pattern: str | None = None) -> list[str]:
     return _list_native_families(kind="head", pattern=pattern)
 
 
+def list_heads(kind: str | None = None, pattern: str | None = None) -> list[str]:
+    """Return registered head names and aliases, optionally filtered by family."""
+
+    if not _native_registries_available():
+        return []
+    family = None
+    if kind is not None:
+        family = str(kind).strip().lower()
+        if family in {"", "all", "*"}:
+            family = None
+    token = None
+    if pattern is not None:
+        token = str(pattern).strip().lower()
+        if not token:
+            token = None
+
+    results: list[str] = []
+    seen: set[str] = set()
+    for metadata in _native_registry("head").entries():
+        metadata_family = None if metadata.family is None else str(metadata.family).lower()
+        if family is not None and metadata_family != family:
+            continue
+        for value in (metadata.name, *metadata.aliases):
+            if token is not None and token not in value.lower():
+                continue
+            key = value.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(value)
+    return sorted(results, key=str.lower)
+
+
 def list_native_neck_families(pattern: str | None = None) -> list[str]:
     return _list_native_families(kind="neck", pattern=pattern)
 

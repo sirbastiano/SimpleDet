@@ -283,6 +283,32 @@ class ExtensionRegistryTests(unittest.TestCase):
                 self.assertTrue(alias_metadata.tensor_contracts)
                 self.assertNotEqual(alias_metadata.validation_status, "unvalidated")
 
+    def test_native_head_registry_exposes_core_dense_aliases(self):
+        with patch.dict(sys.modules, _fake_torch_modules()):
+            import simpledet.native.heads  # noqa: F401
+            from simpledet.suite import list_heads
+
+            dense_heads = set(list_heads(kind="dense"))
+
+        aliases = {
+            "retina_head": "RetinaHead",
+            "fcos_head": "FCOSHead",
+            "atss_head": "ATSSHead",
+            "fsaf_head": "FSAFHead",
+            "fovea_head": "FoveaHead",
+            "free_anchor_head": "FreeAnchorRetinaHead",
+            "rpn_head": "RPNHead",
+        }
+        for alias, expected_name in aliases.items():
+            with self.subTest(alias=alias):
+                self.assertIn(alias, dense_heads)
+                metadata = HEADS.lookup(alias)
+                self.assertEqual(metadata.name, expected_name)
+                self.assertEqual(metadata.family, "dense")
+                self.assertTrue(metadata.required_dependencies)
+                self.assertTrue(metadata.tensor_contracts)
+                self.assertNotEqual(metadata.validation_status, "unvalidated")
+
     def test_native_backbone_registry_exposes_major_alias_metadata(self):
         with patch.dict(sys.modules, _fake_torch_modules()):
             import simpledet.native.backbones  # noqa: F401

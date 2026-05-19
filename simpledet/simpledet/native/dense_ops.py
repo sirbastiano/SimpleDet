@@ -115,6 +115,99 @@ class DenseRetinaNetLoss(nn.Module):
         }
 
 
+class DenseFreeAnchorRetinaNetDecoder(DenseRetinaNetDecoder):
+    """FreeAnchor uses the Retina-style dense decode contract."""
+
+
+class DenseFreeAnchorRetinaNetLoss(DenseRetinaNetLoss):
+    """Finite FreeAnchor smoke loss on the shared Retina dense target contract."""
+
+
+class DenseRPNDecoder(nn.Module):
+    def __init__(
+        self,
+        *,
+        score_threshold: float = 0.05,
+        nms_threshold: float = 0.7,
+        detections_per_img: int = 1000,
+    ) -> None:
+        super().__init__()
+        self.score_threshold = float(score_threshold)
+        self.nms_threshold = float(nms_threshold)
+        self.detections_per_img = int(detections_per_img)
+
+    def forward(self, image, feature_maps, head_outputs):
+        from torchvision.ops import batched_nms
+
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        anchors = _anchor_priors_for_image(image, feature_maps)
+        objectness = flatten_anchor_objectness_logits(head_outputs["objectness_logits"])
+        bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
+        decoded = clip_boxes_to_image(decode_boxes(anchors, bbox_regression), image_size)
+        scores = torch.sigmoid(objectness)
+        labels = torch.ones_like(scores, dtype=torch.long)
+
+        keep = scores >= self.score_threshold
+        payload = make_batched_nms_payload(decoded[keep], scores[keep], labels[keep])
+        if payload["boxes"].numel() == 0:
+            return prediction_payload_to_dict(payload)
+
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
+        keep_idx = keep_idx[: self.detections_per_img]
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
+
+
+class DenseRPNLoss(nn.Module):
+    def forward(self, images, targets, feature_pyramids, head_outputs_per_image):
+        total_objectness = torch.tensor(0.0, device=images[0].device)
+        total_box = torch.tensor(0.0, device=images[0].device)
+
+        for image, target, feature_maps, head_outputs in zip(
+            images,
+            targets,
+            feature_pyramids,
+            head_outputs_per_image,
+        ):
+            feature_maps = _feature_sequence(feature_maps)
+            anchors = _anchor_priors_for_image(image, feature_maps)
+            objectness = flatten_anchor_objectness_logits(head_outputs["objectness_logits"])
+            bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
+
+            labels = target["labels"].new_ones(target["labels"].shape)
+            assignment = max_iou_assign(
+                anchors,
+                target["boxes"],
+                labels,
+                ignored_boxes=_ignored_boxes_from_target(target),
+            )
+            positive_mask = assignment.positive_mask
+            valid_mask = ~assignment.ignored_mask
+            objectness_targets = positive_mask.to(dtype=objectness.dtype)
+            total_objectness = total_objectness + _binary_cross_entropy_valid(
+                objectness,
+                objectness_targets,
+                valid_mask,
+            )
+
+            if positive_mask.any():
+                regression_targets = encode_boxes(anchors[positive_mask], assignment.matched_boxes[positive_mask])
+                total_box = total_box + F.smooth_l1_loss(
+                    bbox_regression[positive_mask],
+                    regression_targets,
+                    reduction="mean",
+                )
+
+        num_images = max(len(images), 1)
+        loss_objectness = total_objectness / num_images
+        loss_bbox = total_box / num_images
+        return {
+            "loss_objectness": loss_objectness,
+            "loss_bbox": loss_bbox,
+            "loss_total": loss_objectness + loss_bbox,
+        }
+
+
 class DenseFCOSDecoder(nn.Module):
     def __init__(
         self,
@@ -232,6 +325,22 @@ class DenseFCOSLoss(nn.Module):
             "loss_centerness": loss_ctr,
             "loss_total": loss_cls + loss_bbox + loss_ctr,
         }
+
+
+class DenseFSAFDecoder(DenseFCOSDecoder):
+    """FSAF uses the anchor-free point decode contract."""
+
+
+class DenseFSAFLoss(DenseFCOSLoss):
+    """Finite FSAF smoke loss on the shared anchor-free dense target contract."""
+
+
+class DenseFoveaDecoder(DenseFCOSDecoder):
+    """Fovea uses the anchor-free point decode contract."""
+
+
+class DenseFoveaLoss(DenseFCOSLoss):
+    """Finite Fovea smoke loss on the shared anchor-free dense target contract."""
 
 
 class DenseATSSDecoder(nn.Module):
@@ -542,6 +651,10 @@ def flatten_anchor_centerness_logits(centerness_per_level):
         reshaped = level.view(batch, channels, height, width)
         flattened.append(reshaped.permute(0, 2, 3, 1).reshape(-1))
     return torch.cat(flattened, dim=0)
+
+
+def flatten_anchor_objectness_logits(objectness_per_level):
+    return flatten_anchor_centerness_logits(objectness_per_level)
 
 
 def _binary_cross_entropy_valid(logits, targets, valid_mask):
