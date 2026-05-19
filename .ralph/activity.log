@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 02:14:16 | run=20260518-183418-2827287 | iter=16 | mode=build | story=US-016 | duration=1293s | status=success
 - 2026-05-19 01:52:39 | run=20260518-183418-2827287 | iter=15 | mode=build | story=US-015 | duration=1271s | status=success
 - 2026-05-19 01:31:22 | run=20260518-183418-2827287 | iter=14 | mode=build | story=US-014 | duration=1967s | status=success
 - 2026-05-19 00:58:26 | run=20260518-183418-2827287 | iter=13 | mode=build | story=US-013 | duration=1584s | status=success
@@ -141,3 +142,10 @@
 [2026-05-19 02:02:11] Implemented US-016 keypoint and transformer head registrations with tests
 [2026-05-19 02:08:15] Completed US-016 verification: story test, unittest gate, docs-check, build, verify-dist
 [2026-05-19 02:12:24] Updated progress log for US-016 with commit and verification details
+[2026-05-19 02:14:15] ITERATION 16 end (duration=1293s)
+[2026-05-19 02:14:19] ITERATION 17 start (mode=build story=US-017)
+[2026-05-19 02:17:05] Read guardrails, errors, PRD, AGENTS, and command surface for US-017
+[2026-05-19 02:28:01] Implemented US-017 ROI bbox heads and focused tests
+[2026-05-19 02:31:08] Completed US-017 verification: focused tests, unittest gate, docs-check, build, verify-dist
+[2026-05-19 02:32:06] Completed US-017 pre-commit security performance regression audit
+[2026-05-19 02:33:50] Completed US-017 real CPU tensor ROI test via uv run --extra cpu

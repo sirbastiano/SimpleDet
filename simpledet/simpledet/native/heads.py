@@ -12,6 +12,7 @@ from ..extensions import HEADS, LOSSES
 require_dependency("torch", "native heads")
 import torch  # noqa: E402
 import torch.nn as nn  # noqa: E402
+import torch.nn.functional as F  # noqa: E402
 
 
 @dataclass(slots=True, frozen=True)
@@ -55,6 +56,18 @@ def _positive_int_tuple(value: Any, name: str) -> tuple[int, ...]:
     if not values:
         raise ValueError(f"{name} must be a non-empty sequence of positive integers.")
     return values
+
+
+def _roi_feat_size(value: Any) -> tuple[int, int]:
+    if isinstance(value, (tuple, list)):
+        if len(value) != 2:
+            raise ValueError("roi_feat_size must be a positive integer or a pair of positive integers.")
+        return (
+            _positive_int(value[0], "roi_feat_size"),
+            _positive_int(value[1], "roi_feat_size"),
+        )
+    resolved = _positive_int(value, "roi_feat_size")
+    return resolved, resolved
 
 
 @HEADS.register(
@@ -571,9 +584,483 @@ class EfficientDetHead(_AnchorBoxDenseHead):
         )
 
 
-@HEADS.register("SABLHead")
-class SABLHead(ATSSDenseHead):
-    """SABL-style head alias."""
+_ROI_BBOX_DEPENDENCIES = (("torch", "cpu"),)
+_ROI_BBOX_CONTRACTS = ("roi_features", "roi_bbox_head_outputs", "roi_bbox_targets")
+
+
+class _RoIBBoxHeadBase(nn.Module):
+    """Shared fully connected ROI bbox head contract."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        roi_feat_size: int | tuple[int, int] = 7,
+        conv_out_channels: int | None = None,
+        fc_out_channels: int = 1024,
+        num_shared_convs: int = 0,
+        num_shared_fcs: int = 2,
+        with_avg_pool: bool = False,
+        reg_class_agnostic: bool = False,
+        class_agnostic: bool | None = None,
+        loss_weight: float = 1.0,
+        **_unused: Any,
+    ) -> None:
+        super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.roi_feat_size = _roi_feat_size(roi_feat_size)
+        self.conv_out_channels = _positive_int(
+            conv_out_channels if conv_out_channels is not None else in_channels,
+            "conv_out_channels",
+        )
+        self.fc_out_channels = _positive_int(fc_out_channels, "fc_out_channels")
+        self.num_shared_convs = int(num_shared_convs)
+        self.num_shared_fcs = int(num_shared_fcs)
+        if self.num_shared_convs < 0:
+            raise ValueError("num_shared_convs must be non-negative.")
+        if self.num_shared_fcs < 0:
+            raise ValueError("num_shared_fcs must be non-negative.")
+        self.with_avg_pool = bool(with_avg_pool)
+        self.reg_class_agnostic = bool(reg_class_agnostic if class_agnostic is None else class_agnostic)
+        self.loss_weight = float(loss_weight)
+
+        self.shared_convs = self._make_conv_tower(
+            num_convs=self.num_shared_convs,
+            in_channels=self.in_channels,
+            out_channels=self.conv_out_channels,
+        )
+        shared_channels = self.conv_out_channels if self.num_shared_convs else self.in_channels
+        fc_input_dim = self._flattened_feature_dim(shared_channels)
+        self.shared_fcs, shared_output_dim = self._make_fc_tower(
+            num_fcs=self.num_shared_fcs,
+            input_dim=fc_input_dim,
+            output_dim=self.fc_out_channels,
+        )
+        self.fc_cls = nn.Linear(shared_output_dim, self.num_classes + 1)
+        self.fc_reg = nn.Linear(shared_output_dim, self.bbox_pred_channels)
+
+    @property
+    def bbox_pred_channels(self) -> int:
+        if self.reg_class_agnostic:
+            return 4
+        return (self.num_classes + 1) * 4
+
+    def forward(self, roi_features: Any) -> dict[str, Any]:
+        shared = self._shared_representation(roi_features)
+        return {
+            "cls_score": self.fc_cls(shared),
+            "bbox_pred": self.fc_reg(shared),
+        }
+
+    def get_targets(self, proposals: Any, gt_boxes: Any, gt_labels: Any, **kwargs: Any):
+        from .roi import build_roi_bbox_targets
+
+        return build_roi_bbox_targets(proposals, gt_boxes, gt_labels, **kwargs)
+
+    def loss(self, outputs: Any, targets: Any) -> dict[str, Any]:
+        cls_score, bbox_pred = self._unpack_outputs(outputs)
+        labels = self._target_tensor(targets, "labels", dtype=torch.long, device=cls_score.device).reshape(-1)
+        label_weights = self._target_tensor(
+            targets,
+            "label_weights",
+            default=cls_score.new_ones((labels.shape[0],)),
+            dtype=cls_score.dtype,
+            device=cls_score.device,
+        ).reshape(-1)
+        bbox_targets = self._target_tensor(
+            targets,
+            "bbox_targets",
+            dtype=bbox_pred.dtype,
+            device=bbox_pred.device,
+        )
+        bbox_weights = self._target_tensor(
+            targets,
+            "bbox_weights",
+            default=torch.ones_like(bbox_targets),
+            dtype=bbox_pred.dtype,
+            device=bbox_pred.device,
+        )
+
+        num_rois = int(cls_score.shape[0])
+        self._validate_loss_rows(num_rois, labels, label_weights, bbox_pred)
+        bbox_targets = self._normalize_bbox_targets(bbox_targets, num_rois, name="bbox_targets")
+        bbox_weights = self._normalize_bbox_targets(bbox_weights, num_rois, name="bbox_weights")
+
+        clamped_labels = labels.clamp(min=0, max=self.num_classes)
+        cls_losses = F.cross_entropy(cls_score, clamped_labels, reduction="none")
+        loss_cls = (cls_losses * label_weights).sum() / label_weights.sum().clamp_min(1.0)
+
+        positive = torch.nonzero(clamped_labels > 0, as_tuple=False).reshape(-1)
+        if positive.numel() == 0:
+            loss_bbox = bbox_pred.sum() * 0.0
+        else:
+            positive_labels = clamped_labels.index_select(0, positive)
+            positive_bbox_pred = bbox_pred.index_select(0, positive)
+            positive_bbox_targets = self._select_bbox_rows(
+                bbox_targets,
+                positive,
+                positive_labels,
+                name="bbox_targets",
+            )
+            positive_bbox_weights = self._select_bbox_rows(
+                bbox_weights,
+                positive,
+                positive_labels,
+                name="bbox_weights",
+            )
+            selected_bbox_pred = self._select_bbox_predictions(
+                positive_bbox_pred,
+                positive_labels,
+            )
+            weighted_pred = selected_bbox_pred * positive_bbox_weights
+            weighted_target = positive_bbox_targets * positive_bbox_weights
+            normalizer = positive_bbox_weights.sum().clamp_min(1.0)
+            loss_bbox = F.smooth_l1_loss(weighted_pred, weighted_target, reduction="sum") / normalizer
+
+        loss_bbox = loss_bbox * self.loss_weight
+        return {
+            "loss_cls": loss_cls,
+            "loss_bbox": loss_bbox,
+            "loss_total": loss_cls + loss_bbox,
+        }
+
+    def _shared_representation(self, roi_features: Any):
+        feature = self._as_roi_tensor(roi_features)
+        if feature.dim() == 4:
+            feature = self.shared_convs(feature)
+            flattened = self._flatten_spatial_features(feature)
+        elif feature.dim() == 2:
+            if self.num_shared_convs:
+                raise ValueError("ROI bbox heads with shared convs require 4D NCHW ROI features.")
+            flattened = feature
+            expected = self._flattened_feature_dim(self.in_channels)
+            if int(flattened.shape[1]) != expected:
+                raise ValueError(
+                    f"ROI bbox head expected flattened feature dimension {expected}, "
+                    f"got {int(flattened.shape[1])}."
+                )
+        else:
+            raise ValueError("ROI bbox heads expect pooled features with shape (N, C, H, W) or (N, C).")
+        return self.shared_fcs(flattened)
+
+    def _as_roi_tensor(self, roi_features: Any):
+        feature = roi_features
+        if isinstance(feature, (list, tuple)):
+            if len(feature) != 1:
+                raise ValueError("ROI bbox heads expect a single pooled ROI feature tensor.")
+            feature = feature[0]
+        if not torch.is_tensor(feature):
+            feature = torch.as_tensor(feature, dtype=torch.float32)
+        if feature.dim() == 4 and int(feature.shape[1]) != self.in_channels:
+            raise ValueError(
+                f"ROI bbox head expected feature channels {self.in_channels}, "
+                f"got {int(feature.shape[1])}."
+            )
+        return feature
+
+    def _flatten_spatial_features(self, feature: Any):
+        if self.with_avg_pool:
+            return torch.flatten(F.adaptive_avg_pool2d(feature, (1, 1)), 1)
+        expected_h, expected_w = self.roi_feat_size
+        actual_h, actual_w = int(feature.shape[-2]), int(feature.shape[-1])
+        if (actual_h, actual_w) != (expected_h, expected_w):
+            raise ValueError(
+                "ROI bbox head expected pooled feature size "
+                f"{(expected_h, expected_w)}, got {(actual_h, actual_w)}."
+            )
+        return torch.flatten(feature, 1)
+
+    def _flattened_feature_dim(self, channels: int) -> int:
+        if self.with_avg_pool:
+            return int(channels)
+        return int(channels) * self.roi_feat_size[0] * self.roi_feat_size[1]
+
+    def _make_conv_tower(self, *, num_convs: int, in_channels: int, out_channels: int) -> nn.Sequential:
+        layers: list[nn.Module] = []
+        current_channels = int(in_channels)
+        for _ in range(int(num_convs)):
+            layers.append(nn.Conv2d(current_channels, int(out_channels), kernel_size=3, padding=1))
+            layers.append(nn.ReLU(inplace=True))
+            current_channels = int(out_channels)
+        return nn.Sequential(*layers)
+
+    def _make_fc_tower(self, *, num_fcs: int, input_dim: int, output_dim: int) -> tuple[nn.Sequential, int]:
+        layers: list[nn.Module] = []
+        current_dim = int(input_dim)
+        for _ in range(int(num_fcs)):
+            layers.append(nn.Linear(current_dim, int(output_dim)))
+            layers.append(nn.ReLU(inplace=True))
+            current_dim = int(output_dim)
+        return nn.Sequential(*layers), current_dim
+
+    def _unpack_outputs(self, outputs: Any) -> tuple[Any, Any]:
+        if isinstance(outputs, dict):
+            return outputs["cls_score"], outputs["bbox_pred"]
+        if isinstance(outputs, (tuple, list)) and len(outputs) == 2:
+            return outputs[0], outputs[1]
+        raise ValueError("ROI bbox head loss expects outputs with cls_score and bbox_pred.")
+
+    def _target_tensor(
+        self,
+        targets: Any,
+        name: str,
+        *,
+        default: Any | None = None,
+        dtype: Any | None = None,
+        device: Any | None = None,
+    ):
+        if isinstance(targets, dict):
+            value = targets.get(name, default)
+        else:
+            value = getattr(targets, name, default)
+        if value is None:
+            raise ValueError(f"ROI bbox head loss requires targets.{name}.")
+        return torch.as_tensor(value, dtype=dtype, device=device)
+
+    def _validate_loss_rows(self, num_rois: int, labels: Any, label_weights: Any, bbox_pred: Any) -> None:
+        if int(labels.shape[0]) != num_rois:
+            raise ValueError("labels must match the number of ROI predictions.")
+        if int(label_weights.shape[0]) != num_rois:
+            raise ValueError("label_weights must match the number of ROI predictions.")
+        if bbox_pred.dim() != 2 or int(bbox_pred.shape[0]) != num_rois:
+            raise ValueError("bbox_pred must have shape (N, 4) or (N, (num_classes + 1) * 4).")
+        if int(bbox_pred.shape[1]) != self.bbox_pred_channels:
+            raise ValueError(
+                f"bbox_pred expected second dimension {self.bbox_pred_channels}, "
+                f"got {int(bbox_pred.shape[1])}."
+            )
+
+    def _normalize_bbox_targets(self, tensor: Any, num_rois: int, *, name: str):
+        if int(tensor.shape[0]) != num_rois:
+            raise ValueError(f"{name} must match the number of ROI predictions.")
+        if self.reg_class_agnostic:
+            if tensor.dim() != 2 or int(tensor.shape[1]) != 4:
+                raise ValueError(
+                    "class-agnostic regression expects bbox_targets with shape (N, 4)."
+                )
+            return tensor
+        if tensor.dim() == 2:
+            width = int(tensor.shape[1])
+            if width == 4:
+                return tensor
+            if width == (self.num_classes + 1) * 4:
+                return tensor.reshape(num_rois, self.num_classes + 1, 4)
+        elif tensor.dim() == 3 and int(tensor.shape[1]) == self.num_classes + 1 and int(tensor.shape[2]) == 4:
+            return tensor
+        raise ValueError(
+            f"{name} must have shape (N, 4), (N, (num_classes + 1) * 4), "
+            "or (N, num_classes + 1, 4)."
+        )
+
+    def _select_bbox_predictions(self, bbox_pred: Any, labels: Any):
+        if self.reg_class_agnostic:
+            return bbox_pred
+        from .roi import select_class_specific_bbox_deltas
+
+        return select_class_specific_bbox_deltas(
+            bbox_pred,
+            labels,
+            num_classes=self.num_classes,
+        )
+
+    def _select_bbox_rows(self, tensor: Any, indices: Any, labels: Any, *, name: str):
+        selected = tensor.index_select(0, indices)
+        if selected.dim() == 2:
+            if int(selected.shape[1]) != 4:
+                raise ValueError(f"{name} selected rows must have 4 bbox columns.")
+            return selected
+        row_indices = torch.arange(selected.shape[0], dtype=torch.long, device=selected.device)
+        label_tensor = labels.clamp(min=0, max=self.num_classes)
+        return selected[row_indices, label_tensor]
+
+
+@HEADS.register(
+    "Shared2FCBBoxHead",
+    aliases=("shared_2fc_bbox_head", "shared2fc"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=_ROI_BBOX_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native shared two-FC ROI bbox head.",
+)
+class Shared2FCBBoxHead(_RoIBBoxHeadBase):
+    """Two fully connected ROI bbox head used by common two-stage detectors."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("num_shared_convs", 0)
+        kwargs.setdefault("num_shared_fcs", 2)
+        super().__init__(**kwargs)
+
+
+@HEADS.register(
+    "ConvFCBBoxHead",
+    aliases=("convfc_bbox_head", "convfc"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=_ROI_BBOX_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native ROI bbox head with shared convolution and FC towers.",
+)
+class ConvFCBBoxHead(_RoIBBoxHeadBase):
+    """Configurable convolution plus fully connected ROI bbox head."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("num_shared_convs", 1)
+        kwargs.setdefault("num_shared_fcs", 1)
+        super().__init__(**kwargs)
+
+
+@HEADS.register(
+    "DoubleConvFCBBoxHead",
+    aliases=("double_convfc_bbox_head",),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=_ROI_BBOX_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native Double-Head ROI bbox head with separate classification and regression towers.",
+)
+class DoubleConvFCBBoxHead(_RoIBBoxHeadBase):
+    """Double-head style ROI bbox head with distinct cls and reg branches."""
+
+    def __init__(
+        self,
+        *,
+        num_reg_convs: int = 2,
+        num_cls_fcs: int = 2,
+        **kwargs: Any,
+    ) -> None:
+        kwargs.setdefault("num_shared_convs", 0)
+        kwargs.setdefault("num_shared_fcs", 0)
+        super().__init__(**kwargs)
+        self.num_reg_convs = _positive_int(num_reg_convs, "num_reg_convs")
+        self.num_cls_fcs = _positive_int(num_cls_fcs, "num_cls_fcs")
+        self.reg_convs = self._make_conv_tower(
+            num_convs=self.num_reg_convs,
+            in_channels=self.in_channels,
+            out_channels=self.conv_out_channels,
+        )
+        reg_input_dim = self._flattened_feature_dim(self.conv_out_channels)
+        self.reg_fcs, reg_output_dim = self._make_fc_tower(
+            num_fcs=1,
+            input_dim=reg_input_dim,
+            output_dim=self.fc_out_channels,
+        )
+        cls_input_dim = self._flattened_feature_dim(self.in_channels)
+        self.cls_fcs, cls_output_dim = self._make_fc_tower(
+            num_fcs=self.num_cls_fcs,
+            input_dim=cls_input_dim,
+            output_dim=self.fc_out_channels,
+        )
+        self.fc_cls = nn.Linear(cls_output_dim, self.num_classes + 1)
+        self.fc_reg = nn.Linear(reg_output_dim, self.bbox_pred_channels)
+
+    def forward(self, roi_features: Any) -> dict[str, Any]:
+        feature = self._as_roi_tensor(roi_features)
+        if feature.dim() != 4:
+            raise ValueError("DoubleConvFCBBoxHead requires 4D NCHW ROI features.")
+        cls_feature = self.cls_fcs(self._flatten_spatial_features(feature))
+        reg_feature = self.reg_convs(feature)
+        reg_feature = self.reg_fcs(self._flatten_spatial_features(reg_feature))
+        return {
+            "cls_score": self.fc_cls(cls_feature),
+            "bbox_pred": self.fc_reg(reg_feature),
+        }
+
+
+@HEADS.register(
+    "DynamicBBoxHead",
+    aliases=("dynamic_bbox_head", "dynamic_bbox"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=_ROI_BBOX_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native dynamic ROI bbox head with proposal feature mixing.",
+)
+class DynamicBBoxHead(Shared2FCBBoxHead):
+    """Dynamic R-CNN style bbox head with an extra proposal mixing layer."""
+
+    def __init__(self, *, num_dynamic_fcs: int = 1, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.num_dynamic_fcs = _positive_int(num_dynamic_fcs, "num_dynamic_fcs")
+        layers: list[nn.Module] = []
+        for _ in range(self.num_dynamic_fcs):
+            layers.append(nn.Linear(self.fc_out_channels, self.fc_out_channels))
+            layers.append(nn.ReLU(inplace=True))
+        self.dynamic_fcs = nn.Sequential(*layers)
+
+    def _shared_representation(self, roi_features: Any):
+        return self.dynamic_fcs(super()._shared_representation(roi_features))
+
+
+@HEADS.register(
+    "CascadeBBoxHead",
+    aliases=("cascade_bbox_head", "cascade_bbox"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=(*_ROI_BBOX_CONTRACTS, "cascade_roi_refinement"),
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native cascade ROI bbox head with stage-weighted bbox loss.",
+)
+class CascadeBBoxHead(Shared2FCBBoxHead):
+    """Cascade R-CNN bbox head using the shared ROI target contract."""
+
+    def __init__(self, *, stage_loss_weight: float = 1.0, **kwargs: Any) -> None:
+        super().__init__(loss_weight=float(stage_loss_weight), **kwargs)
+        self.stage_loss_weight = float(stage_loss_weight)
+
+    def refine_proposals(self, proposals: Any, outputs: Any, labels: Any, **kwargs: Any):
+        from .roi import refine_cascade_stage_proposals
+
+        _cls_score, bbox_pred = self._unpack_outputs(outputs)
+        return refine_cascade_stage_proposals(proposals, bbox_pred, labels, **kwargs)
+
+
+@HEADS.register(
+    "SABLHead",
+    aliases=("sabl_head", "sabl_bbox_head", "side_aware_bbox_head"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=(*_ROI_BBOX_CONTRACTS, "side_aware_boundary_localization"),
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native side-aware boundary localization ROI bbox head.",
+)
+class SABLHead(ConvFCBBoxHead):
+    """SABL-style ROI bbox head with side-aware boundary projections."""
+
+    def __init__(self, *, bucket_count: int = 7, **kwargs: Any) -> None:
+        kwargs.setdefault("num_shared_convs", 1)
+        kwargs.setdefault("num_shared_fcs", 1)
+        super().__init__(**kwargs)
+        self.bucket_count = _positive_int(bucket_count, "bucket_count")
+        self.side_confidence = nn.Linear(self.fc_out_channels, self.bucket_count * 4)
+
+    def forward(self, roi_features: Any) -> dict[str, Any]:
+        shared = self._shared_representation(roi_features)
+        return {
+            "cls_score": self.fc_cls(shared),
+            "bbox_pred": self.fc_reg(shared),
+            "side_confidence": self.side_confidence(shared),
+        }
+
+
+@HEADS.register(
+    "SparseRoIHead",
+    aliases=("sparse_roi_head", "sparse_bbox_head", "sparse_rcnn_roi_head"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=(*_ROI_BBOX_CONTRACTS, "sparse_query_features"),
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native Sparse R-CNN style ROI head for learned proposal features.",
+)
+class SparseRoIHead(DynamicBBoxHead):
+    """Sparse R-CNN style ROI head that also accepts proposal feature tensors."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("roi_feat_size", 1)
+        kwargs.setdefault("with_avg_pool", True)
+        super().__init__(**kwargs)
 
 
 @HEADS.register(
