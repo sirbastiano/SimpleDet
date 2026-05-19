@@ -1384,3 +1384,37 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Native and lightweight prediction paths previously used `labels` and `class_ids` differently; public inference should normalize both to canonical `labels`.
   - Any public checkpoint-loading helper that delegates to `torch.load` needs an explicit trusted-source warning in docs and docstrings.
 ---
+## [2026-05-19 09:11:30 UTC] - US-034: Add easy setup doctor
+Thread:
+Run: 20260518-183418-2827287 (iteration 34)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-34.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-34.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: bfdeb68 feat(cli): add setup doctor diagnostics
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_cli` -> PASS (30 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (283 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m simpledet doctor` -> PASS (exit 0; optional extras reported as warnings with TIMM install hint)
+  - Command: `PYTHONPATH=simpledet python -m simpledet doctor --strict` -> PASS (expected exit 1 in base environment with missing optional extras)
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/cli-reference.html
+  - simpledet/simpledet/cli.py
+  - tests/test_cli.py
+- What was implemented
+  - Added `python -m simpledet doctor` diagnostics for Python support, SimpleDet package version, optional extra status, dependency availability and versions, install hints, and writable workdir checks.
+  - Added `doctor --strict` and `--workdir`, with default non-strict diagnostics returning zero when optional extras are missing and strict mode returning non-zero for failed setup checks.
+  - Added CLI tests for base warning output, strict non-zero output, and argument forwarding.
+  - Updated CLI reference docs for the richer doctor report and strict/workdir usage.
+  - Security/performance/regression review: doctor uses import-spec and package metadata checks instead of importing optional heavy dependencies; workdir probing uses a temporary file that is cleaned up; checks run over a bounded dependency list; existing discovery/direct CLI behavior remains covered by full regression gates.
+- **Learnings for future iterations:**
+  - `importlib.util.find_spec` is the right fit for setup diagnostics because base installs must not import torch, timm, rasterio, or plotting libraries.
+  - Strict setup diagnostics should be separate from default doctor output so new users can inspect missing extras without turning warnings into command failures.
+  - The repo's `python` binary is available in this iteration, so the exact global quality gate can run without falling back to `python3`.
+---
