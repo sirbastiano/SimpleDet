@@ -450,6 +450,30 @@ class DenseGFLLoss(DenseATSSLoss):
     """GFL currently reuses the anchor-based ATSS loss path."""
 
 
+class DenseGFLV2Decoder(DenseGFLDecoder):
+    """GFLv2 uses the native GFL anchor-based decode path."""
+
+
+class DenseGFLV2Loss(DenseGFLLoss):
+    """Finite GFLv2 smoke loss on the shared GFL dense target contract."""
+
+
+class DensePAADecoder(DenseATSSDecoder):
+    """PAA uses the native anchor-based dense decode path."""
+
+
+class DensePAALoss(DenseATSSLoss):
+    """Finite PAA smoke loss on the shared ATSS dense target contract."""
+
+
+class DenseDDODDecoder(DenseATSSDecoder):
+    """DDOD uses the native anchor-based dense decode path."""
+
+
+class DenseDDODLoss(DenseATSSLoss):
+    """Finite DDOD smoke loss on the shared ATSS dense target contract."""
+
+
 class DenseVFNetLoss(nn.Module):
     """VFNet-style dense loss composed from the shared native loss registry."""
 
@@ -509,6 +533,50 @@ class DenseVFNetLoss(nn.Module):
             "loss_bbox": loss_bbox,
             "loss_total": loss_cls + loss_bbox,
         }
+
+
+class DenseVFNetDecoder(DenseATSSDecoder):
+    """VFNet uses the native anchor-based dense decode path."""
+
+
+class DenseRepPointsDecoder(DenseFCOSDecoder):
+    """RepPoints uses the native point-based dense decode path."""
+
+
+class DenseRepPointsLoss(DenseFCOSLoss):
+    """Finite RepPoints smoke loss on the shared point dense target contract."""
+
+
+class DenseYOLOFDecoder(DenseFCOSDecoder):
+    """YOLOF uses the native point-based dense decode path."""
+
+
+class DenseYOLOFLoss(DenseFCOSLoss):
+    """Finite YOLOF smoke loss on the shared point dense target contract."""
+
+
+class DenseTOODDecoder(DenseFCOSDecoder):
+    """TOOD uses the native point-based dense decode path."""
+
+
+class DenseTOODLoss(DenseFCOSLoss):
+    """Finite TOOD smoke loss on the shared point dense target contract."""
+
+
+class DenseAutoAssignDecoder(DenseFCOSDecoder):
+    """AutoAssign uses the native point-based dense decode path."""
+
+
+class DenseAutoAssignLoss(DenseFCOSLoss):
+    """Finite AutoAssign smoke loss on the shared point dense target contract."""
+
+
+class DenseNASFCOSDecoder(DenseFCOSDecoder):
+    """NAS-FCOS uses the native point-based dense decode path."""
+
+
+class DenseNASFCOSLoss(DenseFCOSLoss):
+    """Finite NAS-FCOS smoke loss on the shared point dense target contract."""
 
 
 class _NativeAnchorGenerator:

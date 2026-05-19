@@ -479,6 +479,31 @@ def build_head(
     imports: tuple[str, ...] | list[str] | None = None,
     **extra: Any,
 ) -> HeadSpec:
+    native_in_channels = extra.pop("in_channels", None)
+    native_out_channels = extra.pop("out_channels", None)
+    if native_in_channels is not None or native_out_channels is not None:
+        if num_classes is None:
+            raise ValueError("`num_classes` is required when building a native head.")
+        from .native_plan import ComponentPlan
+        from simpledet.native.heads import build_native_head
+
+        params = dict(head_cfg or {})
+        params.update(extra)
+        head_type = str(params.pop("type", name or "auto"))
+        out_channels = native_in_channels if native_in_channels is not None else native_out_channels
+        head, native_spec = build_native_head(
+            ComponentPlan(
+                kind="head",
+                type=head_type,
+                params=params,
+                imports=tuple(imports or ()),
+            ),
+            out_channels=int(out_channels),
+            num_classes=int(num_classes),
+        )
+        head.native_head_spec = native_spec
+        return head
+
     return HeadSpec(
         name=name,
         head_cfg=head_cfg,

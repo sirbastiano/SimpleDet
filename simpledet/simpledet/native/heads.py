@@ -28,6 +28,20 @@ def _positive_int(value: Any, name: str) -> int:
     return resolved
 
 
+def _positive_int_tuple(value: Any, name: str) -> tuple[int, ...]:
+    if value is None:
+        raise ValueError(f"{name} is required.")
+    if isinstance(value, (str, bytes)):
+        raise ValueError(f"{name} must be a non-empty sequence of positive integers.")
+    try:
+        values = tuple(_positive_int(item, name) for item in value)
+    except TypeError as exc:
+        raise ValueError(f"{name} must be a non-empty sequence of positive integers.") from exc
+    if not values:
+        raise ValueError(f"{name} must be a non-empty sequence of positive integers.")
+    return values
+
+
 @HEADS.register(
     "RetinaHead",
     aliases=("retina", "retina_head"),
@@ -286,12 +300,12 @@ class RPNHead(nn.Module):
 
 @HEADS.register(
     "VFNetHead",
-    aliases=("VFNet",),
+    aliases=("VFNet", "vfnet_head"),
     required_dependencies=(("torch", "cpu"),),
     tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
-    validation_status="compatibility_alias",
+    validation_status="runtime_validated",
     family="dense",
-    summary="VFNet-family head alias routed through ATSS-compatible outputs.",
+    summary="VFNet-family dense head using the native ATSS output contract with varifocal loss support.",
 )
 class VFNetHead(ATSSDenseHead):
     """Dense alias for the VFNet head family."""
@@ -319,15 +333,44 @@ class VFNetHead(ATSSDenseHead):
 
 @HEADS.register(
     "RepPointsHead",
-    aliases=("RepPoints", "ReppointsHead"),
+    aliases=("RepPoints", "reppoints_head"),
     required_dependencies=(("torch", "cpu"),),
-    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
-    validation_status="compatibility_alias",
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs", "point_generator"),
+    validation_status="runtime_validated",
     family="dense",
-    summary="RepPoints-family head alias routed through ATSS-compatible outputs.",
+    summary="RepPoints-family point-based dense head using the native FCOS output contract.",
 )
-class RepPointsHead(ATSSDenseHead):
-    """Compatibility alias for Reppoints-style dense heads."""
+class RepPointsHead(FCOSDenseHead):
+    """RepPoints-style point-based dense head with explicit point generator settings."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        point_strides: tuple[int, ...] | list[int] | None = None,
+        point_base_scale: int = 4,
+        num_convs: int = 4,
+    ) -> None:
+        if point_strides is None:
+            raise ValueError(
+                "RepPointsHead requires point-generation settings: provide point_strides."
+            )
+        self.point_strides = _positive_int_tuple(point_strides, "point_strides")
+        self.point_base_scale = _positive_int(point_base_scale, "point_base_scale")
+        super().__init__(
+            in_channels=in_channels,
+            num_classes=num_classes,
+            num_convs=num_convs,
+        )
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        if len(features) != len(self.point_strides):
+            raise ValueError(
+                "RepPointsHead point-generation settings mismatch: point_strides "
+                f"defines {len(self.point_strides)} levels but received {len(features)} feature levels."
+            )
+        return super().forward(features)
 
 
 class ReppointsHead(RepPointsHead):
@@ -349,12 +392,12 @@ class FoveaHead(FCOSDenseHead):
 
 @HEADS.register(
     "YOLOFHead",
-    aliases=("YOLOF",),
+    aliases=("YOLOF", "yolof_head"),
     required_dependencies=(("torch", "cpu"),),
     tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
-    validation_status="compatibility_alias",
+    validation_status="runtime_validated",
     family="dense",
-    summary="YOLOF-family head alias routed through FCOS-compatible outputs.",
+    summary="YOLOF-family dense head using the native FCOS output contract.",
 )
 class YOLOFHead(FCOSDenseHead):
     """Anchor-free YOLOF-style head alias."""
@@ -380,7 +423,15 @@ class SABLHead(ATSSDenseHead):
     """SABL-style head alias."""
 
 
-@HEADS.register("TOODHead")
+@HEADS.register(
+    "TOODHead",
+    aliases=("TOOD", "tood_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="TOOD-family task-aligned dense head using the native FCOS output contract.",
+)
 class TOODHead(FCOSDenseHead):
     """TOOD-style anchor-free head alias."""
 
@@ -405,20 +456,100 @@ class CenterNetHead(FCOSDenseHead):
 
 @HEADS.register(
     "GFLHead",
-    aliases=("gfl", "gfl_head"),
+    aliases=("gfl", "gfl_head", "gfocal", "gfocal_head"),
     required_dependencies=(("torch", "cpu"),),
     tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
     validation_status="runtime_validated",
     family="dense",
-    summary="GFL-style dense head.",
+    summary="GFL-style dense head using the native ATSS output contract.",
 )
 class GFLDenseHead(ATSSDenseHead):
     """GFL-style dense head on the current anchor-based dense seam."""
 
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_anchors: int = 9,
+        num_convs: int = 4,
+        loss_cls: str = "quality_focal",
+        loss_dfl: str = "distribution_focal",
+    ) -> None:
+        super().__init__(
+            in_channels=in_channels,
+            num_classes=num_classes,
+            num_anchors=num_anchors,
+            num_convs=num_convs,
+        )
+        LOSSES.import_modules("simpledet.native.losses")
+        self.loss_cls = LOSSES.get(loss_cls)()
+        self.loss_dfl = LOSSES.get(loss_dfl)()
 
-@HEADS.register("GFLV2Head")
-class GFLV2Head(ATSSDenseHead):
+
+@HEADS.register(
+    "GFLV2Head",
+    aliases=("GFLV2", "gflv2_head", "gfocalv2", "gfocalv2_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="GFLv2-style dense head using the native ATSS output contract.",
+)
+class GFLV2Head(GFLDenseHead):
     """Compatibility alias for GFLv2 variants."""
+
+
+@HEADS.register(
+    "PAAHead",
+    aliases=("PAA", "paa_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="PAA-family probabilistic anchor-assignment dense head using the native ATSS output contract.",
+)
+class PAAHead(ATSSDenseHead):
+    """PAA-style anchor-based dense head."""
+
+
+@HEADS.register(
+    "DDODHead",
+    aliases=("DDOD", "ddod_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="DDOD-family decoupled dense head using the native ATSS output contract.",
+)
+class DDODHead(ATSSDenseHead):
+    """DDOD-style anchor-based dense head."""
+
+
+@HEADS.register(
+    "AutoAssignHead",
+    aliases=("AutoAssign", "auto_assign_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="AutoAssign-family anchor-free dense head using the native FCOS output contract.",
+)
+class AutoAssignHead(FCOSDenseHead):
+    """AutoAssign-style anchor-free dense head."""
+
+
+@HEADS.register(
+    "NASFCOSHead",
+    aliases=("NAS-FCOS", "nas_fcos_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="NAS-FCOS-family anchor-free dense head using the native FCOS output contract.",
+)
+class NASFCOSHead(FCOSDenseHead):
+    """NAS-FCOS-style anchor-free dense head."""
 
 
 def _resolve_head_name(requested: str) -> str:
@@ -450,8 +581,18 @@ def _resolve_head_name(requested: str) -> str:
         return "FCOSHead"
     if normalized.startswith("atss"):
         return "ATSSHead"
+    if normalized.startswith("gflv2") or normalized.startswith("gfocalv2"):
+        return "GFLV2Head"
     if normalized.startswith("gfl"):
         return "GFLHead"
+    if normalized.startswith("paa"):
+        return "PAAHead"
+    if normalized.startswith("ddod"):
+        return "DDODHead"
+    if normalized.startswith("autoassign"):
+        return "AutoAssignHead"
+    if normalized.startswith("nasfcos"):
+        return "NASFCOSHead"
     if normalized in {"yolof", "yolofhead"}:
         return "YOLOFHead"
     if normalized.startswith("yolo"):

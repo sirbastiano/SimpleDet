@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 00:58:26 | run=20260518-183418-2827287 | iter=13 | mode=build | story=US-013 | duration=1584s | status=success
 - 2026-05-19 00:31:58 | run=20260518-183418-2827287 | iter=12 | mode=build | story=US-012 | duration=1312s | status=success
 - 2026-05-19 00:10:01 | run=20260518-183418-2827287 | iter=11 | mode=build | story=US-011 | duration=1076s | status=success
 - 2026-05-18 23:51:55 | run=20260518-183418-2827287 | iter=10 | mode=build | story=US-010 | duration=1746s | status=success
@@ -118,3 +119,9 @@
 [2026-05-19 00:52:15] US-013 pre-commit security performance regression review completed: registry aliases validate normalized uniqueness, no file/network/secret handling added, dense ops remain tensor-local, and focused/full/package gates passed
 [2026-05-19 00:53:15] US-013 progress log updated with implementation commit c77ad5e and verification outcomes
 [2026-05-19 00:54:43] US-013 progress entry moved to end of progress log to preserve append-only ordering
+[2026-05-19 00:58:24] ITERATION 13 end (duration=1584s)
+[2026-05-19 00:58:29] ITERATION 14 start (mode=build story=US-014)
+[2026-05-19 01:00:11] Start US-014 Register advanced dense heads
+[2026-05-19 01:06:53] Implemented US-014 advanced dense head registrations and tests
+[2026-05-19 01:10:24] Completed US-014 verification gates with python3/make; python command unavailable
+[2026-05-19 01:27:55] US-014 final gates passed: dense torch suite via uv, make test, docs-check, build, verify-dist
