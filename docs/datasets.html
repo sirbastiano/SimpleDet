@@ -78,7 +78,7 @@
         </article>
         <article class="section">
           <h2>Practical rule</h2>
-          <p>Use generic loaders for data exploration and the lightweight helpers. Convert to COCO JSON before using the native runtime helpers with <code>detector_spec=...</code>.</p>
+          <p>Use generic loaders for data exploration and the lightweight helpers. Convert to COCO JSON before using the native runtime helpers with <code>detector_spec=...</code>. The native datamodule resolves <code>Annotations/train_annotations.json</code>, <code>Annotations/val_annotations.json</code>, <code>Annotations/test_annotations.json</code>, or matching <code>annotations/instances_*.json</code> files, supports shared and split-specific paired image/target transforms, then raises <code>NativeDataValidationError</code> during setup if the requested training, validation, or test split has no samples.</p>
         </article>
       </section>
     </main>

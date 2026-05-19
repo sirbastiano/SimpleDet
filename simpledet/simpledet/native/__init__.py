@@ -24,7 +24,7 @@ from .assignment import (
     task_aligned_assign,
 )
 from .backbones import BackboneSpec, TimmFeatureBackbone, build_native_backbone
-from .data import NativeDataConfig, NativeDetectionDataModule
+from .data import NativeDataConfig, NativeDataValidationError, NativeDetectionDataModule
 from .engine import NativeDetectionLightningModule, NativeEngineConfig, build_native_trainer
 from .heads import (
     ATSSDenseHead,
@@ -308,6 +308,7 @@ __all__ = [
     "NativeRetinaNetModel",
     "build_detector",
     "NativeDataConfig",
+    "NativeDataValidationError",
     "NativeDetectionDataModule",
     "NativeDetectionLightningModule",
     "NativeEngineConfig",

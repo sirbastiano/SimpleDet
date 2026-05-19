@@ -80,6 +80,7 @@ def run_native_training(config: NativeProjectConfig) -> dict[str, Any]:
             num_workers=config.num_workers,
         )
     )
+    data.setup("fit")
     module, payload = NativeDetectionLightningModule.build(
         NativeEngineConfig(
             architecture=config.detector_spec.architecture,
@@ -119,6 +120,7 @@ def run_native_evaluation(config: NativeProjectConfig) -> dict[str, Any]:
             num_workers=config.num_workers,
         )
     )
+    data.setup("test")
     module, payload = NativeDetectionLightningModule.build(
         NativeEngineConfig(
             architecture=config.detector_spec.architecture,

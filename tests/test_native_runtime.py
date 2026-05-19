@@ -1,5 +1,6 @@
 import json
 from collections import OrderedDict
+import struct
 import sys
 import tempfile
 import types
@@ -10,6 +11,19 @@ from unittest.mock import patch
 import numpy as np
 
 from simpledet.suite import build_detector
+
+
+def _write_dummy_png(path: Path, width: int = 8, height: int = 8) -> None:
+    png_signature = b"\x89PNG\r\n\x1a\n"
+    ihdr = b"IHDR"
+    header = (
+        png_signature
+        + struct.pack(">I", 13)
+        + ihdr
+        + struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+        + struct.pack(">I", 0)
+    )
+    path.write_bytes(header)
 
 
 class NativeRuntimeTests(unittest.TestCase):
@@ -230,6 +244,8 @@ class NativeRuntimeTests(unittest.TestCase):
 
     def _write_dataset(self, root: Path) -> None:
         (root / "Annotations").mkdir(parents=True, exist_ok=True)
+        (root / "images").mkdir(parents=True, exist_ok=True)
+        _write_dummy_png(root / "images" / "a.png")
         payload = {
             "images": [{"id": 1, "file_name": "a.png", "width": 8, "height": 8}],
             "annotations": [
@@ -246,6 +262,15 @@ class NativeRuntimeTests(unittest.TestCase):
         }
         for name in ("train_annotations.json", "val_annotations.json", "test_annotations.json"):
             (root / "Annotations" / name).write_text(json.dumps(payload), encoding="utf-8")
+
+    def _write_empty_train_dataset(self, root: Path) -> None:
+        (root / "Annotations").mkdir(parents=True, exist_ok=True)
+        (root / "images").mkdir(parents=True, exist_ok=True)
+        payload = {"images": [], "annotations": [], "categories": []}
+        (root / "Annotations" / "train_annotations.json").write_text(
+            json.dumps(payload),
+            encoding="utf-8",
+        )
 
     def test_native_training_writes_manifest(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -300,6 +325,39 @@ class NativeRuntimeTests(unittest.TestCase):
             self.assertEqual(result["backend"], "native_lightning")
             self.assertEqual(result["checkpoint_path"], str(output / "checkpoints" / "epoch_001.ckpt"))
             self.assertTrue((output / "native-manifest.json").exists())
+
+    def test_native_training_empty_dataset_fails_before_trainer_entry(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "dataset"
+            output = Path(tmpdir) / "runs"
+            self._write_empty_train_dataset(root)
+            spec = build_detector("retinanet", num_classes=1, encoder="resnet18.a1_in1k")
+
+            with patch.dict(sys.modules, self._fake_runtime_modules()):
+                from simpledet.native.data import NativeDataValidationError
+                from simpledet.native.runtime import NativeProjectConfig, run_native_training
+
+                build_module_patch = patch(
+                    "simpledet.native.runtime.NativeDetectionLightningModule.build"
+                )
+                build_trainer_patch = patch("simpledet.native.runtime.build_native_trainer")
+                build_module = build_module_patch.start()
+                build_trainer = build_trainer_patch.start()
+                self.addCleanup(build_module_patch.stop)
+                self.addCleanup(build_trainer_patch.stop)
+
+                with self.assertRaisesRegex(NativeDataValidationError, "train split is empty"):
+                    run_native_training(
+                        NativeProjectConfig(
+                            dataset_root=str(root),
+                            categories=("wake",),
+                            detector_spec=spec,
+                            output_dir=str(output),
+                        )
+                    )
+
+            build_module.assert_not_called()
+            build_trainer.assert_not_called()
 
     def test_native_evaluation_returns_predictions(self):
         with tempfile.TemporaryDirectory() as tmpdir:
