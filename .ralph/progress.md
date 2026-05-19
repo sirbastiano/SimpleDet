@@ -1141,3 +1141,38 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - TIMM-backed backbone aliases can be discoverable in a base install by separating support metadata from runtime availability.
   - Keep old CLI aliases routed through their existing helper names when possible so older tests and integrations can patch the same seam.
 ---
+## [2026-05-19 07:07:35 UTC] - US-028: Harden dataset adapters
+Thread:
+Run: 20260518-183418-2827287 (iteration 28)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-28.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-28.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 9a68682 feat(data): harden dataset adapters
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `python -m py_compile simpledet/simpledet/detectors/data.py tests/test_data.py` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_data` -> PASS (17 tests)
+  - Command: `git diff --check` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (252 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/datasets.html
+  - simpledet/simpledet/detectors/data.py
+  - tests/test_data.py
+- What was implemented
+  - Normalized COCO, VOC, YOLO, CSV, and simple JSON loader payloads around `images`, `annotations`, `samples`, `categories`, `category_map`, `splits`, and `meta`.
+  - Added split propagation to image, annotation, and sample records; COCO split inference from annotation filenames; YOLO split inference from label subfolders; VOC split inference from `ImageSets/Main`.
+  - Hardened image and annotation path handling, including default COCO `annotations/instances_train.json`, direct CSV/JSON file paths, simple JSON object/list inputs, and COCO image traversal rejection.
+  - Added positive and malformed adapter unit tests for all five formats, plus docs for the normalized loader contract.
+  - Security/performance/regression review: no command execution, network access, secrets, or external imports added; COCO image resolution still confines candidates to `images_root`; split scans are bounded to dataset annotation files; full regression gates passed.
+- **Learnings for future iterations:**
+  - `train.py` already filters samples by `split`, so every adapter should populate split fields instead of relying on train-only defaults.
+  - COCO directory roots should prefer `annotations/instances_train.json` and report that exact path when missing.
+  - Auto-detected CSV file paths need to be accepted directly, not only through `annotations.csv`.
+  - Simple JSON support should remain dependency-free and distinct from COCO JSON detection.
+---
