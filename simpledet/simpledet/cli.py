@@ -231,8 +231,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("list-detectors", "list-encoders"),
-        help="Optional command alias for --list-detectors or --list-encoders.",
+        choices=(
+            "list-detectors",
+            "list-heads",
+            "list-backbones",
+            "list-necks",
+            "list-datasets",
+            "list-encoders",
+            "doctor",
+        ),
+        help="Optional discovery command alias.",
     )
     parser.add_argument(
         "--version",
@@ -254,9 +262,46 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Print supported high-level detector architectures and exit.",
     )
     parser.add_argument(
+        "--list-heads",
+        action="store_true",
+        help="Print supported native detection heads and exit.",
+    )
+    parser.add_argument(
+        "--list-backbones",
+        action="store_true",
+        help="Print supported native backbone aliases and exit.",
+    )
+    parser.add_argument(
+        "--list-necks",
+        action="store_true",
+        help="Print supported native necks and exit.",
+    )
+    parser.add_argument(
+        "--list-datasets",
+        action="store_true",
+        help="Print supported dataset formats and exit.",
+    )
+    parser.add_argument(
         "--list-encoders",
         action="store_true",
-        help="Print supported encoder/backbone names and exit.",
+        help="Backward-compatible alias for --list-backbones.",
+    )
+    parser.add_argument(
+        "--doctor",
+        action="store_true",
+        help="Print optional extra dependency status and exit.",
+    )
+    parser.add_argument(
+        "--family",
+        help="Filter list-detectors by family: dense, proposal, roi, or transformer.",
+    )
+    parser.add_argument(
+        "--kind",
+        help="Filter list-heads by kind: dense, roi, or transformer.",
+    )
+    parser.add_argument(
+        "--pattern",
+        help="Case-insensitive substring filter for discovery commands.",
     )
     parser.add_argument(
         "--show-detector-help",
@@ -400,32 +445,118 @@ def _check_runtime() -> int:
     print("SimpleDet native runtime stack is available.")
     return 0
 
-def _list_detectors() -> int:
-    from .suite.catalog import ARCHITECTURE_FAMILIES
-    from .extensions import DETECTORS
-
-    try:
-        from .native import assemblers as _native_assemblers  # noqa: F401
-    except ImportError:
-        pass
+def _list_detectors(family: str | None = None, pattern: str | None = None) -> int:
+    from .discovery import detector_rows
 
     print("name\tfamily\tnative_validation")
-    for name in sorted(ARCHITECTURE_FAMILIES):
-        try:
-            metadata = DETECTORS.lookup(name)
-            validation_status = metadata.validation_status
-        except KeyError:
-            validation_status = "unregistered"
-        print(f"{name}\t{ARCHITECTURE_FAMILIES[name]}\t{validation_status}")
+    for row in detector_rows(family=family, pattern=pattern):
+        print(f"{row.name}\t{row.kind}\t{row.validation_status}")
     return 0
 
 
-def _list_encoders() -> int:
-    from .api import list_available_encoders
+def _print_component_rows(rows) -> None:
+    print("name\tkind\tvalidation_status\trequired_extra")
+    for row in rows:
+        print(
+            f"{row.name}\t{row.kind}\t{row.validation_status}\t"
+            f"{row.required_extra_text}"
+        )
 
-    for name in list_available_encoders():
-        print(name)
+
+def _list_heads(kind: str | None = None, pattern: str | None = None) -> int:
+    from .discovery import head_rows
+
+    _print_component_rows(head_rows(kind=kind, pattern=pattern))
     return 0
+
+
+def _list_backbones(pattern: str | None = None) -> int:
+    from .discovery import backbone_rows
+
+    _print_component_rows(backbone_rows(pattern=pattern))
+    return 0
+
+
+def _list_necks(pattern: str | None = None) -> int:
+    from .discovery import neck_rows
+
+    _print_component_rows(neck_rows(pattern=pattern))
+    return 0
+
+
+def _list_datasets(pattern: str | None = None) -> int:
+    from .discovery import dataset_rows
+
+    _print_component_rows(dataset_rows(pattern=pattern))
+    return 0
+
+
+def _list_encoders(pattern: str | None = None) -> int:
+    return _list_backbones(pattern=pattern)
+
+
+def _doctor() -> int:
+    from .discovery import extra_rows
+
+    print("extra\tstatus\tmissing")
+    for row in extra_rows():
+        print(f"{row.name}\t{row.validation_status}\t{row.required_dependency_text}")
+    return 0
+
+
+def _active_discovery_command(args: argparse.Namespace) -> str | None:
+    if args.command:
+        return args.command
+    flag_commands = (
+        ("list_detectors", "list-detectors"),
+        ("list_heads", "list-heads"),
+        ("list_backbones", "list-backbones"),
+        ("list_necks", "list-necks"),
+        ("list_datasets", "list-datasets"),
+        ("list_encoders", "list-encoders"),
+        ("doctor", "doctor"),
+    )
+    for attribute, command in flag_commands:
+        if getattr(args, attribute):
+            return command
+    return None
+
+
+def _validate_discovery_options(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+    command: str,
+) -> None:
+    if args.family and command != "list-detectors":
+        parser.error("--family is only supported by list-detectors")
+    if args.kind and command != "list-heads":
+        parser.error("--kind is only supported by list-heads")
+    if args.family:
+        valid_families = {"dense", "proposal", "roi", "transformer"}
+        if args.family.strip().lower() not in valid_families:
+            parser.error("--family must be one of: dense, proposal, roi, transformer")
+    if args.kind:
+        valid_kinds = {"dense", "roi", "transformer"}
+        if args.kind.strip().lower() not in valid_kinds:
+            parser.error("--kind must be one of: dense, roi, transformer")
+
+
+def _run_discovery_command(command: str, args: argparse.Namespace) -> int:
+    if command == "list-detectors":
+        return _list_detectors(family=args.family, pattern=args.pattern)
+    if command == "list-heads":
+        return _list_heads(kind=args.kind, pattern=args.pattern)
+    if command == "list-backbones":
+        return _list_backbones(pattern=args.pattern)
+    if command == "list-encoders":
+        return _list_encoders(pattern=args.pattern)
+    if command == "list-necks":
+        return _list_necks(pattern=args.pattern)
+    if command == "list-datasets":
+        return _list_datasets(pattern=args.pattern)
+    if command == "doctor":
+        return _doctor()
+    raise ValueError(f"Unsupported discovery command '{command}'.")
 
 
 def _show_detector_help(name: str) -> int:
@@ -565,11 +696,10 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.check_runtime:
         return _check_runtime()
 
-    if args.command == "list-detectors" or args.list_detectors:
-        return _list_detectors()
-
-    if args.command == "list-encoders" or args.list_encoders:
-        return _list_encoders()
+    discovery_command = _active_discovery_command(args)
+    if discovery_command:
+        _validate_discovery_options(parser, args, discovery_command)
+        return _run_discovery_command(discovery_command, args)
 
     if args.show_detector_help:
         return _show_detector_help(args.show_detector_help)

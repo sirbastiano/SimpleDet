@@ -48,8 +48,13 @@
               <tbody>
                 <tr><td><code>simpledet --version</code></td><td>Print the installed package version</td></tr>
                 <tr><td><code>python -m simpledet --check-runtime</code></td><td>Verify the optional runtime stack used by the package</td></tr>
-                <tr><td><code>python -m simpledet --list-detectors</code></td><td>List supported high-level detector architectures</td></tr>
-                <tr><td><code>python -m simpledet --list-encoders</code></td><td>List supported encoder/backbone names</td></tr>
+                <tr><td><code>python -m simpledet list-detectors</code></td><td>List supported high-level detector architectures</td></tr>
+                <tr><td><code>python -m simpledet list-heads</code></td><td>List supported detection heads and aliases</td></tr>
+                <tr><td><code>python -m simpledet list-backbones</code></td><td>List supported backbone aliases</td></tr>
+                <tr><td><code>python -m simpledet list-necks</code></td><td>List supported native necks</td></tr>
+                <tr><td><code>python -m simpledet list-datasets</code></td><td>List supported dataset format adapters</td></tr>
+                <tr><td><code>python -m simpledet doctor</code></td><td>Report optional extra dependency status</td></tr>
+                <tr><td><code>python -m simpledet --list-encoders</code></td><td>Backward-compatible alias for backbone discovery</td></tr>
                 <tr><td><code>python -m simpledet --show-detector-help retinanet</code></td><td>Explain one detector family and recommended encoders</td></tr>
                 <tr><td><code>python -m simpledet --init-project project.toml</code></td><td>Write a starter project config</td></tr>
                 <tr><td><code>python -m simpledet --project-validate path/to/project.toml</code></td><td>Validate a project config without running training</td></tr>
@@ -63,11 +68,17 @@
         </article>
         <article class="section">
           <h2>Discovery commands</h2>
-          <p>Use these before direct execution if you do not want to guess supported architecture or encoder names.</p>
-          <pre><code>python -m simpledet --list-detectors
-python -m simpledet --list-encoders
+          <p>Use these before direct execution if you do not want to guess supported architecture, component, or dataset names.</p>
+          <pre><code>python -m simpledet list-detectors
+python -m simpledet list-heads --kind dense
+python -m simpledet list-backbones --pattern resnet
+python -m simpledet list-necks
+python -m simpledet list-datasets
+python -m simpledet doctor
 python -m simpledet --show-detector-help retinanet</code></pre>
           <p><code>--list-detectors</code> prints <code>name</code>, <code>family</code>, and <code>native_validation</code> columns, so entries such as <code>cascade_rcnn</code> and <code>grid_rcnn</code> show <code>runtime_validated</code> when the native runtime extra is available. <code>simpledet list-detectors</code> is equivalent to the flag form.</p>
+          <p><code>list-heads</code>, <code>list-backbones</code>, <code>list-necks</code>, and <code>list-datasets</code> print <code>name</code>, <code>kind</code>, <code>validation_status</code>, and <code>required_extra</code>. These commands are safe in a base install; for example TIMM-backed backbone rows still print and show <code>timm</code> in <code>required_extra</code> instead of importing TIMM.</p>
+          <p><code>doctor</code> prints installed or missing status for optional extras such as <code>cpu</code>, <code>timm</code>, <code>geo</code>, and <code>plots</code>. Use <code>--check-runtime</code> when you specifically want a strict non-zero runtime dependency gate.</p>
           <p><code>--show-detector-help</code> prints the detector family, a short summary, and a few encoder suggestions for the selected architecture.</p>
         </article>
         <article class="section">

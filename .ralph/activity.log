@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 06:24:18 | run=20260518-183418-2827287 | iter=26 | mode=build | story=US-026 | duration=1048s | status=success
 - 2026-05-19 06:06:47 | run=20260518-183418-2827287 | iter=25 | mode=build | story=US-025 | duration=2781s | status=success
 - 2026-05-19 05:20:22 | run=20260518-183418-2827287 | iter=24 | mode=build | story=US-024 | duration=1017s | status=success
 - 2026-05-19 05:03:20 | run=20260518-183418-2827287 | iter=23 | mode=build | story=US-023 | duration=1276s | status=success
@@ -225,3 +226,10 @@
 [2026-05-19 06:21:09] US-026 verification completed: focused public/suite tests, full unittest, make test, docs-check, build, and verify-dist passed
 [2026-05-19 06:21:54] US-026 pre-commit security performance regression review completed: no secret, network, or file-execution paths added; discovery uses bounded registry/catalog scans with retryable optional imports; public builder, docs, packaging, and full regression gates passed
 [2026-05-19 06:23:30] US-026 progress log updated with implementation commit 08f5e48 and verification details
+[2026-05-19 06:24:17] ITERATION 26 end (duration=1048s)
+[2026-05-19 06:24:21] ITERATION 27 start (mode=build story=US-027)
+[2026-05-19 06:27:19] Start US-027 Add CLI discovery commands
+[2026-05-19 06:35:39] US-027 discovery CLI commands, optional-dependency-safe metadata, tests, and CLI docs updated
+[2026-05-19 06:36:57] US-027 verification passed: focused CLI checks, full unittest discovery, docs-check, build, and verify-dist
+[2026-05-19 06:39:25] US-027 final verification rerun completed after compatibility refinement: full tests, docs-check, build, verify-dist, and discovery smoke checks passed
+[2026-05-19 06:39:52] US-027 pre-commit security performance regression review completed: no unsafe input execution or unbounded discovery imports; optional dependency checks use find_spec and bounded static catalogs

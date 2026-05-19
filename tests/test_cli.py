@@ -1,5 +1,6 @@
 import io
 import json
+import subprocess
 import sys
 import types
 import unittest
@@ -79,7 +80,7 @@ class TestCli(unittest.TestCase):
                 exit_code = main(["--list-detectors"])
 
         self.assertEqual(exit_code, 0)
-        patched.assert_called_once()
+        patched.assert_called_once_with(family=None, pattern=None)
 
     def test_main_accepts_list_detectors_command_alias(self):
         output = io.StringIO()
@@ -88,7 +89,22 @@ class TestCli(unittest.TestCase):
                 exit_code = main(["list-detectors"])
 
         self.assertEqual(exit_code, 0)
-        patched.assert_called_once()
+        patched.assert_called_once_with(family=None, pattern=None)
+
+    def test_main_accepts_discovery_command_aliases(self):
+        commands = {
+            "list-heads": "_list_heads",
+            "list-backbones": "_list_backbones",
+            "list-necks": "_list_necks",
+            "list-datasets": "_list_datasets",
+            "doctor": "_doctor",
+        }
+        for command, function_name in commands.items():
+            with self.subTest(command=command):
+                with patch(f"simpledet.cli.{function_name}", return_value=0) as patched:
+                    exit_code = main([command])
+                self.assertEqual(exit_code, 0)
+                patched.assert_called_once()
 
     def test_list_detectors_prints_native_validation_status(self):
         from simpledet.cli import _list_detectors
@@ -117,7 +133,78 @@ class TestCli(unittest.TestCase):
                 exit_code = main(["--list-encoders"])
 
         self.assertEqual(exit_code, 0)
-        patched.assert_called_once()
+        patched.assert_called_once_with(pattern=None)
+
+    def test_main_lists_encoders_as_backbone_alias(self):
+        with patch("simpledet.cli._list_backbones", return_value=0) as patched:
+            exit_code = main(["--list-encoders"])
+
+        self.assertEqual(exit_code, 0)
+        patched.assert_called_once_with(pattern=None)
+
+    def test_list_heads_prints_kind_validation_and_many_aliases(self):
+        from simpledet.cli import _list_heads
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            exit_code = _list_heads()
+
+        self.assertEqual(exit_code, 0)
+        lines = output.getvalue().splitlines()
+        self.assertEqual(lines[0], "name\tkind\tvalidation_status\trequired_extra")
+        rows = [line.split("\t") for line in lines[1:]]
+        self.assertGreaterEqual(len(rows), 31)
+        by_name = {row[0]: row for row in rows}
+        self.assertEqual(by_name["retina_head"][1:4], ["dense", "runtime_validated", "cpu"])
+        self.assertEqual(by_name["CascadeBBoxHead"][1:3], ["roi", "runtime_validated"])
+        self.assertEqual(by_name["detr_head"][1:3], ["transformer", "runtime_validated"])
+
+    def test_discovery_without_timm_reports_required_extra(self):
+        from simpledet.cli import _list_backbones
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            exit_code = _list_backbones()
+
+        self.assertEqual(exit_code, 0)
+        lines = output.getvalue().splitlines()
+        by_name = {line.split("\t")[0]: line.split("\t") for line in lines[1:]}
+        self.assertIn("resnet50", by_name)
+        self.assertIn("timm", by_name["resnet50"][3].split(","))
+
+    def test_list_datasets_prints_registered_formats(self):
+        from simpledet.cli import _list_datasets
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            exit_code = _list_datasets()
+
+        self.assertEqual(exit_code, 0)
+        names = {line.split("\t")[0] for line in output.getvalue().splitlines()[1:]}
+        self.assertTrue({"coco", "csv", "json", "voc", "yolo"}.issubset(names))
+
+    def test_doctor_reports_optional_extras(self):
+        from simpledet.cli import _doctor
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            exit_code = _doctor()
+
+        self.assertEqual(exit_code, 0)
+        text = output.getvalue()
+        self.assertIn("extra\tstatus\tmissing", text)
+        self.assertIn("timm\t", text)
+
+    def test_python_module_invalid_discovery_option_exits_nonzero(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "simpledet", "list-heads", "--family", "dense"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--family is only supported by list-detectors", result.stderr)
 
     def test_main_shows_detector_help(self):
         output = io.StringIO()
