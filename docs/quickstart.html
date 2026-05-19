@@ -184,7 +184,9 @@ print(metrics["backend"])</code></pre>
           <p class="section-lead">
             Once the experiment shape stabilizes, move the same settings into a project config and execute the package through the CLI.
           </p>
-          <pre><code>python -m simpledet --project-run project.toml --stages build train test</code></pre>
+          <pre><code>python -m simpledet --project-run project.toml
+python -m simpledet --project-run project.toml --stages build train test</code></pre>
+          <p>The project runner uses the stage list from <code>project.toml</code> when <code>--stages</code> is omitted. It validates dataset paths before entering the native runtime and records the normalized run in <code>run-manifest.json</code> under the configured workdir.</p>
         </article>
         <article class="section">
           <h2>What to remember</h2>
@@ -208,31 +210,26 @@ print(metrics["backend"])</code></pre>
           <p class="section-lead">
             The project helpers are the fastest way to start. When experiments become more complex, move to structured config objects so dataset wiring, runtime knobs, and optimization settings are kept separate.
           </p>
-          <pre><code>from simpledet import (
-    ProjectConfig,
-    DatasetConfig,
-    RuntimeConfig,
-    OptimizationConfig,
-    run_project,
-)
+          <pre><code>from simpledet import ProjectConfig, run_project
 
-dataset = DatasetConfig(
-    data_root="/path/to/dataset_root",
-    annot_file_train="/path/to/annotations/train.json",
-    annot_file_val="/path/to/annotations/val.json",
-    annot_file_test="/path/to/annotations/test.json",
-    categories=("object_a", "object_b"),
-    in_channels=3,
-)
-runtime = RuntimeConfig(result_folder="/path/to/results", resize=768, batch_size=2)
-optimization = OptimizationConfig(learning_rate=0.001, optimizer_choice="AdamW")
-
-project = ProjectConfig(
-    dataset=dataset,
-    runtime=runtime,
-    optimization=optimization,
-    detector_spec=detector_spec,
-)
+project = ProjectConfig.from_mapping({
+    "stages": ["build", "train", "test"],
+    "workdir": "/path/to/results",
+    "detector": {"name": "retinanet", "num_classes": 2, "backbone": "resnet18"},
+    "dataset": {
+        "root": "/path/to/dataset_root",
+        "train": "Annotations/train_annotations.json",
+        "val": "Annotations/val_annotations.json",
+        "test": "Annotations/test_annotations.json",
+        "classes": ["object_a", "object_b"],
+        "in_channels": 3,
+    },
+    "runtime": {"resize": 768, "batch_size": 2},
+    "optimizer": {"name": "AdamW", "learning_rate": 0.001},
+    "scheduler": {"name": "step", "step_size": 2, "gamma": 0.5},
+    "checkpoint": {"resume": False},
+    "export": {"formats": ["json"]},
+})
 run_project(project)</code></pre>
         </article>
       </section>

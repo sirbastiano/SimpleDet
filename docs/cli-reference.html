@@ -58,7 +58,7 @@
                 <tr><td><code>python -m simpledet --show-detector-help retinanet</code></td><td>Explain one detector family and recommended encoders</td></tr>
                 <tr><td><code>python -m simpledet --init-project project.toml</code></td><td>Write a starter project config</td></tr>
                 <tr><td><code>python -m simpledet --project-validate path/to/project.toml</code></td><td>Validate a project config without running training</td></tr>
-                <tr><td><code>python -m simpledet --project-run path/to/project.toml --stages build train</code></td><td>Run selected stages from a project config</td></tr>
+                <tr><td><code>python -m simpledet --project-run path/to/project.toml --stages build train</code></td><td>Run selected stages from a project config and write <code>run-manifest.json</code></td></tr>
                 <tr><td><code>python -m simpledet --train-root /data/project ...</code></td><td>Run training directly from CLI arguments</td></tr>
                 <tr><td><code>python -m simpledet --infer-root /data/project ...</code></td><td>Run inference directly from CLI arguments</td></tr>
                 <tr><td><code>python -m simpledet --eval-root /data/project ...</code></td><td>Run evaluation directly from CLI arguments</td></tr>
@@ -123,8 +123,48 @@ python -m simpledet --eval-root /data/project \
           <p>Use a JSON or TOML file when you want a repeatable operational entrypoint for the native runtime.</p>
           <pre><code>python -m simpledet --init-project project.toml
 python -m simpledet --project-validate project.toml
-python -m simpledet --project-run project.toml --stages build test</code></pre>
-          <p>A reusable example can be created with <code>--init-project</code> and then adjusted for your dataset root and output folder.</p>
+python -m simpledet --project-run project.toml
+python -m simpledet --project-run project.toml --stages build train test</code></pre>
+          <p>A reusable example can be created with <code>--init-project</code> and then adjusted for your dataset root and output folder. When <code>--stages</code> is omitted, the runner uses the <code>stages</code> list from the config file, or <code>build train test</code> when the file does not set one.</p>
+          <pre><code>stages = ["build", "train", "test"]
+workdir = "/tmp/simpledet-runs"
+seed = 71
+
+[detector]
+name = "retinanet"
+num_classes = 1
+backbone = "resnet18"
+pretrained = false
+
+[dataset]
+format = "coco"
+root = "/data/project"
+train = "Annotations/train_annotations.json"
+val = "Annotations/val_annotations.json"
+test = "Annotations/test_annotations.json"
+data_prefix = "imgs/"
+classes = ["wake"]
+in_channels = 3
+
+[runtime]
+batch_size = 2
+max_epochs = 12
+
+[optimizer]
+name = "AdamW"
+learning_rate = 0.001
+
+[scheduler]
+name = "step"
+step_size = 2
+gamma = 0.5
+
+[checkpoint]
+path = "/tmp/simpledet-runs/checkpoints/last.ckpt"
+
+[export]
+formats = ["json"]</code></pre>
+          <p>The runner validates the dataset root, image directory, and train/validation/test annotation files before it creates the workdir or enters training. Successful project runs write <code>run-manifest.json</code> in the workdir with the normalized detector, dataset, optimizer, scheduler, runtime, checkpoint, export, selected stages, and child native results.</p>
         </article>
         <article class="section">
           <h2><code>simpledet.train</code></h2>

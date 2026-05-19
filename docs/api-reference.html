@@ -48,7 +48,7 @@
             <li><code>simpledet.list_detectors</code>, <code>list_heads</code>, <code>list_backbones</code>, <code>compile_native_detector_plan</code></li>
             <li><code>simpledet.native</code></li>
             <li><code>simpledet.ProjectLayout</code></li>
-            <li><code>simpledet.DatasetConfig</code>, <code>simpledet.RuntimeConfig</code>, <code>simpledet.OptimizationConfig</code></li>
+            <li><code>simpledet.DatasetConfig</code>, <code>simpledet.RuntimeConfig</code>, <code>simpledet.OptimizationConfig</code>, <code>CheckpointConfig</code>, <code>ExportConfig</code></li>
             <li><code>simpledet.ProjectConfig</code>, <code>load_project_config</code>, <code>init_project_config</code>, <code>run_project</code></li>
             <li><code>simpledet.detectors</code></li>
             <li><code>simpledet.suite</code></li>
@@ -86,13 +86,15 @@ compile_native_detector_plan(spec)</code></pre>
 DatasetConfig(...)
 RuntimeConfig(...)
 OptimizationConfig(...)
+CheckpointConfig(...)
+ExportConfig(...)
 ProjectConfig(...)
 project_config_template(...)
 init_project_config(...)
 load_project_config(...)
 validate_project_config(...)
 run_project(...)</code></pre>
-          <p>Use the structured config objects when you want a repeatable project file and a single native entrypoint for build, train, inference, and evaluation stages.</p>
+          <p>Use the structured config objects when you want a repeatable project file and a single native entrypoint for build, train, test, and infer stages. <code>ProjectConfig</code> accepts TOML/JSON fields for <code>detector</code>, <code>dataset</code>, <code>workdir</code>, <code>optimizer</code>, <code>scheduler</code>, <code>runtime</code>, <code>seed</code>, <code>stages</code>, <code>checkpoint</code>, and <code>export</code>. <code>run_project(...)</code> validates dataset inputs before creating output and writes <code>run-manifest.json</code> in the workdir after a successful run.</p>
         </article>
         <article class="section">
           <h2>Direct execution helpers</h2>

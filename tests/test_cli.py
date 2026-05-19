@@ -248,6 +248,15 @@ class TestCli(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         patched.assert_called_once_with("project.json", ["build", "test"])
 
+    def test_main_runs_project_config_with_config_stages(self):
+        output = io.StringIO()
+        with patch("simpledet.cli._run_project", return_value=0) as patched:
+            with redirect_stdout(output):
+                exit_code = main(["--project-run", "project.json"])
+
+        self.assertEqual(exit_code, 0)
+        patched.assert_called_once_with("project.json", None)
+
     def test_main_runs_direct_training(self):
         output = io.StringIO()
         with patch("simpledet.cli._run_direct_training", return_value=0) as patched:

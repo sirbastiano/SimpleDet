@@ -31,6 +31,12 @@ class NativeProjectConfig:
     max_epochs: int = 1
     accelerator: str = "cpu"
     devices: int = 1
+    seed: int = 71
+    dataset_format: str | None = "coco"
+    images_dir: str = "images"
+    train_annotation_file: str | None = None
+    val_annotation_file: str | None = None
+    test_annotation_file: str | None = None
 
 
 def _default_checkpoint_path(output_dir: str) -> Path:
@@ -82,6 +88,12 @@ def run_native_training(config: NativeProjectConfig) -> dict[str, Any]:
             in_channels=config.in_channels,
             batch_size=config.batch_size,
             num_workers=config.num_workers,
+            format=config.dataset_format,
+            images_dir=config.images_dir,
+            train_annotation_file=config.train_annotation_file,
+            val_annotation_file=config.val_annotation_file,
+            test_annotation_file=config.test_annotation_file,
+            seed=config.seed,
         )
     )
     data.setup("fit")
@@ -125,6 +137,12 @@ def run_native_evaluation(config: NativeProjectConfig) -> dict[str, Any]:
             in_channels=config.in_channels,
             batch_size=config.batch_size,
             num_workers=config.num_workers,
+            format=config.dataset_format,
+            images_dir=config.images_dir,
+            train_annotation_file=config.train_annotation_file,
+            val_annotation_file=config.val_annotation_file,
+            test_annotation_file=config.test_annotation_file,
+            seed=config.seed,
         )
     )
     data.setup("test")

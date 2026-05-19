@@ -352,8 +352,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--stages",
         nargs="+",
-        default=("build", "train", "test"),
-        help="Stages to run with --project-run. Default: build train test",
+        default=None,
+        help="Stages to run with --project-run. Default: config stages or build train test",
     )
     parser.add_argument(
         "--categories",
@@ -591,10 +591,10 @@ def _validate_project(path: str) -> int:
     return 0 if not report.get("missing") else 1
 
 
-def _run_project(path: str, stages: Iterable[str]) -> int:
+def _run_project(path: str, stages: Iterable[str] | None) -> int:
     from . import run_project
 
-    result = run_project(path, stages=tuple(stages))
+    result = run_project(path, stages=tuple(stages) if stages is not None else None)
     print(json.dumps(result, indent=2, default=str))
     return 0
 

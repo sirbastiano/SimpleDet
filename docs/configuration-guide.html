@@ -109,7 +109,39 @@ custom_encoder = EncoderSpec(
         </article>
         <article class="section">
           <h2>Runtime config</h2>
-          <p><code>ProjectConfig</code> and the direct runtime helpers own dataset paths, workdir layout, resize, batch size, optimizer settings, checkpoints, logging, and stage selection. The native runtime consumes the detector spec and compiled build plan directly.</p>
+          <p><code>ProjectConfig</code> owns dataset paths, workdir layout, resize, batch size, optimizer settings, scheduler settings, checkpoints, export metadata, logging, seed, and stage selection for project runs. The direct runtime helpers expose the same dataset, workdir, optimizer, scheduler, checkpoint, and seed knobs for single training or inference calls. The native runtime consumes the detector spec and compiled build plan directly.</p>
+          <pre><code>stages = ["build", "train", "test"]
+workdir = "/tmp/simpledet-runs"
+seed = 71
+
+[detector]
+name = "retinanet"
+num_classes = 1
+backbone = "resnet18"
+
+[dataset]
+root = "/data/project"
+classes = ["wake"]
+
+[runtime]
+batch_size = 2
+max_epochs = 12
+
+[optimizer]
+name = "AdamW"
+learning_rate = 0.001
+
+[scheduler]
+name = "step"
+step_size = 2
+gamma = 0.5
+
+[checkpoint]
+resume = false
+
+[export]
+formats = ["json"]</code></pre>
+          <p><code>detector_spec</code> and <code>optimization</code> remain accepted aliases for older project files, but new files should prefer <code>detector</code>, <code>optimizer</code>, and <code>scheduler</code>. Relative annotation paths under <code>[dataset]</code> resolve from <code>root</code>. A missing dataset root, image directory, or annotation file fails validation before the runner creates the workdir or writes <code>run-manifest.json</code>.</p>
           <div class="callout-grid">
             <article class="callout">
               <h3>Put it in the detector spec</h3>

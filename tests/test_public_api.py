@@ -1,3 +1,4 @@
+import json
 import sys
 import tempfile
 import types
@@ -74,7 +75,10 @@ class PublicApiTests(unittest.TestCase):
             json_template = project_config_template("json")
 
         self.assertIn("[dataset]", toml_template)
+        self.assertIn("[detector]", toml_template)
+        self.assertIn("workdir", toml_template)
         self.assertIn('"dataset"', json_template)
+        self.assertIn('"detector"', json_template)
 
     def test_init_project_config_writes_template_file(self):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
@@ -139,44 +143,209 @@ class PublicApiTests(unittest.TestCase):
         self.assertIn("dataset_root", report["missing"])
         self.assertIn("train_annotations", report["missing"])
 
+    def test_load_project_config_supports_new_toml_fields_and_defaults(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            from simpledet.api import load_project_config
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir) / "dataset"
+                workdir = Path(tmpdir) / "runs"
+                config_path = Path(tmpdir) / "project.toml"
+                config_path.write_text(
+                    f"""
+stages = ["build", "infer"]
+workdir = "{workdir}"
+seed = 123
+
+[detector]
+name = "retinanet"
+num_classes = 2
+backbone = "resnet18.a1_in1k"
+pretrained = false
+
+[dataset]
+root = "{root}"
+classes = ["wake", "ship"]
+in_channels = 4
+
+[runtime]
+batch_size = 4
+num_workers = 1
+max_epochs = 3
+
+[optimizer]
+name = "SGD"
+lr = 0.02
+
+[scheduler]
+name = "step"
+step_size = 2
+gamma = 0.5
+
+[checkpoint]
+path = "{workdir / 'seed.ckpt'}"
+
+[export]
+formats = ["json", "coco"]
+""",
+                    encoding="utf-8",
+                )
+
+                project = load_project_config(config_path)
+
+        self.assertEqual(project.dataset.data_root, str(root))
+        self.assertEqual(project.dataset.annot_file_train, str(root / "Annotations" / "train_annotations.json"))
+        self.assertEqual(project.dataset.categories, ("wake", "ship"))
+        self.assertEqual(project.dataset.in_channels, 4)
+        self.assertEqual(project.workdir, str(workdir))
+        self.assertEqual(project.seed, 123)
+        self.assertEqual(project.stages, ("build", "infer"))
+        self.assertEqual(project.runtime.batch_size, 4)
+        self.assertEqual(project.runtime.num_workers, 1)
+        self.assertEqual(project.optimization.optimizer_choice, "SGD")
+        self.assertEqual(project.optimization.learning_rate, 0.02)
+        self.assertEqual(project.optimization.scheduler_choice, "step")
+        self.assertEqual(project.optimization.scheduler_step_size, 2)
+        self.assertEqual(project.checkpoint.path, str(workdir / "seed.ckpt"))
+        self.assertEqual(project.export.formats, ("json", "coco"))
+
+    def test_load_project_config_supports_json_project_run_shape(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            from simpledet.api import load_project_config
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir) / "dataset"
+                config_path = Path(tmpdir) / "project.json"
+                config_path.write_text(
+                    json.dumps(
+                        {
+                            "detector": {"name": "retinanet", "num_classes": 1},
+                            "dataset": {"root": str(root), "classes": ["wake"]},
+                            "workdir": str(Path(tmpdir) / "runs"),
+                            "stages": ["build", "test"],
+                            "optimizer": {"name": "AdamW", "learning_rate": 0.001},
+                            "runtime": {"batch_size": 2},
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                project = load_project_config(config_path)
+
+        self.assertEqual(project.dataset.data_root, str(root))
+        self.assertEqual(project.stages, ("build", "test"))
+        self.assertEqual(project.optimization.optimizer_choice, "AdamW")
+
+    def test_run_project_uses_config_stages_and_writes_build_manifest(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            from simpledet.api import run_project
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir) / "dataset"
+                workdir = Path(tmpdir) / "runs"
+                (root / "imgs").mkdir(parents=True)
+                (root / "Annotations").mkdir()
+                for name in ("train_annotations.json", "val_annotations.json", "test_annotations.json"):
+                    (root / "Annotations" / name).write_text("{}", encoding="utf-8")
+
+                result = run_project(
+                    {
+                        "stages": ["build"],
+                        "workdir": str(workdir),
+                        "detector": {
+                            "name": "retinanet",
+                            "num_classes": 1,
+                            "backbone": "resnet18",
+                            "pretrained": False,
+                        },
+                        "dataset": {"root": str(root), "classes": ["wake"]},
+                    }
+                )
+
+                manifest_path = Path(result["manifest_path"])
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+                self.assertEqual(result["stages"], ["build"])
+                self.assertTrue(manifest_path.exists())
+                self.assertEqual(manifest["stages"], ["build"])
+                self.assertEqual(manifest["detector"]["architecture"], "retinanet")
+                self.assertIn("detector_plan", result["build"])
+
+    def test_run_project_rejects_missing_dataset_root_before_output(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            from simpledet.api import run_project
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                workdir = Path(tmpdir) / "runs"
+                with patch("simpledet.native.runtime.run_native_training") as train_mock:
+                    with self.assertRaisesRegex(FileNotFoundError, "dataset_root"):
+                        run_project(
+                            {
+                                "stages": ["train"],
+                                "workdir": str(workdir),
+                                "detector": {"name": "retinanet", "num_classes": 1},
+                                "dataset": {"root": str(Path(tmpdir) / "missing")},
+                            }
+                        )
+
+                    train_mock.assert_not_called()
+                    self.assertFalse(workdir.exists())
+
+    def test_run_project_rejects_unknown_stage(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            from simpledet.api import run_project
+
+            with self.assertRaisesRegex(ValueError, "Unsupported project stage"):
+                run_project(
+                    {
+                        "detector": {"name": "retinanet", "num_classes": 1},
+                        "dataset": {"root": "/dataset"},
+                    },
+                    stages=("build", "deploy"),
+                    validate=False,
+                )
+
     def test_run_project_delegates_selected_stages_to_native_runtime(self):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
             from simpledet.api import run_project
 
-            train_result = {
-                "backend": "native_lightning",
-                "stages": ["fit"],
-                "checkpoint_path": "/results/checkpoints/epoch_001.ckpt",
-            }
-            with patch(
-                "simpledet.native.runtime.run_native_inference",
-                return_value={"backend": "native_lightning", "stages": ["test"]},
-            ) as infer_mock, patch(
-                "simpledet.native.runtime.run_native_training",
-                return_value=train_result,
-            ) as train_mock:
-                result = run_project(
-                    {
-                        "dataset": {
-                            "data_root": "/dataset",
-                            "annot_file_train": "/dataset/Annotations/train_annotations.json",
-                            "annot_file_val": "/dataset/Annotations/val_annotations.json",
-                            "annot_file_test": "/dataset/Annotations/test_annotations.json",
-                            "categories": ["wake"],
-                            "in_channels": 3,
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output = Path(tmpdir) / "results"
+                train_result = {
+                    "backend": "native_lightning",
+                    "stages": ["fit"],
+                    "checkpoint_path": str(output / "checkpoints" / "epoch_001.ckpt"),
+                }
+                with patch(
+                    "simpledet.native.runtime.run_native_inference",
+                    return_value={"backend": "native_lightning", "stages": ["test"]},
+                ) as infer_mock, patch(
+                    "simpledet.native.runtime.run_native_training",
+                    return_value=train_result,
+                ) as train_mock:
+                    result = run_project(
+                        {
+                            "dataset": {
+                                "data_root": "/dataset",
+                                "annot_file_train": "/dataset/Annotations/train_annotations.json",
+                                "annot_file_val": "/dataset/Annotations/val_annotations.json",
+                                "annot_file_test": "/dataset/Annotations/test_annotations.json",
+                                "categories": ["wake"],
+                                "in_channels": 3,
+                            },
+                            "runtime": {"result_folder": str(output)},
+                            "optimization": {"learning_rate": 0.001, "scheduler_choice": "step"},
+                            "detector_spec": {
+                                "architecture": "retinanet",
+                                "family": "dense",
+                                "num_classes": 1,
+                                "encoder": {"name": "resnet18.a1_in1k", "source": "timm"},
+                            },
                         },
-                        "runtime": {"result_folder": "/results"},
-                        "optimization": {"learning_rate": 0.001, "scheduler_choice": "step"},
-                        "detector_spec": {
-                            "architecture": "retinanet",
-                            "family": "dense",
-                            "num_classes": 1,
-                            "encoder": {"name": "resnet18.a1_in1k", "source": "timm"},
-                        },
-                    },
-                    stages=("build", "train", "test"),
-                    validate=False,
-                )
+                        stages=("build", "train", "test"),
+                        validate=False,
+                    )
+                    self.assertTrue(Path(result["manifest_path"]).exists())
 
         train_mock.assert_called_once()
         infer_mock.assert_called_once()
@@ -293,7 +462,9 @@ class PublicApiTests(unittest.TestCase):
         with patch.dict(sys.modules, self._fake_runtime_modules()):
             import simpledet
             from simpledet.api import (
+                CheckpointConfig,
                 DatasetConfig,
+                ExportConfig,
                 OptimizationConfig,
                 ProjectConfig,
                 ProjectLayout,
@@ -322,11 +493,15 @@ class PublicApiTests(unittest.TestCase):
         self.assertEqual(simpledet.DatasetConfig.__module__, DatasetConfig.__module__)
         self.assertEqual(simpledet.RuntimeConfig.__module__, RuntimeConfig.__module__)
         self.assertEqual(simpledet.OptimizationConfig.__module__, OptimizationConfig.__module__)
+        self.assertEqual(simpledet.CheckpointConfig.__module__, CheckpointConfig.__module__)
+        self.assertEqual(simpledet.ExportConfig.__module__, ExportConfig.__module__)
         self.assertEqual(simpledet.ProjectConfig.__module__, ProjectConfig.__module__)
         self.assertEqual(simpledet.ProjectLayout.__name__, ProjectLayout.__name__)
         self.assertEqual(simpledet.DatasetConfig.__name__, DatasetConfig.__name__)
         self.assertEqual(simpledet.RuntimeConfig.__name__, RuntimeConfig.__name__)
         self.assertEqual(simpledet.OptimizationConfig.__name__, OptimizationConfig.__name__)
+        self.assertEqual(simpledet.CheckpointConfig.__name__, CheckpointConfig.__name__)
+        self.assertEqual(simpledet.ExportConfig.__name__, ExportConfig.__name__)
         self.assertEqual(simpledet.ProjectConfig.__name__, ProjectConfig.__name__)
         self.assertEqual(simpledet.load_project_config.__name__, load_project_config.__name__)
         self.assertEqual(simpledet.project_config_template.__name__, project_config_template.__name__)
