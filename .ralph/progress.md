@@ -1101,3 +1101,43 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - CornerNet needs separate paired-corner loss/decode contracts; treating it as a generic CenterNet heatmap detector would be too weak for the family.
   - The base interpreter lacks optional `torch`, so direct default native smoke commands fail outside skip-aware tests; CPU forward tests run when the CPU extra is installed.
 ---
+## [2026-05-19 06:40:51 UTC] - US-027: Add CLI discovery commands
+Thread:
+Run: 20260518-183418-2827287 (iteration 27)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-27.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-27.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: f4533cd feat(cli): add discovery commands
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `python -m py_compile simpledet/simpledet/discovery.py simpledet/simpledet/cli.py tests/test_cli.py` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_cli` -> PASS (27 tests)
+  - Command: `PYTHONPATH=simpledet python -m simpledet list-heads | python -c "import sys; lines=sys.stdin.read().splitlines(); print(len(lines)-1); assert len(lines)-1 >= 31"` -> PASS (`130`)
+  - Command: `PYTHONPATH=simpledet python -m simpledet list-backbones | python -c "import sys; text=sys.stdin.read(); print(text.splitlines()[0]); assert 'timm' in text"` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m simpledet list-heads --family dense >/tmp/simpledet-invalid.out 2>/tmp/simpledet-invalid.err; status=$?; printf '%s\n' "$status"; tail -1 /tmp/simpledet-invalid.err; test "$status" -ne 0` -> PASS (exit 2)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (240 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build refreshed dist artifacts
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/cli-reference.html
+  - simpledet/simpledet/cli.py
+  - simpledet/simpledet/discovery.py
+  - tests/test_cli.py
+- What was implemented
+  - Added `python -m simpledet` discovery commands for `list-detectors`, `list-heads`, `list-backbones`, `list-necks`, `list-datasets`, and `doctor`, plus flag aliases for the new list commands.
+  - Added optional-dependency-safe discovery metadata so base installs can list heads, necks, dataset formats, backbone aliases, and optional extras without importing TIMM or native runtime modules.
+  - Kept `--list-encoders` as a backward-compatible alias for backbone discovery.
+  - Added CLI coverage for command routing, head output contents, 31+ head alias rows with kind and validation status, TIMM required-extra reporting, dataset rows, doctor output, and nonzero invalid discovery options.
+  - Updated CLI docs with the new command forms and the distinction between non-strict `doctor` and strict `--check-runtime`.
+  - Security/performance/regression review: no shell execution, secrets, network calls, or user-controlled imports added; optional dependency checks use bounded `find_spec` lookups; discovery scans bounded in-package catalogs and preserves existing direct train/infer/eval CLI validation.
+- **Learnings for future iterations:**
+  - Discovery should not depend on importing `simpledet.native` because the base package intentionally lacks `torch` and `timm`.
+  - TIMM-backed backbone aliases can be discoverable in a base install by separating support metadata from runtime availability.
+  - Keep old CLI aliases routed through their existing helper names when possible so older tests and integrations can patch the same seam.
+---
