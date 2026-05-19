@@ -166,7 +166,7 @@ def resolve_architecture_name(name: str) -> str:
         return "faster_rcnn"
     if compact in {"fastrcnn", "fastrcnncv", "fastrcnnnext"}:
         return "fast_rcnn"
-    if compact in {"rpn", "rpndetector", "rpnhead"}:
+    if compact in {"rpn", "rpndetector", "regionproposalnetwork", "rpnhead"}:
         return "rpn"
     if compact in {
         "maskrcnn",

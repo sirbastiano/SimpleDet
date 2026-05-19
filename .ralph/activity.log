@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 10:58:40 | run=20260518-183418-2827287 | iter=41 | mode=build | story=US-041 | duration=527s | status=success
 - 2026-05-19 10:49:48 | run=20260518-183418-2827287 | iter=40 | mode=build | story=US-040 | duration=1001s | status=success
 - 2026-05-19 10:33:03 | run=20260518-183418-2827287 | iter=39 | mode=build | story=US-039 | duration=630s | status=success
 - 2026-05-19 10:22:28 | run=20260518-183418-2827287 | iter=38 | mode=build | story=US-038 | duration=792s | status=success
@@ -353,3 +354,9 @@
 [2026-05-19 10:56:23] US-041 required verification gates passed
 [2026-05-19 10:57:07] US-041 pre-commit security performance regression review completed
 [2026-05-19 10:57:55] Updated progress log for US-041
+[2026-05-19 10:58:37] ITERATION 41 end (duration=527s)
+[2026-05-19 10:58:45] ITERATION 42 start (mode=build story=US-042)
+[2026-05-19 11:00:45] Start US-042 detector matrix tests; guardrails, errors, PRD, AGENTS, and command surface reviewed
+[2026-05-19 11:07:29] US-042 detector matrix tests added with registry-driven alias construction and Region Proposal Network resolver fix
+[2026-05-19 11:13:21] US-042 verification passed: focused matrix, full unittest, docs-check, build, and verify-dist
+[2026-05-19 11:13:55] US-042 pre-commit security performance regression review completed: fake-runtime test helpers only, bounded registry matrix, full gates passed

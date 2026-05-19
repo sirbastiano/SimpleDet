@@ -17,6 +17,9 @@ from native_tensor_contracts import require_torch
 
 _COUNTER = itertools.count()
 _NATIVE_REGISTRIES = (DETECTORS, ENCODERS, HEADS, LOSSES, NECKS)
+_VALID_DETECTOR_STATUSES = {"runtime_validated", "compatibility_alias"}
+_DETECTOR_FAMILIES = {"dense", "proposal", "roi", "transformer"}
+_MIN_VALIDATED_DETECTORS = 31
 
 
 def _clear_native_modules():
@@ -175,6 +178,241 @@ def _make_tensor_features(channels, spatial_shapes, *, batch_size=2):
             )
         )
     return tuple(features)
+
+
+def _reset_native_registry_cache():
+    catalog = sys.modules.get("simpledet.suite.catalog")
+    if catalog is not None:
+        catalog._NATIVE_REGISTRY_IMPORTED = False
+        catalog._NATIVE_REGISTRY_IMPORT_ERROR = None
+
+
+def _fake_torchvision_modules(fake_torch):
+    fake_ops = types.ModuleType("torchvision.ops")
+
+    class _FakeRoIAlign(fake_torch.nn.Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.args = args
+            self.kwargs = kwargs
+
+    fake_ops.MultiScaleRoIAlign = _FakeRoIAlign
+    fake_torchvision = types.ModuleType("torchvision")
+    fake_torchvision.ops = fake_ops
+    return {
+        "torchvision": fake_torchvision,
+        "torchvision.ops": fake_ops,
+    }
+
+
+def _detector_alias_tokens(entries):
+    aliases = []
+    seen = set()
+    for metadata in entries:
+        for alias in (metadata.name, *metadata.aliases):
+            if alias in seen:
+                continue
+            seen.add(alias)
+            aliases.append(alias)
+    return aliases
+
+
+def _tiny_detector_spec(alias):
+    return build_detector(
+        alias,
+        num_classes=2,
+        encoder=build_custom_encoder(
+            "MatrixTinyBackbone",
+            imports=(),
+            feature_channels=(8, 8, 8, 8),
+            in_channels=3,
+        ),
+        pretrained=False,
+        num_queries=5,
+        hidden_dim=16,
+        num_heads=4,
+        num_encoder_layers=1,
+        num_decoder_layers=1,
+        dim_feedforward=32,
+        num_feature_levels=4,
+    )
+
+
+def _tiny_native_components(plan, module_cls):
+    module = module_cls()
+    feature_spec = types.SimpleNamespace(feature_channels=(8, 8, 8, 8))
+    neck_spec = types.SimpleNamespace(name="MatrixTinyNeck", out_channels=8, num_outs=4)
+
+    def _component(component_plan):
+        return module_cls() if component_plan is not None else None
+
+    def _spec(component_plan):
+        if component_plan is None:
+            return None
+        return types.SimpleNamespace(
+            name=str(component_plan.type),
+            num_classes=int(getattr(plan, "num_classes", 2)),
+            in_channels=8,
+        )
+
+    from simpledet.native.assemblers import NativeModelComponents
+
+    head = _component(plan.head)
+    head_spec = _spec(plan.head)
+    rpn_head = _component(plan.rpn_head)
+    rpn_head_spec = _spec(plan.rpn_head)
+    bbox_head = _component(plan.bbox_head)
+    bbox_head_spec = _spec(plan.bbox_head)
+    mask_head = _component(plan.mask_head)
+    mask_head_spec = _spec(plan.mask_head)
+    grid_head = _component(plan.grid_head)
+    grid_head_spec = _spec(plan.grid_head)
+    if plan.family == "proposal":
+        head = rpn_head
+        head_spec = rpn_head_spec
+    return NativeModelComponents(
+        plan=plan,
+        backbone=module,
+        backbone_spec=feature_spec,
+        neck=module,
+        neck_spec=neck_spec,
+        head=head,
+        head_spec=head_spec,
+        rpn_head=rpn_head,
+        rpn_head_spec=rpn_head_spec,
+        bbox_head=bbox_head,
+        bbox_head_spec=bbox_head_spec,
+        mask_head=mask_head,
+        mask_head_spec=mask_head_spec,
+        grid_head=grid_head,
+        grid_head_spec=grid_head_spec,
+    )
+
+
+class NativeDetectorMatrixTests(unittest.TestCase):
+    def _fake_native_runtime(self):
+        fake_modules = _fake_torch_modules()
+        fake_modules.update(_fake_torchvision_modules(fake_modules["torch"]))
+        return fake_modules
+
+    def _with_fresh_fake_native_runtime(self):
+        snapshots = _snapshot_native_registries()
+        _clear_native_modules()
+        _clear_native_registries()
+        _reset_native_registry_cache()
+        return snapshots
+
+    def _restore_fake_native_runtime(self, snapshots):
+        _clear_native_modules()
+        _restore_native_registries(snapshots)
+        _reset_native_registry_cache()
+
+    def test_detector_matrix_discovers_at_least_thirty_one_validated_families(self):
+        fake_modules = self._fake_native_runtime()
+        snapshots = self._with_fresh_fake_native_runtime()
+        try:
+            with patch.dict(sys.modules, fake_modules):
+                from simpledet.extensions import DETECTORS
+                from simpledet.suite import list_detectors
+
+                public_aliases = list_detectors()
+                entries = [
+                    metadata
+                    for metadata in DETECTORS.entries()
+                    if metadata.family in _DETECTOR_FAMILIES
+                    and metadata.validation_status in _VALID_DETECTOR_STATUSES
+                ]
+                registry_aliases = _detector_alias_tokens(entries)
+        finally:
+            self._restore_fake_native_runtime(snapshots)
+
+        self.assertGreaterEqual(len(entries), _MIN_VALIDATED_DETECTORS)
+        self.assertGreaterEqual(len(registry_aliases), _MIN_VALIDATED_DETECTORS)
+        self.assertGreaterEqual(len(public_aliases), _MIN_VALIDATED_DETECTORS)
+        self.assertTrue(set(public_aliases).issubset(set(registry_aliases)))
+        self.assertIn("Region Proposal Network", public_aliases)
+        self.assertEqual(
+            sorted({metadata.family for metadata in entries}),
+            ["dense", "proposal", "roi", "transformer"],
+        )
+
+    def test_every_listed_detector_alias_constructs_spec_and_native_factory(self):
+        fake_modules = self._fake_native_runtime()
+        module_cls = fake_modules["torch"].nn.Module
+        snapshots = self._with_fresh_fake_native_runtime()
+        try:
+            with patch.dict(sys.modules, fake_modules):
+                import simpledet.native.assemblers as assemblers
+                from simpledet.extensions import DETECTORS
+                from simpledet.native.modeling import (
+                    QueryDetector,
+                    SingleStageDetector,
+                    TwoStageDetector,
+                    build_detector as build_native_detector,
+                )
+                from simpledet.native.roi import RoICoreSpec
+                from simpledet.suite import list_detectors
+
+                detector_types = (SingleStageDetector, TwoStageDetector, QueryDetector)
+
+                def _fake_roi_detector(factory_name, components, *, num_classes):
+                    return TwoStageDetector(
+                        backbone=components.backbone,
+                        neck=components.neck,
+                        box_roi_pool=module_cls(),
+                        num_classes=int(num_classes),
+                        in_channels=int(components.neck_spec.out_channels),
+                        core_spec=RoICoreSpec.from_num_levels(components.neck_spec.num_outs),
+                        rpn_head=components.rpn_head,
+                        bbox_head=components.bbox_head,
+                        mask_head=components.mask_head,
+                        grid_head=components.grid_head,
+                        roi_variant=str(factory_name),
+                    )
+
+                public_aliases = list_detectors()
+                registry_aliases = _detector_alias_tokens(DETECTORS.entries())
+                resolved_architectures = set()
+                with patch.object(assemblers, "build_native_roi_detector", _fake_roi_detector):
+                    for alias in registry_aliases:
+                        with self.subTest(alias=alias):
+                            metadata = DETECTORS.lookup(alias)
+                            spec = _tiny_detector_spec(alias)
+                            plan = compile_native_detector_plan(spec)
+                            components = _tiny_native_components(plan, module_cls)
+
+                            self.assertIn(plan.family, _DETECTOR_FAMILIES)
+                            self.assertTrue(callable(metadata.factory), metadata.factory_path)
+                            self.assertNotRegex(
+                                metadata.factory_path.lower(),
+                                r"placeholder|stub|todo",
+                            )
+
+                            factory_model = metadata.factory(components, num_classes=2)
+                            self.assertIsInstance(factory_model, detector_types)
+
+                            with patch.object(
+                                assemblers,
+                                "build_native_components",
+                                return_value=components,
+                            ):
+                                public_model = build_native_detector(
+                                    name=alias,
+                                    num_classes=2,
+                                    detector_spec=spec,
+                                    pretrained=False,
+                                )
+                            self.assertIsInstance(public_model, detector_types)
+                            resolved_architectures.add(spec.architecture)
+
+                self.assertTrue(set(public_aliases).issubset(set(registry_aliases)))
+                self.assertGreaterEqual(
+                    len(resolved_architectures),
+                    _MIN_VALIDATED_DETECTORS,
+                )
+                self.assertIn("rpn", resolved_architectures)
+        finally:
+            self._restore_fake_native_runtime(snapshots)
 
 
 class NativeComponentTests(unittest.TestCase):
