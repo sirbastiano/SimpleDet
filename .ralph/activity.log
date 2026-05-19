@@ -199,3 +199,4 @@
 [2026-05-19 04:42:03] ITERATION 23 start (mode=build story=US-023)
 [2026-05-19 04:54:42] US-023 code changes applied: dense detector aliases registered with native defaults, Fovea alias consistency, suggestions, and CPU smoke coverage
 [2026-05-19 05:00:45] US-023 verification completed: focused tests, CPU-extra dense detector smoke, full unittest, make test, docs-check, verify-dist, build, and post-build verify-dist passed
+[2026-05-19 05:02:36] US-023 progress log updated with implementation commit e9b95aa and final verification details

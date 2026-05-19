@@ -42,6 +42,49 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
 ---
+## [2026-05-19 05:02:10 UTC] - US-023: Register dense detector families
+Thread:
+Run: 20260518-183418-2827287 (iteration 23)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-23.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-23.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: e9b95aa feat(detectors): register dense families
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest discover -s tests -p 'test_suite.py'` -> PASS
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest discover -s tests -p 'test_native_backend_plan.py'` -> PASS
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest discover -s tests -p 'test_native_dense_detectors.py'` -> PASS (3 skipped under base install)
+  - Command: `uv run --extra cpu python -m unittest discover -s tests -p 'test_native_dense_detectors.py'` -> PASS (4 real CPU tensor tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (221 tests, 85 skipped)
+  - Command: `make test` -> PASS (221 tests, 85 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build refreshed dist artifacts
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_dense_detectors.py
+  - tests/test_suite.py
+- What was implemented
+  - Registered suite/native detector aliases for RetinaNet, FCOS, ATSS, FSAF, FoveaBox/FOVEA, FreeAnchor, GFL, GFocalV2, VFNet, PAA, RepPoints, YOLOF, TOOD, DDOD, AutoAssign, and NAS-FCOS.
+  - Added dense default heads for the new families, including `VFNetHead` for `build_detector(name="vfnet", num_classes=4)` and RepPoints default `point_strides` derived from neck output count.
+  - Canonicalized `FoveaBox` and `FOVEA` to the same `fovea` family while preserving `FoveaBox` as a registry alias, and added unknown-architecture suggestions.
+  - Wired the detector assemblers to the existing native dense heads/losses/decoders and kept thin shared-contract families marked as `compatibility_alias` instead of overclaiming architecture-specific runtime validation.
+  - Added suite construction coverage for every requested alias plus CPU-extra native construction and representative forward smoke tests.
+  - Security/performance/regression review: no file/network/secret handling added; suggestion matching is bounded over registry-sized candidate lists; RepPoints stride generation is linear in neck outputs; existing dense/ROI/query routing and packaging gates passed.
+- **Learnings for future iterations:**
+  - Registry alias normalization collapses case and separators, so `GFLV2` and `GFLv2` collide.
+  - `FoveaBox` should remain an alias of canonical `fovea`, not a separate supported architecture key.
+  - Compatibility dense detector families can be tensor-smoked without marking them `runtime_validated` until their loss/decoder paths are architecture-specific.
+  - The base interpreter lacks torch; use `uv run --extra cpu` for real dense detector tensor validation.
+---
 ## [2026-05-19 04:17:26 UTC] - US-021: Build query detector composition
 Thread:
 Run: 20260518-183418-2827287 (iteration 21)
