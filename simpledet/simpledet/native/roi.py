@@ -1891,6 +1891,128 @@ def _positive_int(value: Any, name: str) -> int:
     return integer
 
 
+class SparseRCNNDetector(TwoStageDetector):
+    """Sparse R-CNN style detector with learned proposal boxes and features."""
+
+    def __init__(
+        self,
+        *,
+        backbone: nn.Module,
+        neck: nn.Module | None = None,
+        box_roi_pool: nn.Module,
+        num_classes: int,
+        in_channels: int,
+        core_spec: RoICoreSpec,
+        bbox_head: nn.Module,
+        num_proposals: int = 100,
+        sparse_num_stages: int = 3,
+        roi_sample_size: int = 2,
+    ) -> None:
+        proposal_count = _positive_int(num_proposals, "num_proposals")
+        super().__init__(
+            backbone=backbone,
+            neck=neck,
+            box_roi_pool=box_roi_pool,
+            num_classes=num_classes,
+            in_channels=in_channels,
+            core_spec=core_spec,
+            rpn_head=None,
+            bbox_head=bbox_head,
+            roi_variant="sparse_rcnn",
+            proposal_source="sparse",
+            cascade_num_stages=max(1, int(sparse_num_stages)),
+            roi_sample_size=roi_sample_size,
+        )
+        self.num_proposals = proposal_count
+        self.sparse_proposal_boxes = nn.Parameter(_initial_sparse_proposal_logits(proposal_count))
+        self.sparse_proposal_features = nn.Parameter(torch.zeros((proposal_count, int(in_channels))))
+        self._active_sparse_indices = None
+        if hasattr(nn, "init"):
+            nn.init.normal_(self.sparse_proposal_features, std=0.01)
+
+    def _run_rpn_stage(self, image, features, *, target=None):
+        del features, target
+        self._active_sparse_indices = None
+        proposals = self._sparse_proposals_for_image(image)
+        proposal_logits = proposals.new_zeros((int(proposals.shape[0]),))
+        proposal_rows = [tuple(float(value) for value in row.tolist()) for row in proposals.detach()]
+        return proposal_rows, proposals, proposals, proposal_logits
+
+    def _sample_training_proposals(self, proposals, anchors, proposal_scores, target):
+        sampled_indices, sampled_labels = super()._sample_training_proposals(
+            proposals,
+            anchors,
+            proposal_scores,
+            target,
+        )
+        self._active_sparse_indices = self._sparse_index_tensor(sampled_indices, reference=proposals)
+        return sampled_indices, sampled_labels
+
+    def _run_roi_box_head(self, features, proposals, image_shapes):
+        pooled = self._roi_pool(self.box_roi_pool, features, proposals, image_shapes)
+        pooled = self._add_sparse_proposal_features(pooled)
+        outputs = self.bbox_head(pooled)
+        class_logits, box_deltas = self._unpack_bbox_outputs(outputs)
+        return class_logits, box_deltas
+
+    def _sparse_proposals_for_image(self, image):
+        normalized = torch.sigmoid(self.sparse_proposal_boxes)
+        x1 = torch.minimum(normalized[:, 0], normalized[:, 2])
+        y1 = torch.minimum(normalized[:, 1], normalized[:, 3])
+        x2 = torch.maximum(normalized[:, 0], normalized[:, 2])
+        y2 = torch.maximum(normalized[:, 1], normalized[:, 3])
+        normalized_boxes = torch.stack((x1, y1, x2, y2), dim=1)
+        height, width = self._image_shape(image)
+        scale = image.new_tensor((float(width - 1), float(height - 1), float(width - 1), float(height - 1)))
+        return clip_boxes_to_image(normalized_boxes.to(device=image.device, dtype=image.dtype) * scale, (height, width))
+
+    def _add_sparse_proposal_features(self, pooled):
+        proposal_count = int(pooled.shape[0])
+        indices = self._active_sparse_indices
+        if indices is None:
+            proposal_features = self.sparse_proposal_features[:proposal_count]
+        else:
+            indices = indices.to(device=self.sparse_proposal_features.device)
+            if int(indices.numel()) != proposal_count:
+                raise ValueError("Sparse R-CNN proposal features must match pooled proposal rows.")
+            proposal_features = self.sparse_proposal_features.index_select(0, indices)
+        proposal_features = proposal_features.to(device=pooled.device, dtype=pooled.dtype)
+        if pooled.dim() == 4:
+            return pooled + proposal_features[:, :, None, None]
+        if pooled.dim() == 2:
+            return pooled + proposal_features
+        return pooled
+
+    def _sparse_index_tensor(self, sampled_indices, *, reference):
+        if hasattr(sampled_indices, "to"):
+            indices = sampled_indices
+        else:
+            indices = torch.as_tensor(sampled_indices, dtype=torch.long, device=getattr(reference, "device", None))
+        return indices.reshape(-1).long()
+
+
+def _initial_sparse_proposal_logits(num_proposals: int):
+    grid_size = int(math.ceil(math.sqrt(int(num_proposals))))
+    boxes: list[tuple[float, float, float, float]] = []
+    for row in range(grid_size):
+        for col in range(grid_size):
+            if len(boxes) >= int(num_proposals):
+                break
+            center_x = (float(col) + 0.5) / float(grid_size)
+            center_y = (float(row) + 0.5) / float(grid_size)
+            half_size = 0.35 / float(grid_size)
+            boxes.append(
+                (
+                    max(0.01, center_x - half_size),
+                    max(0.01, center_y - half_size),
+                    min(0.99, center_x + half_size),
+                    min(0.99, center_y + half_size),
+                )
+            )
+    initial = torch.tensor(boxes, dtype=torch.float32).clamp(0.01, 0.99)
+    return torch.log(initial / (1.0 - initial))
+
+
 def build_native_roi_backbone(
     backbone: nn.Module,
     neck: nn.Module,
@@ -1929,6 +2051,22 @@ def build_native_roi_detector(factory_name: str, components, *, num_classes: int
             sampling_ratio=core_spec.sampling_ratio,
         ),
     }
+    if normalized_factory == "sparse_rcnn":
+        overrides = getattr(components.plan, "overrides", {}) or {}
+        if components.bbox_head is None:
+            raise ValueError("sparse_rcnn detector assembly requires a native SparseRoIHead.")
+        return SparseRCNNDetector(
+            backbone=components.backbone,
+            neck=components.neck,
+            box_roi_pool=kwargs["box_roi_pool"],
+            num_classes=int(num_classes),
+            in_channels=int(components.neck_spec.out_channels),
+            core_spec=core_spec,
+            bbox_head=components.bbox_head,
+            num_proposals=int(overrides.get("num_proposals", overrides.get("num_queries", 100))),
+            sparse_num_stages=int(overrides.get("num_stages", 3)),
+            roi_sample_size=int(overrides.get("roi_sample_size", 2)),
+        )
     if normalized_factory in {"cascade_rcnn", "cascade_mask_rcnn"}:
         kwargs["cascade_num_stages"] = 3
     if normalized_factory == "libra_rcnn":
@@ -1970,6 +2108,8 @@ def _normalize_roi_factory_name(factory_name: str) -> str:
         return "double_head_rcnn"
     if compact == "dynamicrcnn":
         return "dynamic_rcnn"
+    if compact == "sparsercnn":
+        return "sparse_rcnn"
     return str(factory_name).strip().lower().replace("-", "_")
 
 

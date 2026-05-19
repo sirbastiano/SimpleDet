@@ -182,22 +182,22 @@
             <tbody>
               <tr>
                 <td>Native runtime registered</td>
-                <td><code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>rpn</code>, <code>fast_rcnn</code>, <code>fast-rcnn</code>, <code>faster_rcnn</code>, <code>faster-rcnn</code>, <code>mask_rcnn</code>, <code>mask-rcnn</code>, <code>cascade_rcnn</code>, <code>cascadercnn</code>, <code>cascade_mask_rcnn</code>, <code>cascademaskrcnn</code>, <code>grid_rcnn</code>, <code>gridrcnn</code>, <code>libra_rcnn</code>, <code>librarcnn</code>, <code>double_head_rcnn</code>, <code>doubleheadrcnn</code>, <code>dynamic_rcnn</code>, <code>dynamicrcnn</code></td>
-                <td>Registered in <code>native/assemblers.py</code> and covered by suite/native tests. The first ten ROI/proposal families have explicit native defaults and runtime-validated discovery metadata.</td>
+                <td><code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>cornernet</code>, <code>rpn</code>, <code>fast_rcnn</code>, <code>fast-rcnn</code>, <code>faster_rcnn</code>, <code>faster-rcnn</code>, <code>mask_rcnn</code>, <code>mask-rcnn</code>, <code>cascade_rcnn</code>, <code>cascadercnn</code>, <code>cascade_mask_rcnn</code>, <code>cascademaskrcnn</code>, <code>grid_rcnn</code>, <code>gridrcnn</code>, <code>libra_rcnn</code>, <code>librarcnn</code>, <code>double_head_rcnn</code>, <code>doubleheadrcnn</code>, <code>dynamic_rcnn</code>, <code>dynamicrcnn</code>, <code>sparse_rcnn</code>, <code>sparsercnn</code></td>
+                <td>Registered in <code>native/assemblers.py</code> and covered by suite/native tests. Runtime-validated metadata includes CornerNet paired-corner heatmap loss/decode and Sparse R-CNN learned proposal boxes/features without an RPN fallback.</td>
               </tr>
               <tr>
                 <td>Native compatible, not architecture-faithful yet</td>
                 <td><code>gfl</code>, <code>vfnet</code>, <code>fovea</code>, <code>foveabox</code>, <code>reppoints</code>, <code>yolof</code>, <code>centernet</code>, <code>yolo</code>, <code>yolo3</code>, <code>yolo4</code>, <code>yolo_v3</code>, <code>yolov3</code>, <code>yolov4</code>, <code>yolov5</code>, <code>yolov6</code>, <code>yolov7</code>, <code>yolov8</code>, <code>yolov9</code>, <code>yolov10</code>, <code>yolox</code>, <code>rtmdet</code>, <code>rtmdet_tiny</code>, <code>rtmdet_s</code>, <code>rtmdet_m</code>, <code>rtmdet_l</code>, <code>ssd</code>, <code>ssd300</code>, <code>ssd512</code>, <code>ssdlite</code>, <code>efficientdet</code>, <code>efficientdet_d0</code>, <code>efficientdet_d1</code>, <code>efficientdet_d2</code>, <code>sabl</code>, <code>tood</code>, <code>solov2</code>, <code>solov2_light</code></td>
-                <td>Aliases build native modules, with YOLOX, RTMDet, SSD, and EfficientDet now using explicit lightweight head, target, and decode paths. Several other families still reuse ATSS or FCOS-style losses/decoders or alias heads, so broader architecture-faithful claims still require family-specific validation.</td>
+                <td>Aliases build native modules, with YOLOX, RTMDet, SSD, EfficientDet, and CenterNet now using explicit lightweight head, target, and decode paths. Several other families still reuse ATSS or FCOS-style losses/decoders or alias heads, so broader architecture-faithful claims still require family-specific validation.</td>
               </tr>
               <tr>
                 <td>Native transformer scaffold</td>
                 <td><code>detr</code>, <code>conditional_detr</code>, <code>dab_detr</code>, <code>deformable_detr</code>, <code>dino</code></td>
-                <td>Registered through one query-detector assembler with native DETR, Conditional DETR, DAB-DETR, Deformable DETR, and DINO heads, positional encoding validation, query logits, normalized boxes, and CPU forward coverage. Sparse R-CNN remains head-level only until a faithful learned-proposal detector path exists.</td>
+                <td>Registered through one query-detector assembler with native DETR, Conditional DETR, DAB-DETR, Deformable DETR, and DINO heads, positional encoding validation, query logits, normalized boxes, and CPU forward coverage. Unsupported transformer variants such as DETR3D and v2 names now fail with planned-but-unsupported guidance.</td>
               </tr>
               <tr>
                 <td>Missing from package catalog/runtime</td>
-                <td>Sparse R-CNN detector composition, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, CornerNet detector, DDOD, AutoAssign, NAS-FCOS</td>
+                <td>FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, DDOD, AutoAssign, NAS-FCOS</td>
                 <td>No package-level catalog entry plus native assembler was found. Existing legacy configs, if any, do not count as support.</td>
               </tr>
               <tr>

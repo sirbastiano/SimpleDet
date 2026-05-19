@@ -418,6 +418,274 @@ class DenseCenterNetLoss(DenseFCOSLoss):
     """Finite CenterNet smoke loss using dense compatibility targets."""
 
 
+class DenseCornerNetDecoder(nn.Module):
+    def __init__(
+        self,
+        *,
+        score_threshold: float = 0.05,
+        nms_threshold: float = 0.5,
+        detections_per_img: int = 100,
+    ) -> None:
+        super().__init__()
+        self.score_threshold = float(score_threshold)
+        self.nms_threshold = float(nms_threshold)
+        self.detections_per_img = int(detections_per_img)
+
+    def forward(self, image, feature_maps, head_outputs):
+        from torchvision.ops import batched_nms
+
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        feature_specs = build_feature_map_specs(feature_maps, image_size=image_size)
+        points_per_level = generate_points(
+            feature_specs,
+            device=feature_maps[0].device,
+            dtype=feature_maps[0].dtype,
+        )
+
+        boxes_per_level = []
+        scores_per_level = []
+        labels_per_level = []
+        for (
+            spec,
+            points,
+            top_left,
+            bottom_right,
+            top_left_offset,
+            bottom_right_offset,
+            top_left_embedding,
+            bottom_right_embedding,
+        ) in zip(
+            feature_specs,
+            points_per_level,
+            head_outputs["top_left_heatmap"],
+            head_outputs["bottom_right_heatmap"],
+            head_outputs["top_left_offset"],
+            head_outputs["bottom_right_offset"],
+            head_outputs["top_left_embedding"],
+            head_outputs["bottom_right_embedding"],
+        ):
+            top_left_scores, top_left_labels = (
+                torch.sigmoid(top_left)
+                .permute(0, 2, 3, 1)
+                .reshape(-1, top_left.shape[1])
+                .max(dim=1)
+            )
+            bottom_right_scores, bottom_right_labels = (
+                torch.sigmoid(bottom_right)
+                .permute(0, 2, 3, 1)
+                .reshape(-1, bottom_right.shape[1])
+                .max(dim=1)
+            )
+            topk = min(self.detections_per_img, int(top_left_scores.numel()), int(bottom_right_scores.numel()))
+            if topk <= 0:
+                continue
+            top_left_values, top_left_indices = torch.topk(top_left_scores, k=topk)
+            bottom_right_values, bottom_right_indices = torch.topk(bottom_right_scores, k=topk)
+            point_count = int(points.shape[0])
+            top_left_point_indices = torch.remainder(top_left_indices, point_count)
+            bottom_right_point_indices = torch.remainder(bottom_right_indices, point_count)
+            top_left_offsets = top_left_offset.permute(0, 2, 3, 1).reshape(-1, 2)[top_left_indices]
+            bottom_right_offsets = bottom_right_offset.permute(0, 2, 3, 1).reshape(-1, 2)[bottom_right_indices]
+            stride = image.new_tensor((float(spec.stride_x), float(spec.stride_y)))
+            top_left_points = points[top_left_point_indices] + top_left_offsets * stride
+            bottom_right_points = points[bottom_right_point_indices] + bottom_right_offsets * stride
+
+            top_left_embeddings = top_left_embedding.permute(0, 2, 3, 1).reshape(-1, top_left_embedding.shape[1])
+            bottom_right_embeddings = bottom_right_embedding.permute(0, 2, 3, 1).reshape(-1, bottom_right_embedding.shape[1])
+            top_left_selected_embeddings = top_left_embeddings[top_left_indices]
+            bottom_right_selected_embeddings = bottom_right_embeddings[bottom_right_indices]
+
+            pair_scores = (top_left_values[:, None] + bottom_right_values[None, :]) * 0.5
+            same_label = top_left_labels[top_left_indices][:, None] == bottom_right_labels[bottom_right_indices][None, :]
+            valid_geometry = (
+                (bottom_right_points[None, :, 0] >= top_left_points[:, None, 0])
+                & (bottom_right_points[None, :, 1] >= top_left_points[:, None, 1])
+            )
+            embedding_distance = (
+                top_left_selected_embeddings[:, None, :]
+                - bottom_right_selected_embeddings[None, :, :]
+            ).abs().mean(dim=2)
+            pair_scores = pair_scores * torch.exp(-embedding_distance)
+            keep = (pair_scores >= self.score_threshold) & same_label & valid_geometry
+            if not bool(keep.any()):
+                continue
+
+            pair_indices = torch.nonzero(keep, as_tuple=False)
+            top_left_pair_indices = pair_indices[:, 0]
+            bottom_right_pair_indices = pair_indices[:, 1]
+            selected_top_left = top_left_points.index_select(0, top_left_pair_indices)
+            selected_bottom_right = bottom_right_points.index_select(0, bottom_right_pair_indices)
+            x1 = torch.minimum(selected_top_left[:, 0], selected_bottom_right[:, 0])
+            y1 = torch.minimum(selected_top_left[:, 1], selected_bottom_right[:, 1])
+            x2 = torch.maximum(selected_top_left[:, 0], selected_bottom_right[:, 0])
+            y2 = torch.maximum(selected_top_left[:, 1], selected_bottom_right[:, 1])
+            boxes = torch.stack((x1, y1, x2, y2), dim=1)
+            scores = pair_scores[keep]
+            boxes_per_level.append(clip_boxes_to_image(boxes, image_size))
+            scores_per_level.append(scores)
+            selected_top_left_indices = top_left_indices.index_select(0, top_left_pair_indices)
+            labels_per_level.append(top_left_labels[selected_top_left_indices] + 1)
+
+        if not boxes_per_level:
+            return prediction_payload_to_dict(
+                make_batched_nms_payload(
+                    image.new_zeros((0, 4)),
+                    image.new_zeros((0,)),
+                    image.new_zeros((0,), dtype=torch.long),
+                )
+            )
+
+        boxes = torch.cat(boxes_per_level, dim=0)
+        scores = torch.cat(scores_per_level, dim=0)
+        labels = torch.cat(labels_per_level, dim=0)
+        payload = make_batched_nms_payload(boxes, scores, labels)
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
+        keep_idx = keep_idx[: self.detections_per_img]
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
+
+
+class DenseCornerNetLoss(nn.Module):
+    """Paired-corner heatmap, offset, pull, and push embedding loss."""
+
+    def forward(self, images, targets, feature_pyramids, head_outputs_per_image):
+        total_heatmap = images[0].new_tensor(0.0)
+        total_offset = images[0].new_tensor(0.0)
+        total_pull = images[0].new_tensor(0.0)
+        total_push = images[0].new_tensor(0.0)
+        positive_count = 0
+
+        for image, target, feature_maps, head_outputs in zip(
+            images,
+            targets,
+            feature_pyramids,
+            head_outputs_per_image,
+        ):
+            feature_maps = _feature_sequence(feature_maps)
+            feature_specs = build_feature_map_specs(feature_maps, image_size=_image_size(image))
+            points_per_level = generate_points(
+                feature_specs,
+                device=feature_maps[0].device,
+                dtype=feature_maps[0].dtype,
+            )
+            target_boxes = target.get("boxes", image.new_zeros((0, 4)))
+            target_labels = target.get(
+                "labels",
+                torch.zeros((int(target_boxes.shape[0]),), dtype=torch.long, device=image.device),
+            )
+
+            for spec, points, top_left, bottom_right, top_left_offset, bottom_right_offset, top_left_embedding, bottom_right_embedding in zip(
+                feature_specs,
+                points_per_level,
+                head_outputs["top_left_heatmap"],
+                head_outputs["bottom_right_heatmap"],
+                head_outputs["top_left_offset"],
+                head_outputs["bottom_right_offset"],
+                head_outputs["top_left_embedding"],
+                head_outputs["bottom_right_embedding"],
+            ):
+                top_left_targets = torch.zeros_like(top_left)
+                bottom_right_targets = torch.zeros_like(bottom_right)
+                top_left_indices = []
+                bottom_right_indices = []
+                top_left_offsets = []
+                bottom_right_offsets = []
+                width = int(top_left.shape[-1])
+                stride = image.new_tensor((float(spec.stride_x), float(spec.stride_y)))
+                radius = max(float(spec.stride_x), float(spec.stride_y), 1.0)
+
+                for box, label in zip(target_boxes, target_labels):
+                    class_index = int(label.clamp(min=1, max=top_left.shape[1]).item()) - 1
+                    top_left_index = torch.argmin(((points - box[:2]) ** 2).sum(dim=1))
+                    bottom_right_index = torch.argmin(((points - box[2:]) ** 2).sum(dim=1))
+                    top_left_row = int(top_left_index.item()) // width
+                    top_left_col = int(top_left_index.item()) % width
+                    bottom_right_row = int(bottom_right_index.item()) // width
+                    bottom_right_col = int(bottom_right_index.item()) % width
+                    self._draw_corner_target(
+                        top_left_targets,
+                        class_index=class_index,
+                        corner=box[:2],
+                        points=points,
+                        radius=radius,
+                    )
+                    self._draw_corner_target(
+                        bottom_right_targets,
+                        class_index=class_index,
+                        corner=box[2:],
+                        points=points,
+                        radius=radius,
+                    )
+                    top_left_targets[0, class_index, top_left_row, top_left_col] = 1.0
+                    bottom_right_targets[0, class_index, bottom_right_row, bottom_right_col] = 1.0
+                    top_left_indices.append(top_left_index)
+                    bottom_right_indices.append(bottom_right_index)
+                    top_left_offsets.append((box[:2] - points[top_left_index]) / stride)
+                    bottom_right_offsets.append((box[2:] - points[bottom_right_index]) / stride)
+
+                total_heatmap = total_heatmap + self._corner_focal_loss(top_left, top_left_targets)
+                total_heatmap = total_heatmap + self._corner_focal_loss(bottom_right, bottom_right_targets)
+                if not top_left_indices:
+                    continue
+
+                tl_indices = torch.stack(top_left_indices).to(device=top_left.device)
+                br_indices = torch.stack(bottom_right_indices).to(device=bottom_right.device)
+                tl_offset_targets = torch.stack(top_left_offsets).to(device=top_left_offset.device, dtype=top_left_offset.dtype)
+                br_offset_targets = torch.stack(bottom_right_offsets).to(
+                    device=bottom_right_offset.device,
+                    dtype=bottom_right_offset.dtype,
+                )
+                tl_offsets = top_left_offset.permute(0, 2, 3, 1).reshape(-1, 2).index_select(0, tl_indices)
+                br_offsets = bottom_right_offset.permute(0, 2, 3, 1).reshape(-1, 2).index_select(0, br_indices)
+                total_offset = total_offset + F.smooth_l1_loss(tl_offsets, tl_offset_targets, reduction="mean")
+                total_offset = total_offset + F.smooth_l1_loss(br_offsets, br_offset_targets, reduction="mean")
+
+                tl_embeddings = top_left_embedding.permute(0, 2, 3, 1).reshape(-1, top_left_embedding.shape[1]).index_select(0, tl_indices)
+                br_embeddings = bottom_right_embedding.permute(0, 2, 3, 1).reshape(-1, bottom_right_embedding.shape[1]).index_select(0, br_indices)
+                means = (tl_embeddings + br_embeddings) * 0.5
+                total_pull = total_pull + (
+                    F.smooth_l1_loss(tl_embeddings, means, reduction="mean")
+                    + F.smooth_l1_loss(br_embeddings, means, reduction="mean")
+                )
+                total_push = total_push + self._push_embedding_loss(means)
+                positive_count += len(top_left_indices)
+
+        num_images = max(len(images), 1)
+        normalizer = max(positive_count, 1)
+        loss_heatmap = total_heatmap / num_images
+        loss_offset = total_offset / normalizer
+        loss_pull = total_pull / normalizer
+        loss_push = total_push / normalizer
+        return {
+            "loss_corner_heatmap": loss_heatmap,
+            "loss_corner_offset": loss_offset,
+            "loss_corner_embedding": loss_pull + loss_push,
+            "loss_total": loss_heatmap + loss_offset + loss_pull + loss_push,
+        }
+
+    def _draw_corner_target(self, targets, *, class_index: int, corner, points, radius: float) -> None:
+        heat = torch.exp(-((points - corner) ** 2).sum(dim=1) / (2.0 * float(radius) ** 2))
+        flat = targets[0, int(class_index)].reshape(-1)
+        flat.copy_(torch.maximum(flat, heat.to(device=flat.device, dtype=flat.dtype)))
+
+    def _corner_focal_loss(self, logits, targets):
+        probabilities = torch.sigmoid(logits).clamp(min=1e-6, max=1.0 - 1e-6)
+        positive = targets.eq(1.0)
+        negative = targets.lt(1.0)
+        negative_weights = (1.0 - targets).pow(4)
+        positive_loss = -torch.log(probabilities) * (1.0 - probabilities).pow(2) * positive
+        negative_loss = -torch.log(1.0 - probabilities) * probabilities.pow(2) * negative_weights * negative
+        normalizer = positive.to(dtype=logits.dtype).sum().clamp_min(1.0)
+        return (positive_loss.sum() + negative_loss.sum()) / normalizer
+
+    def _push_embedding_loss(self, means):
+        if int(means.shape[0]) <= 1:
+            return means.sum() * 0.0
+        distances = (means[:, None, :] - means[None, :, :]).abs().mean(dim=2)
+        mask = ~torch.eye(int(means.shape[0]), dtype=torch.bool, device=means.device)
+        return F.relu(1.0 - distances[mask]).mean()
+
+
 class DenseFSAFDecoder(DenseFCOSDecoder):
     """FSAF uses the anchor-free point decode contract."""
 

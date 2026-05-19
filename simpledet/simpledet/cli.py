@@ -35,6 +35,11 @@ _DETECTOR_HELP = {
         "family": "transformer",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
+    "cornernet": {
+        "summary": "CornerNet heatmap detector with paired corner heatmaps, embeddings, and offsets.",
+        "family": "dense",
+        "recommended_encoders": ("resnet18", "resnet18.a1_in1k"),
+    },
     "retinanet": {
         "summary": "Dense one-stage detector with FPN-style multiscale heads.",
         "family": "dense",
@@ -202,6 +207,11 @@ _DETECTOR_HELP = {
     },
     "mask_rcnn": {
         "summary": "Two-stage ROI detector with instance-mask heads built on the native runtime.",
+        "family": "roi",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
+    "sparse_rcnn": {
+        "summary": "Sparse R-CNN detector with learned proposal boxes/features and sparse ROI refinement.",
         "family": "roi",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
@@ -419,12 +429,11 @@ def _list_encoders() -> int:
 
 
 def _show_detector_help(name: str) -> int:
-    from .suite.catalog import ARCHITECTURE_FAMILIES
+    from .suite.catalog import ARCHITECTURE_FAMILIES, _unknown_architecture_message, resolve_architecture_name
 
-    normalized = str(name).strip().lower().replace("-", "_")
+    normalized = resolve_architecture_name(name)
     if normalized not in ARCHITECTURE_FAMILIES:
-        known = ", ".join(sorted(ARCHITECTURE_FAMILIES))
-        raise ValueError(f"Unknown detector '{name}'. Supported: {known}.")
+        raise ValueError(_unknown_architecture_message(name, normalized))
 
     payload = _DETECTOR_HELP.get(
         normalized,

@@ -33,10 +33,28 @@ _TRANSFORMER_HEAD_KEYS = {
     "dinohead",
 }
 
+_PLANNED_TRANSFORMER_VARIANTS = {
+    "detrnext": "DETR-next",
+    "detrv2": "DETRv2",
+    "detr3d": "DETR3D",
+    "deformabledetrnext": "Deformable DETR-next",
+    "deformabledetrv2": "Deformable DETR v2",
+    "deformabledetr2": "Deformable DETR v2",
+    "conditionaldetrnext": "Conditional DETR-next",
+    "conditionaldetrv2": "Conditional DETR v2",
+    "conditionaldetr2": "Conditional DETR v2",
+    "dabdetrnext": "DAB-DETR-next",
+    "dabdetrv2": "DAB-DETR v2",
+    "dabdetr2": "DAB-DETR v2",
+    "dinov2": "DINOv2",
+    "dino2": "DINOv2",
+}
+
 
 ARCHITECTURE_FAMILIES: dict[str, str] = {
     "retinanet": "dense",
     "retina": "dense",
+    "cornernet": "dense",
     "detr": "transformer",
     "deformable_detr": "transformer",
     "deformabledetr": "transformer",
@@ -87,6 +105,7 @@ ARCHITECTURE_FAMILIES: dict[str, str] = {
     "libra_rcnn": "roi",
     "double_head_rcnn": "roi",
     "dynamic_rcnn": "roi",
+    "sparse_rcnn": "roi",
 }
 
 
@@ -117,15 +136,17 @@ def resolve_architecture_name(name: str) -> str:
         return "yolof"
     if compact.startswith("yolox"):
         return "yolox"
-    if compact in {"detr", "detrnext", "detrv2", "detr3d"}:
+    if compact in _PLANNED_TRANSFORMER_VARIANTS:
+        return normalized
+    if compact == "detr":
         return "detr"
-    if compact in {"deformabledetr", "deformabledetrnext", "deformabledetrv2"}:
+    if compact == "deformabledetr":
         return "deformable_detr"
-    if compact in {"conditionaldetr", "conditionaldetrnext"}:
+    if compact == "conditionaldetr":
         return "conditional_detr"
-    if compact in {"dabdetr", "dabdetrnext", "dabdetrv2"}:
+    if compact == "dabdetr":
         return "dab_detr"
-    if compact in {"dino", "dinov2", "dino2"}:
+    if compact == "dino":
         return "dino"
     if compact.startswith("deformabledetr"):
         return "deformable_detr"
@@ -165,6 +186,10 @@ def resolve_architecture_name(name: str) -> str:
         return "double_head_rcnn"
     if compact in {"dynamicrcnn", "dynamicrcnncv", "dynamicrcnnnext"}:
         return "dynamic_rcnn"
+    if compact in {"sparsercnn", "sparsercnncv", "sparsercnnnext"}:
+        return "sparse_rcnn"
+    if compact.startswith("cornernet"):
+        return "cornernet"
     if compact.startswith("retinanet"):
         return "retinanet"
     if compact.startswith("fcos"):
@@ -229,10 +254,13 @@ def resolve_architecture_name(name: str) -> str:
         return "double_head_rcnn"
     if compact.startswith("dynamicrcnn"):
         return "dynamic_rcnn"
+    if compact.startswith("sparsercnn"):
+        return "sparse_rcnn"
     return normalized
 
 
 _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE = {
+    "cornernet": "CornerNetHead",
     "retinanet": "RetinaHead",
     "fcos": "FCOSHead",
     "atss": "ATSSHead",
@@ -291,6 +319,12 @@ _ARCHITECTURE_SUGGESTION_ALIASES = (
     "AutoAssign",
     "NAS-FCOS",
     "CenterNet",
+    "CornerNet",
+    "DETR",
+    "Conditional DETR",
+    "DAB-DETR",
+    "Deformable DETR",
+    "DINO",
     "YOLOX",
     "RTMDet",
     "SSD",
@@ -299,9 +333,11 @@ _ARCHITECTURE_SUGGESTION_ALIASES = (
     "EfficientDet-D0",
     "Grid R-CNN",
     "Cascade R-CNN",
+    "Sparse R-CNN",
 )
 
 _LIGHTWEIGHT_DEFAULT_BACKBONE_BY_ARCHITECTURE = {
+    "cornernet": "resnet18",
     "yolo": "cspdarknet53",
     "yolox": "cspdarknet53",
     "rtmdet": "cspnext_tiny",
@@ -317,6 +353,7 @@ _LIGHTWEIGHT_DEFAULT_NECK_BY_ARCHITECTURE: dict[str, dict[str, Any]] = {
     "ssd": {"name": "SSDNeck", "out_channels": 256, "num_outs": 6},
     "efficientdet": {"name": "BiFPN", "out_channels": 64, "num_outs": 5},
     "centernet": {"name": "FPN", "out_channels": 256, "num_outs": 4},
+    "cornernet": {"name": "FPN", "out_channels": 256, "num_outs": 4},
 }
 
 _YOLO_COMPATIBLE_NECKS = {"yoloxpafpn"}
@@ -400,6 +437,16 @@ def _default_dense_head_extra(architecture: str, neck: NeckSpec | None) -> dict[
 
 
 def _unknown_architecture_message(requested: str, normalized: str) -> str:
+    planned_variant = _planned_transformer_variant_name(requested)
+    if planned_variant is not None:
+        supported = ", ".join(
+            ("detr", "conditional_detr", "dab_detr", "deformable_detr", "dino")
+        )
+        return (
+            f"Unsupported transformer variant '{requested}' ({planned_variant}) is planned "
+            f"but not available in the native 2D query detector registry yet. "
+            f"Use one of: {supported}."
+        )
     candidates = sorted(set(ARCHITECTURE_FAMILIES) | set(_ARCHITECTURE_SUGGESTION_ALIASES), key=str.lower)
     nearby = get_close_matches(str(requested), candidates, n=5, cutoff=0.25)
     if not nearby:
@@ -407,6 +454,11 @@ def _unknown_architecture_message(requested: str, normalized: str) -> str:
     supported = ", ".join(sorted(ARCHITECTURE_FAMILIES))
     suggestions = ", ".join(nearby) if nearby else "<none>"
     return f"Unknown architecture '{requested}'. Supported: {supported}. Suggestions: {suggestions}."
+
+
+def _planned_transformer_variant_name(name: str) -> str | None:
+    compact = _compact_architecture_name(_normalize_architecture_name(name))
+    return _PLANNED_TRANSFORMER_VARIANTS.get(compact)
 
 _ROI_DEFAULT_BBOX_HEAD_BY_ARCHITECTURE = {
     "cascade_rcnn": "CascadeBBoxHead",
@@ -418,6 +470,7 @@ _ROI_DEFAULT_BBOX_HEAD_BY_ARCHITECTURE = {
     "grid_rcnn": "Shared2FCBBoxHead",
     "libra_rcnn": "Shared2FCBBoxHead",
     "mask_rcnn": "Shared2FCBBoxHead",
+    "sparse_rcnn": "SparseRoIHead",
 }
 
 

@@ -15,6 +15,7 @@ from .roi import NativeRoIBackbone, TwoStageDetector  # noqa: E402
 
 SUPPORTED_NATIVE_ARCHITECTURES = {
     "retinanet",
+    "cornernet",
     "fcos",
     "atss",
     "fsaf",
@@ -54,6 +55,7 @@ SUPPORTED_NATIVE_ARCHITECTURES = {
     "faster_rcnn",
     "libra_rcnn",
     "mask_rcnn",
+    "sparse_rcnn",
     "rpn",
     "detr",
     "dab_detr",

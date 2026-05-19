@@ -2,12 +2,18 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from native_tensor_contracts import assert_dense_head_output_contract, require_torch
+from native_tensor_contracts import (
+    assert_dense_head_output_contract,
+    make_cpu_detector_smoke_batch,
+    require_torch,
+)
 
 
 _DENSE_DETECTOR_ALIASES = (
     ("retinanet", "retinanet", "RetinaHead"),
     ("RetinaNet", "retinanet", "RetinaHead"),
+    ("cornernet", "cornernet", "CornerNetHead"),
+    ("CornerNet", "cornernet", "CornerNetHead"),
     ("fcos", "fcos", "FCOSHead"),
     ("FCOS", "fcos", "FCOSHead"),
     ("atss", "atss", "ATSSHead"),
@@ -48,6 +54,7 @@ _FORWARD_SMOKE_ALIASES = (
     ("GFocalV2", "GFLV2Head"),
     ("RepPoints", "RepPointsHead"),
     ("NAS-FCOS", "NASFCOSHead"),
+    ("CornerNet", "CornerNetHead"),
 )
 
 _LIGHTWEIGHT_DETECTOR_ALIASES = (
@@ -198,6 +205,52 @@ class NativeDenseDetectorFamilyTests(unittest.TestCase):
                 self.assertEqual(predictions[0]["boxes"].shape[-1], 4)
                 self.assertEqual(predictions[0]["scores"].dim(), 1)
                 self.assertEqual(predictions[0]["labels"].dim(), 1)
+
+    def test_cornernet_detector_runs_cpu_loss_and_prediction_paths(self):
+        torch = require_torch()
+        self._ensure_test_components()
+
+        from simpledet.native.modeling import SingleStageDetector, build_detector as build_native_detector
+
+        batch = make_cpu_detector_smoke_batch(
+            batch_size=1,
+            image_size=(32, 32),
+            boxes_per_image=1,
+            num_classes=4,
+        )
+        spec = self._detector_spec("CornerNet")
+        try:
+            model = build_native_detector(
+                name="CornerNet",
+                num_classes=4,
+                detector_spec=spec,
+                pretrained=False,
+            )
+        except ImportError as exc:
+            self.skipTest(str(exc))
+
+        self.assertIsInstance(model, SingleStageDetector)
+        self.assertEqual(model.head_spec.name, "CornerNetHead")
+        losses = model(batch.images, batch.targets)
+        self.assertEqual(
+            set(losses),
+            {
+                "loss_corner_heatmap",
+                "loss_corner_offset",
+                "loss_corner_embedding",
+                "loss_total",
+            },
+        )
+        for loss in losses.values():
+            self.assertEqual(tuple(loss.shape), ())
+            self.assertTrue(bool(torch.isfinite(loss)))
+
+        model.eval()
+        with torch.no_grad():
+            predictions = model(batch.images)
+        self.assertEqual(len(predictions), 1)
+        self.assertEqual(set(predictions[0]), {"boxes", "scores", "labels"})
+        self.assertEqual(predictions[0]["boxes"].shape[-1], 4)
 
     def test_lightweight_detector_families_construct_forward_and_decode_on_cpu(self):
         torch = require_torch()

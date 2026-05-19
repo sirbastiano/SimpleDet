@@ -115,6 +115,8 @@ def _default_roi_bbox_head_type(architecture: str) -> str:
         return "DoubleConvFCBBoxHead"
     if architecture == "dynamic_rcnn":
         return "DynamicBBoxHead"
+    if architecture == "sparse_rcnn":
+        return "SparseRoIHead"
     return "Shared2FCBBoxHead"
 
 
@@ -125,7 +127,7 @@ def _default_roi_mask_head_type(architecture: str) -> str:
 
 
 def _roi_detector_requires_rpn(architecture: str) -> bool:
-    return architecture != "fast_rcnn"
+    return architecture not in {"fast_rcnn", "sparse_rcnn"}
 
 
 _TRANSFORMER_DEFAULT_HEAD_BY_ARCHITECTURE = {

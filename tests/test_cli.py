@@ -102,9 +102,13 @@ class TestCli(unittest.TestCase):
         lines = output.getvalue().splitlines()
         self.assertEqual(lines[0], "name\tfamily\tnative_validation")
         cascade = [line for line in lines if line.startswith("cascade_rcnn\t")]
+        cornernet = [line for line in lines if line.startswith("cornernet\t")]
         grid = [line for line in lines if line.startswith("grid_rcnn\t")]
+        sparse = [line for line in lines if line.startswith("sparse_rcnn\t")]
         self.assertEqual(cascade, ["cascade_rcnn\troi\truntime_validated"])
+        self.assertEqual(cornernet, ["cornernet\tdense\truntime_validated"])
         self.assertEqual(grid, ["grid_rcnn\troi\truntime_validated"])
+        self.assertEqual(sparse, ["sparse_rcnn\troi\truntime_validated"])
 
     def test_main_lists_encoders(self):
         output = io.StringIO()
@@ -123,6 +127,12 @@ class TestCli(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         patched.assert_called_once_with("retinanet")
+
+    def test_show_detector_help_reports_planned_transformer_variants(self):
+        from simpledet.cli import _show_detector_help
+
+        with self.assertRaisesRegex(ValueError, "Unsupported transformer variant.*planned"):
+            _show_detector_help("detr3d")
 
     def test_main_initializes_project_config(self):
         output = io.StringIO()

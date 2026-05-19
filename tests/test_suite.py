@@ -52,13 +52,17 @@ class NativeSuiteTests(unittest.TestCase):
             "conditional_detr-4scale": "conditional_detr",
             "dab-detr-r50": "dab_detr",
             "dino4": "dino",
-            "deformable-detr-v2": "deformable_detr",
-            "detr3d": "detr",
         }
         for architecture, expected_family in aliases.items():
             detector = build_detector(architecture, num_classes=2, encoder="resnet18.a1_in1k")
             self.assertEqual(detector.family, "transformer")
             self.assertEqual(detector.architecture, expected_family)
+
+    def test_build_transformer_name_aliases_reject_planned_unsupported_variants(self):
+        for architecture in ("detr3d", "deformable-detr-v2", "dinov2"):
+            with self.subTest(architecture=architecture):
+                with self.assertRaisesRegex(ValueError, "Unsupported transformer variant.*planned.*Use one of"):
+                    build_detector(architecture, num_classes=2, encoder="resnet18.a1_in1k")
 
     def test_build_detector_supports_many_dense_and_roi_architectures(self):
         specs = {
@@ -83,6 +87,7 @@ class NativeSuiteTests(unittest.TestCase):
             "AutoAssign": "AutoAssignHead",
             "NAS-FCOS": "NASFCOSHead",
             "centernet": "CenterNetHead",
+            "CornerNet": "CornerNetHead",
         }
         for architecture, expected_head in specs.items():
             detector = build_detector(architecture, num_classes=3, encoder="resnet18.a1_in1k")
@@ -142,6 +147,11 @@ class NativeSuiteTests(unittest.TestCase):
         self.assertEqual(double_head.head.name, "DoubleConvFCBBoxHead")
         self.assertEqual(dynamic.head.name, "DynamicBBoxHead")
 
+        sparse = build_detector("Sparse R-CNN", num_classes=2, encoder="resnet18.a1_in1k")
+        self.assertEqual(sparse.architecture, "sparse_rcnn")
+        self.assertEqual(sparse.family, "roi")
+        self.assertEqual(sparse.head.name, "SparseRoIHead")
+
     def test_lightweight_detector_defaults_use_native_deployment_stacks(self):
         cases = {
             "yolox": ("yolox", "cspdarknet53", "YOLOXPAFPN", 256, 4, "YOLOXHead"),
@@ -149,6 +159,7 @@ class NativeSuiteTests(unittest.TestCase):
             "ssd300": ("ssd", "mobilenetv2_100", "SSDNeck", 256, 6, "SSDHead"),
             "efficientdet_d0": ("efficientdet", "efficientnet_b0", "BiFPN", 64, 5, "EfficientDetHead"),
             "centernet": ("centernet", "resnet18", "FPN", 256, 4, "CenterNetHead"),
+            "cornernet": ("cornernet", "resnet18", "FPN", 256, 4, "CornerNetHead"),
         }
         for name, (architecture, encoder, neck, out_channels, num_outs, head) in cases.items():
             with self.subTest(name=name):

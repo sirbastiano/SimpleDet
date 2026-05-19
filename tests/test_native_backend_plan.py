@@ -150,6 +150,7 @@ class NativeBuildPlanTests(unittest.TestCase):
             "libra_rcnn": ("roi", "RPNHead", "Shared2FCBBoxHead", None, None),
             "double_head_rcnn": ("roi", "RPNHead", "DoubleConvFCBBoxHead", None, None),
             "dynamic_rcnn": ("roi", "RPNHead", "DynamicBBoxHead", None, None),
+            "sparse_rcnn": ("roi", None, "SparseRoIHead", None, None),
         }
         for architecture, (family, rpn_type, bbox_type, mask_type, grid_type) in expected.items():
             with self.subTest(architecture=architecture):
@@ -358,6 +359,7 @@ class ExtensionRegistryTests(unittest.TestCase):
             "AutoAssign": ("auto_assign", "dense"),
             "NAS-FCOS": ("nas_fcos", "dense"),
             "CenterNet": ("centernet", "dense"),
+            "CornerNet": ("cornernet", "dense"),
             "YOLOX": ("yolox", "dense"),
             "YOLO": ("yolo", "dense"),
             "YOLOv5": ("yolov5", "dense"),
@@ -376,7 +378,12 @@ class ExtensionRegistryTests(unittest.TestCase):
             "Libra R-CNN": ("libra_rcnn", "roi"),
             "Double-Head R-CNN": ("double_head_rcnn", "roi"),
             "Dynamic R-CNN": ("dynamic_rcnn", "roi"),
+            "Sparse R-CNN": ("sparse_rcnn", "roi"),
+            "DETR": ("detr", "transformer"),
+            "Conditional DETR": ("conditional_detr", "transformer"),
             "DAB-DETR": ("dab_detr", "transformer"),
+            "Deformable DETR": ("deformable_detr", "transformer"),
+            "DINO": ("dino", "transformer"),
         }
         for alias, (expected_name, expected_family) in aliases.items():
             with self.subTest(alias=alias):
@@ -410,6 +417,16 @@ class ExtensionRegistryTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "requires an ROI bbox head"):
                 _validate_roi_head_plan(wrong_bbox)
+
+            wrong_sparse_head = types.SimpleNamespace(
+                architecture="sparse_rcnn",
+                rpn_head=None,
+                bbox_head=ComponentPlan(kind="head", type="Shared2FCBBoxHead"),
+                mask_head=None,
+                grid_head=None,
+            )
+            with self.assertRaisesRegex(ValueError, "requires SparseRoIHead"):
+                _validate_roi_head_plan(wrong_sparse_head)
 
     def test_native_head_registry_exposes_core_dense_aliases(self):
         with patch.dict(sys.modules, _fake_torch_modules()):
@@ -476,11 +493,13 @@ class ExtensionRegistryTests(unittest.TestCase):
             "retina": "dense",
             "deformable_detr": "transformer",
             "dab_detr": "transformer",
+            "cornernet": "dense",
             "FoveaBox": "dense",
             "faster-rcnn": "roi",
             "mask-rcnn": "roi",
             "gridrcnn": "roi",
             "cascadercnn": "roi",
+            "sparsercnn": "roi",
         }
         for alias, expected_family in aliases.items():
             with self.subTest(alias=alias):

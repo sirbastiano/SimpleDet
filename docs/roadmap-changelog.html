@@ -48,6 +48,7 @@
             <li>US-020 promotes Faster R-CNN, Mask R-CNN, Grid R-CNN, and Cascade R-CNN to native two-stage composition: RPN and ROI heads are built through registries, <code>build_detector(name="faster_rcnn", num_classes=3)</code> returns a native <code>TwoStageDetector</code>, and <code>mask_rcnn</code> build plans fail validation when the selected ROI head is not mask-enabled.</li>
             <li>US-021 promotes DETR, Conditional DETR, DAB-DETR, Deformable DETR, and DINO to native <code>QueryDetector</code> composition with registered query heads, positional encoding validation, query logits, normalized boxes, and CPU tensor smoke tests.</li>
             <li>US-022 registers the first ten foundational detector families with native aliases and defaults: Faster R-CNN, Fast R-CNN, RPN, Mask R-CNN, Cascade R-CNN, Cascade Mask R-CNN, Grid R-CNN, Libra R-CNN, Double-Head R-CNN, and Dynamic R-CNN. Discovery output now includes native validation status.</li>
+            <li>US-025 promotes CornerNet and Sparse R-CNN to detector-level native support: CornerNet uses paired corner heatmap loss/decode, Sparse R-CNN uses learned proposal boxes/features without an RPN fallback, and unsupported transformer variants now fail with planned-but-unsupported guidance.</li>
           </ul>
         </article>
         <article class="section">

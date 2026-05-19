@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 05:20:22 | run=20260518-183418-2827287 | iter=24 | mode=build | story=US-024 | duration=1017s | status=success
 - 2026-05-19 05:03:20 | run=20260518-183418-2827287 | iter=23 | mode=build | story=US-023 | duration=1276s | status=success
 - 2026-05-19 04:42:00 | run=20260518-183418-2827287 | iter=22 | mode=build | story=US-022 | duration=1375s | status=success
 - 2026-05-19 04:18:59 | run=20260518-183418-2827287 | iter=21 | mode=build | story=US-021 | duration=1677s | status=success
@@ -207,3 +208,11 @@
 [2026-05-19 05:13:57] US-024 code changes applied: lightweight defaults, YOLO neck validation, CenterNet decode, registry metadata, tests, and docs updated
 [2026-05-19 05:15:20] US-024 verification completed: focused tests, full unittest, docs-check, build, and verify-dist passed
 [2026-05-19 05:17:28] US-024 progress log updated with implementation commit 95da6ad and verification details
+[2026-05-19 05:20:19] ITERATION 24 end (duration=1017s)
+[2026-05-19 05:20:25] ITERATION 25 start (mode=build story=US-025)
+[2026-05-19 05:22:45] US-025 discovery started: guardrails, prior errors, PRD, AGENTS, and command surface reviewed
+[2026-05-19 05:45:19] US-025 code changes applied: CornerNet detector loss/decode, Sparse R-CNN learned proposals, query aliases, unsupported variant errors, tests, and docs updated
+[2026-05-19 05:46:16] US-025 verification completed: targeted tests, full unittest, docs-check, verify-dist, build, and post-build verify-dist passed
+[2026-05-19 05:51:01] US-025 final verification rerun passed after sparse head validation: full unittest, docs-check, build, verify-dist, and diff check
+[2026-05-19 06:03:10] US-025 verification passed: targeted unittest slice, full unittest suite, docs-check, build, verify-dist, py_compile, and diff whitespace checks passed.
+[2026-05-19 06:03:35] US-025 final review complete: no secret-handling or command-execution changes; CornerNet pairing is top-k bounded; Sparse R-CNN stays RPN-free with sampled proposal features bound to selected proposals; regression gates passed.

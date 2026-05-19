@@ -15,6 +15,8 @@ from .dense_ops import (
     DenseAutoAssignLoss,
     DenseCenterNetDecoder,
     DenseCenterNetLoss,
+    DenseCornerNetDecoder,
+    DenseCornerNetLoss,
     DenseDDODDecoder,
     DenseDDODLoss,
     DenseEfficientDetDecoder,
@@ -246,6 +248,8 @@ def _validate_roi_head_plan(plan) -> None:
             f"Two-stage detector '{plan.architecture}' requires an ROI bbox head, "
             f"but head '{bbox_metadata.name}' has family '{bbox_metadata.family}'."
         )
+    if plan.architecture == "sparse_rcnn" and bbox_metadata.name != "SparseRoIHead":
+        raise ValueError("sparse_rcnn detector assembly requires SparseRoIHead for sparse query refinement.")
     if plan.architecture in {"mask_rcnn", "cascade_mask_rcnn"} and plan.mask_head is None:
         raise ValueError(f"{plan.architecture} build-plan validation requires a native mask head.")
     if plan.mask_head is not None:
@@ -289,7 +293,7 @@ def _validate_optional_roi_head(plan, head_plan, role: str) -> None:
 
 
 def _roi_detector_requires_rpn(architecture: str) -> bool:
-    return str(architecture) != "fast_rcnn"
+    return str(architecture) not in {"fast_rcnn", "sparse_rcnn"}
 
 
 class _RPNProposalLoss:
@@ -842,6 +846,23 @@ def assemble_nas_fcos_detector(components: NativeModelComponents, *, num_classes
 
 
 @DETECTORS.register(
+    "cornernet",
+    aliases=("CornerNet",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_DENSE_CONTRACTS, "corner_keypoint_heatmap_outputs", "paired_corner_decode"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="CornerNet detector with paired top-left/bottom-right heatmaps, embeddings, offsets, and native decode.",
+)
+def assemble_cornernet_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseCornerNetLoss,
+        decoder=DenseCornerNetDecoder,
+    )
+
+
+@DETECTORS.register(
     "centernet",
     aliases=("CenterNet",),
     required_dependencies=_DETECTOR_DEPENDENCIES,
@@ -965,6 +986,16 @@ def assemble_mask_rcnn_detector(components: NativeModelComponents, *, num_classe
     family="roi",
 )
 @DETECTORS.register("doubleheadrcnn")
+@DETECTORS.register(
+    "sparse_rcnn",
+    aliases=("Sparse R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_ROI_CONTRACTS, "learned_proposals", "sparse_query_features"),
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Sparse R-CNN detector with learned proposal boxes/features and sparse ROI refinement.",
+)
+@DETECTORS.register("sparsercnn")
 @DETECTORS.register(
     "dynamic_rcnn",
     aliases=("Dynamic R-CNN",),

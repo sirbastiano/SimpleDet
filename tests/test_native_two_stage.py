@@ -19,6 +19,7 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
             GridHead,
             RPNHead,
             Shared2FCBBoxHead,
+            SparseRoIHead,
         )
 
         class _Backbone(torch.nn.Module):
@@ -36,6 +37,7 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
             "cascade_mask_rcnn": CascadeBBoxHead,
             "double_head_rcnn": DoubleConvFCBBoxHead,
             "dynamic_rcnn": DynamicBBoxHead,
+            "sparse_rcnn": SparseRoIHead,
         }.get(architecture, Shared2FCBBoxHead)
         bbox_head = bbox_head_cls(
             in_channels=4,
@@ -45,7 +47,7 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
             conv_out_channels=8,
         )
         rpn_head = None
-        if architecture != "fast_rcnn":
+        if architecture not in {"fast_rcnn", "sparse_rcnn"}:
             rpn_head = RPNHead(in_channels=4, num_classes=1, num_anchors=1, num_convs=1)
         mask_head = None
         if architecture == "mask_rcnn":
@@ -145,6 +147,48 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
             "torchvision.ops": fake_ops,
         }
 
+    def _ensure_sparse_test_components(self, torch):
+        from simpledet.extensions import ENCODERS, NECKS
+
+        if "US025SparseBackbone" not in ENCODERS.names():
+            class US025SparseBackbone(torch.nn.Module):
+                def __init__(self, **_kwargs):
+                    super().__init__()
+                    self.feature_channels = (4,)
+                    self.projection = torch.nn.Conv2d(3, 4, kernel_size=1)
+
+                def forward(self, images):
+                    feature = torch.nn.functional.adaptive_avg_pool2d(images, (4, 4))
+                    return (self.projection(feature),)
+
+            ENCODERS.register(
+                "US025SparseBackbone",
+                required_dependencies=(("torch", "cpu"),),
+                tensor_contracts=("feature_sequence", "feature_channels"),
+                validation_status="runtime_validated",
+                family="test",
+            )(US025SparseBackbone)
+
+        if "US025SparseNeck" not in NECKS.names():
+            class US025SparseNeck(torch.nn.Module):
+                def __init__(self, *, in_channels, out_channels=4, num_outs=1, **_kwargs):
+                    super().__init__()
+                    self.in_channels = tuple(int(channel) for channel in in_channels)
+                    self.out_channels = int(out_channels)
+                    self.num_outs = int(num_outs)
+                    self.projection = torch.nn.Conv2d(self.in_channels[0], self.out_channels, kernel_size=1)
+
+                def forward(self, features):
+                    return (self.projection(features[0]),)
+
+            NECKS.register(
+                "US025SparseNeck",
+                required_dependencies=(("torch", "cpu"),),
+                tensor_contracts=("feature_sequence", "feature_pyramid"),
+                validation_status="runtime_validated",
+                family="test",
+            )(US025SparseNeck)
+
     def test_native_build_detector_faster_rcnn_runs_loss_and_prediction_paths(self):
         torch = require_torch()
         from simpledet.native.modeling import build_detector
@@ -213,6 +257,7 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
             "libra_rcnn",
             "double_head_rcnn",
             "dynamic_rcnn",
+            "sparse_rcnn",
         )
         batch = make_cpu_detector_smoke_batch(
             batch_size=1,
@@ -238,6 +283,9 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
                 if architecture == "fast_rcnn":
                     self.assertNotIn("loss_rpn_objectness", losses)
                     self.assertEqual(model.proposal_source, "external")
+                elif architecture == "sparse_rcnn":
+                    self.assertNotIn("loss_rpn_objectness", losses)
+                    self.assertEqual(model.proposal_source, "sparse")
                 else:
                     self.assertIn("loss_rpn_objectness", losses)
                 if architecture in {"mask_rcnn", "cascade_mask_rcnn"}:
@@ -255,6 +303,85 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
                 self.assertIn("boxes", predictions[0])
                 self.assertIn("scores", predictions[0])
                 self.assertIn("labels", predictions[0])
+
+    def test_sparse_rcnn_builds_learned_proposal_detector_and_runs_cpu_paths(self):
+        torch = require_torch()
+        self._ensure_sparse_test_components(torch)
+
+        from simpledet.native.modeling import build_detector
+        from simpledet.native.roi import SparseRCNNDetector
+        from simpledet.suite import (
+            build_custom_encoder,
+            build_custom_head,
+            build_custom_neck,
+            build_detector as build_detector_spec,
+        )
+
+        batch = make_cpu_detector_smoke_batch(
+            batch_size=1,
+            image_size=(16, 16),
+            boxes_per_image=1,
+            num_classes=3,
+        )
+        spec = build_detector_spec(
+            "Sparse R-CNN",
+            num_classes=3,
+            encoder=build_custom_encoder(
+                "US025SparseBackbone",
+                imports=(),
+                feature_channels=(4,),
+                in_channels=3,
+            ),
+            neck=build_custom_neck(
+                "US025SparseNeck",
+                imports=(),
+                out_channels=4,
+                num_outs=1,
+            ),
+            head=build_custom_head(
+                "SparseRoIHead",
+                imports=(),
+                num_classes=3,
+                roi_feat_size=1,
+                fc_out_channels=16,
+                conv_out_channels=4,
+                with_avg_pool=True,
+            ),
+            num_proposals=5,
+            num_stages=2,
+            pretrained=False,
+        )
+
+        with patch.dict(sys.modules, self._fake_torchvision_modules(torch)):
+            model = build_detector(
+                name="Sparse R-CNN",
+                num_classes=3,
+                detector_spec=spec,
+                pretrained=False,
+            )
+
+        self.assertIsInstance(model, SparseRCNNDetector)
+        self.assertEqual(model.roi_variant, "sparse_rcnn")
+        self.assertEqual(model.proposal_source, "sparse")
+        self.assertIsNone(model.rpn_head)
+        self.assertEqual(tuple(model.sparse_proposal_boxes.shape), (5, 4))
+        self.assertEqual(tuple(model.sparse_proposal_features.shape), (5, 4))
+
+        losses = model(batch.images, batch.targets)
+        self.assertIn("loss_roi_classifier", losses)
+        self.assertIn("loss_roi_box_reg", losses)
+        self.assertIn("loss_total", losses)
+        self.assertNotIn("loss_rpn_objectness", losses)
+        for loss in losses.values():
+            self.assertEqual(tuple(loss.shape), ())
+            self.assertTrue(bool(torch.isfinite(loss)))
+
+        model.eval()
+        with torch.no_grad():
+            predictions = model(batch.images)
+        self.assertEqual(len(predictions), 1)
+        self.assertEqual(set(predictions[0]), {"boxes", "scores", "labels"})
+        self.assertEqual(predictions[0]["boxes"].shape[-1], 4)
 
     def test_rpn_detector_runs_tensor_smoke_paths(self):
         torch = require_torch()
