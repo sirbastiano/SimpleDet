@@ -42,6 +42,55 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
 ---
+## [2026-05-19 01:49:14 UTC] - US-015: Register YOLO SSD and efficient heads
+Thread:
+Run: 20260518-183418-2827287 (iteration 15)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-15.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-15.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 2be9de1 feat(heads): add lightweight dense heads
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest discover -s tests -p 'test_native_dense_heads.py'` -> PASS (21 skipped; base install lacks torch)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_suite.py'` -> PASS (8 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_backend_plan.py'` -> PASS (13 tests)
+  - Command: `make test` -> PASS (182 tests, 56 skipped)
+  - Command: `uv run --extra cpu python -m unittest discover -s tests -p 'test_native_dense_heads.py'` -> PASS (21 real-tensor tests)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS before build
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/package-surface-audit.html
+  - docs/roadmap-changelog.html
+  - simpledet/simpledet/cli.py
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_dense_heads.py
+  - tests/test_suite.py
+- What was implemented
+  - Registered YOLOX, RTMDet, SSD, and EfficientDet dense heads with explicit aliases, dependency metadata, tensor contracts, and runtime-validated head discovery.
+  - Added YOLOX objectness/class/bbox branches plus simOTA target building, objectness target configuration validation, finite loss, and decoded prediction support.
+  - Added RTMDet task-aligned target/loss wiring, SSD max-IoU anchor target/loss wiring, and EfficientDet anchor target/loss/decode adapters.
+  - Updated suite defaults, native assemblers, supported architecture discovery, CLI help, and docs so `rtmdet` uses `RTMDetHead` and `efficientdet` uses `EfficientDetHead`.
+  - Added CPU tensor tests for construction, forward contracts, target assignment, loss smoke, decoded predictions, and the YOLOX missing-objectness negative case.
+  - Security/performance/regression review: no new file/network/secret handling; dense target/decode work is tensor-local and bounded by feature-map predictions; focused, real-tensor, full regression, docs, dist, and build gates passed through `python3`/Makefile.
+- **Learnings for future iterations:**
+  - Bare `python` is still unavailable in this environment; use `python3` or Makefile targets for executable validation while still recording the required command failure.
+  - `uv run --extra cpu` is the reliable path for real torch tensor coverage in this repo.
+  - YOLOX loss setup should require an explicit objectness target configuration, while assembler defaults can provide the standard positive/negative values.
+---
 ## [2026-05-18 23:03:35 UTC] - US-008: Implement neck registry coverage
 Thread:
 Run: 20260518-183418-2827287 (iteration 8)
