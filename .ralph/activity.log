@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 01:52:39 | run=20260518-183418-2827287 | iter=15 | mode=build | story=US-015 | duration=1271s | status=success
 - 2026-05-19 01:31:22 | run=20260518-183418-2827287 | iter=14 | mode=build | story=US-014 | duration=1967s | status=success
 - 2026-05-19 00:58:26 | run=20260518-183418-2827287 | iter=13 | mode=build | story=US-013 | duration=1584s | status=success
 - 2026-05-19 00:31:58 | run=20260518-183418-2827287 | iter=12 | mode=build | story=US-012 | duration=1312s | status=success
@@ -134,3 +135,8 @@
 [2026-05-19 01:45:18] US-015 implemented lightweight head registrations, dense ops, tests, CLI, and docs
 [2026-05-19 01:47:25] US-015 verification gates run: base tests, CPU dense tensors, docs-check, verify-dist, build
 [2026-05-19 01:49:50] US-015 progress log updated with commit and verification details
+[2026-05-19 01:52:35] ITERATION 15 end (duration=1271s)
+[2026-05-19 01:52:42] ITERATION 16 start (mode=build story=US-016)
+[2026-05-19 01:53:56] Start US-016 Register keypoint transformer heads
+[2026-05-19 02:02:11] Implemented US-016 keypoint and transformer head registrations with tests
+[2026-05-19 02:08:15] Completed US-016 verification: story test, unittest gate, docs-check, build, verify-dist

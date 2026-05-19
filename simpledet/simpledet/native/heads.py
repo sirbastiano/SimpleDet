@@ -1,4 +1,4 @@
-"""Native dense heads for the Lightning backend."""
+"""Native detection heads for the Lightning backend."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from ..detectors._deps import require_dependency
 from ..extensions import HEADS, LOSSES
 
 require_dependency("torch", "native heads")
+import torch  # noqa: E402
 import torch.nn as nn  # noqa: E402
 
 
@@ -26,6 +27,20 @@ def _positive_int(value: Any, name: str) -> int:
     if resolved <= 0:
         raise ValueError(f"{name} must be a positive integer.")
     return resolved
+
+
+def _dropout(value: Any) -> float:
+    resolved = float(value)
+    if resolved < 0.0 or resolved >= 1.0:
+        raise ValueError("dropout must be in the range [0, 1).")
+    return resolved
+
+
+def _validate_attention_config(*, hidden_dim: int, num_heads: int) -> None:
+    if hidden_dim % num_heads != 0:
+        raise ValueError(
+            "Transformer head hidden_dim must be divisible by num_heads before forward execution."
+        )
 
 
 def _positive_int_tuple(value: Any, name: str) -> tuple[int, ...]:
@@ -581,15 +596,361 @@ class SOLOV2Head(FCOSDenseHead):
 
 @HEADS.register(
     "CenterNetHead",
-    aliases=("CenterNet",),
+    aliases=("CenterNet", "centernet_head"),
     required_dependencies=(("torch", "cpu"),),
-    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
-    validation_status="compatibility_alias",
+    tensor_contracts=("feature_pyramid", "keypoint_heatmap_outputs", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
     family="dense",
-    summary="CenterNet-family head alias routed through FCOS-compatible outputs.",
+    summary="CenterNet-family keypoint heatmap head with dense compatibility outputs.",
 )
-class CenterNetHead(FCOSDenseHead):
-    """Compatibility alias for CenterNet-style dense heads."""
+class CenterNetHead(nn.Module):
+    """CenterNet-style heatmap head with width-height and offset branches."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_convs: int = 2,
+    ) -> None:
+        super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.num_convs = _positive_int(num_convs, "num_convs")
+        tower = []
+        for _ in range(self.num_convs):
+            tower.append(nn.Conv2d(self.in_channels, self.in_channels, kernel_size=3, padding=1))
+            tower.append(nn.ReLU(inplace=True))
+        self.tower = nn.Sequential(*tower)
+        self.heatmap_head = nn.Conv2d(self.in_channels, self.num_classes, kernel_size=3, padding=1)
+        self.wh_head = nn.Conv2d(self.in_channels, 2, kernel_size=3, padding=1)
+        self.offset_head = nn.Conv2d(self.in_channels, 2, kernel_size=3, padding=1)
+        self.bbox_pred = nn.Conv2d(self.in_channels, 4, kernel_size=3, padding=1)
+        if hasattr(nn, "init"):
+            nn.init.constant_(self.heatmap_head.bias, -2.19)
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        heatmap_logits = []
+        heatmaps = []
+        widths_heights = []
+        offsets = []
+        bbox_regression = []
+        centerness = []
+        for feature in features:
+            encoded = self.tower(feature)
+            logits = self.heatmap_head(encoded)
+            heatmap = logits.sigmoid()
+            heatmap_logits.append(logits)
+            heatmaps.append(heatmap)
+            widths_heights.append(self.wh_head(encoded))
+            offsets.append(self.offset_head(encoded))
+            bbox_regression.append(self.bbox_pred(encoded))
+            centerness.append(heatmap.amax(dim=1, keepdim=True))
+        return {
+            "heatmap_logits": heatmap_logits,
+            "heatmap": heatmaps,
+            "wh": widths_heights,
+            "offset": offsets,
+            "cls_logits": heatmap_logits,
+            "bbox_regression": bbox_regression,
+            "centerness": centerness,
+        }
+
+
+@HEADS.register(
+    "CornerNetHead",
+    aliases=("CornerNet", "cornernet_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "corner_keypoint_heatmap_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="CornerNet-family paired-corner heatmap head with embeddings and offsets.",
+)
+class CornerNetHead(nn.Module):
+    """CornerNet-style paired top-left and bottom-right heatmap head."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_convs: int = 2,
+        embedding_dim: int = 1,
+    ) -> None:
+        super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.num_convs = _positive_int(num_convs, "num_convs")
+        self.embedding_dim = _positive_int(embedding_dim, "embedding_dim")
+        self.top_left_tower = self._make_tower()
+        self.bottom_right_tower = self._make_tower()
+        self.top_left_heatmap = nn.Conv2d(self.in_channels, self.num_classes, kernel_size=3, padding=1)
+        self.bottom_right_heatmap = nn.Conv2d(self.in_channels, self.num_classes, kernel_size=3, padding=1)
+        self.top_left_embedding = nn.Conv2d(self.in_channels, self.embedding_dim, kernel_size=3, padding=1)
+        self.bottom_right_embedding = nn.Conv2d(self.in_channels, self.embedding_dim, kernel_size=3, padding=1)
+        self.top_left_offset = nn.Conv2d(self.in_channels, 2, kernel_size=3, padding=1)
+        self.bottom_right_offset = nn.Conv2d(self.in_channels, 2, kernel_size=3, padding=1)
+        if hasattr(nn, "init"):
+            nn.init.constant_(self.top_left_heatmap.bias, -2.19)
+            nn.init.constant_(self.bottom_right_heatmap.bias, -2.19)
+
+    def _make_tower(self) -> nn.Sequential:
+        layers = []
+        for _ in range(self.num_convs):
+            layers.append(nn.Conv2d(self.in_channels, self.in_channels, kernel_size=3, padding=1))
+            layers.append(nn.ReLU(inplace=True))
+        return nn.Sequential(*layers)
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        top_left_heatmaps = []
+        bottom_right_heatmaps = []
+        top_left_embeddings = []
+        bottom_right_embeddings = []
+        top_left_offsets = []
+        bottom_right_offsets = []
+        for feature in features:
+            top_left = self.top_left_tower(feature)
+            bottom_right = self.bottom_right_tower(feature)
+            top_left_logits = self.top_left_heatmap(top_left)
+            bottom_right_logits = self.bottom_right_heatmap(bottom_right)
+            top_left_heatmaps.append(top_left_logits)
+            bottom_right_heatmaps.append(bottom_right_logits)
+            top_left_embeddings.append(self.top_left_embedding(top_left))
+            bottom_right_embeddings.append(self.bottom_right_embedding(bottom_right))
+            top_left_offsets.append(self.top_left_offset(top_left))
+            bottom_right_offsets.append(self.bottom_right_offset(bottom_right))
+        return {
+            "top_left_heatmap": top_left_heatmaps,
+            "bottom_right_heatmap": bottom_right_heatmaps,
+            "top_left_embedding": top_left_embeddings,
+            "bottom_right_embedding": bottom_right_embeddings,
+            "top_left_offset": top_left_offsets,
+            "bottom_right_offset": bottom_right_offsets,
+        }
+
+
+@HEADS.register(
+    "DETRHead",
+    aliases=("DETR", "detr_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "query_set_predictions", "class_box_predictions"),
+    validation_status="runtime_validated",
+    family="transformer",
+    summary="DETR-family transformer head with query class and box predictions.",
+)
+class DETRHead(nn.Module):
+    """Small native DETR-style encoder-decoder head."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int = 256,
+        num_classes: int,
+        num_queries: int = 100,
+        hidden_dim: int = 256,
+        num_heads: int = 8,
+        num_encoder_layers: int = 1,
+        num_decoder_layers: int = 1,
+        dim_feedforward: int = 1024,
+        dropout: float = 0.0,
+        activation: str = "relu",
+    ) -> None:
+        super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.num_queries = _positive_int(num_queries, "num_queries")
+        self.hidden_dim = _positive_int(hidden_dim, "hidden_dim")
+        self.num_heads = _positive_int(num_heads, "num_heads")
+        self.num_encoder_layers = _positive_int(num_encoder_layers, "num_encoder_layers")
+        self.num_decoder_layers = _positive_int(num_decoder_layers, "num_decoder_layers")
+        self.dim_feedforward = _positive_int(dim_feedforward, "dim_feedforward")
+        self.dropout = _dropout(dropout)
+        self.activation = str(activation)
+        _validate_attention_config(hidden_dim=self.hidden_dim, num_heads=self.num_heads)
+
+        self.input_proj = nn.Conv2d(self.in_channels, self.hidden_dim, kernel_size=1)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=self.hidden_dim,
+            nhead=self.num_heads,
+            dim_feedforward=self.dim_feedforward,
+            dropout=self.dropout,
+            activation=self.activation,
+            batch_first=True,
+        )
+        decoder_layer = nn.TransformerDecoderLayer(
+            d_model=self.hidden_dim,
+            nhead=self.num_heads,
+            dim_feedforward=self.dim_feedforward,
+            dropout=self.dropout,
+            activation=self.activation,
+            batch_first=True,
+        )
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=self.num_encoder_layers)
+        self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=self.num_decoder_layers)
+        self.query_embed = nn.Embedding(self.num_queries, self.hidden_dim)
+        self.class_embed = nn.Linear(self.hidden_dim, self.num_classes + 1)
+        self.bbox_embed = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.hidden_dim, 4),
+        )
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        memory = self.encoder(self._flatten_features(features))
+        batch_size = int(memory.shape[0])
+        target = self._query_embeddings(batch_size)
+        decoded = self.decoder(target, memory)
+        outputs = {
+            "pred_logits": self.class_embed(decoded),
+            "pred_boxes": self.bbox_embed(decoded).sigmoid(),
+        }
+        outputs["class_logits"] = outputs["pred_logits"]
+        outputs["box_predictions"] = outputs["pred_boxes"]
+        return self._extra_outputs(outputs, batch_size)
+
+    def _flatten_features(self, features: list[Any] | tuple[Any, ...]):
+        if not isinstance(features, (list, tuple)) or not features:
+            raise ValueError("Transformer heads require a non-empty feature map sequence.")
+        feature = features[-1]
+        self._validate_feature_channels(feature)
+        return self.input_proj(feature).flatten(2).permute(0, 2, 1)
+
+    def _validate_feature_channels(self, feature: Any) -> None:
+        if len(getattr(feature, "shape", ())) != 4:
+            raise ValueError("Transformer heads expect 4D NCHW feature tensors.")
+        channels = int(feature.shape[1])
+        if channels != self.in_channels:
+            raise ValueError(
+                f"Transformer head expected feature channels {self.in_channels}, got {channels}."
+            )
+
+    def _query_embeddings(self, batch_size: int):
+        return self.query_embed.weight.unsqueeze(0).expand(int(batch_size), -1, -1)
+
+    def _extra_outputs(self, outputs: dict[str, Any], batch_size: int) -> dict[str, Any]:
+        return outputs
+
+
+@HEADS.register(
+    "ConditionalDETRHead",
+    aliases=("ConditionalDETR", "conditional_detr_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "conditional_query_set_predictions", "class_box_predictions"),
+    validation_status="runtime_validated",
+    family="transformer",
+    summary="Conditional DETR-family transformer head with learned conditional query content.",
+)
+class ConditionalDETRHead(DETRHead):
+    """Conditional DETR-style head with a second learned query-content stream."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.conditional_query_embed = nn.Embedding(self.num_queries, self.hidden_dim)
+
+    def _query_embeddings(self, batch_size: int):
+        conditional = self.conditional_query_embed.weight.unsqueeze(0).expand(int(batch_size), -1, -1)
+        return super()._query_embeddings(batch_size) + conditional
+
+
+@HEADS.register(
+    "DABDETRHead",
+    aliases=("DAB-DETR", "dab_detr_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "anchor_query_set_predictions", "class_box_predictions"),
+    validation_status="runtime_validated",
+    family="transformer",
+    summary="DAB-DETR-family transformer head with dynamic anchor box queries.",
+)
+class DABDETRHead(DETRHead):
+    """DAB-DETR-style head with learned reference boxes."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.reference_points = nn.Embedding(self.num_queries, 4)
+        self.reference_proj = nn.Linear(4, self.hidden_dim)
+
+    def _query_embeddings(self, batch_size: int):
+        references = self.reference_points.weight.sigmoid()
+        reference_content = self.reference_proj(references).unsqueeze(0).expand(int(batch_size), -1, -1)
+        return super()._query_embeddings(batch_size) + reference_content
+
+    def _extra_outputs(self, outputs: dict[str, Any], batch_size: int) -> dict[str, Any]:
+        references = self.reference_points.weight.sigmoid().unsqueeze(0).expand(int(batch_size), -1, -1)
+        outputs["reference_points"] = references
+        outputs["pred_boxes"] = ((outputs["pred_boxes"] + references) * 0.5).clamp(0.0, 1.0)
+        outputs["box_predictions"] = outputs["pred_boxes"]
+        return outputs
+
+
+@HEADS.register(
+    "DeformableDETRHead",
+    aliases=("DeformableDETR", "deformable_detr_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("multi_scale_feature_pyramid", "query_set_predictions", "class_box_predictions"),
+    validation_status="runtime_validated",
+    family="transformer",
+    summary="Deformable DETR-family multi-scale transformer head with level embeddings.",
+)
+class DeformableDETRHead(DETRHead):
+    """Multi-scale transformer head for Deformable DETR-style set prediction."""
+
+    def __init__(self, *, num_feature_levels: int = 4, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.num_feature_levels = _positive_int(num_feature_levels, "num_feature_levels")
+        self.level_projections = nn.ModuleList(
+            nn.Conv2d(self.in_channels, self.hidden_dim, kernel_size=1)
+            for _ in range(self.num_feature_levels)
+        )
+        self.level_embed = nn.Embedding(self.num_feature_levels, self.hidden_dim)
+
+    def _flatten_features(self, features: list[Any] | tuple[Any, ...]):
+        if not isinstance(features, (list, tuple)) or len(features) < self.num_feature_levels:
+            raise ValueError(
+                "DeformableDETRHead requires at least "
+                f"{self.num_feature_levels} feature levels."
+            )
+        tokens = []
+        selected = list(features)[-self.num_feature_levels :]
+        for level_index, (projection, feature) in enumerate(zip(self.level_projections, selected)):
+            self._validate_feature_channels(feature)
+            projected = projection(feature).flatten(2).permute(0, 2, 1)
+            level_bias = self.level_embed.weight[level_index].view(1, 1, self.hidden_dim)
+            tokens.append(projected + level_bias)
+        return torch.cat(tokens, dim=1)
+
+
+@HEADS.register(
+    "DINOHead",
+    aliases=("DINO", "dino_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("multi_scale_feature_pyramid", "denoising_query_set_predictions", "class_box_predictions"),
+    validation_status="runtime_validated",
+    family="transformer",
+    summary="DINO-family transformer head with anchor and denoising query embeddings.",
+)
+class DINOHead(DeformableDETRHead):
+    """DINO-style head using multi-scale features plus denoising query content."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.reference_points = nn.Embedding(self.num_queries, 4)
+        self.reference_proj = nn.Linear(4, self.hidden_dim)
+        self.denoising_query_embed = nn.Embedding(self.num_queries, self.hidden_dim)
+
+    def _query_embeddings(self, batch_size: int):
+        references = self.reference_points.weight.sigmoid()
+        reference_content = self.reference_proj(references).unsqueeze(0).expand(int(batch_size), -1, -1)
+        denoising = self.denoising_query_embed.weight.unsqueeze(0).expand(int(batch_size), -1, -1)
+        return super()._query_embeddings(batch_size) + reference_content + denoising
+
+    def _extra_outputs(self, outputs: dict[str, Any], batch_size: int) -> dict[str, Any]:
+        references = self.reference_points.weight.sigmoid().unsqueeze(0).expand(int(batch_size), -1, -1)
+        outputs["reference_points"] = references
+        outputs["pred_boxes"] = ((outputs["pred_boxes"] + references) * 0.5).clamp(0.0, 1.0)
+        outputs["box_predictions"] = outputs["pred_boxes"]
+        return outputs
 
 
 @HEADS.register(
@@ -739,6 +1100,18 @@ def _resolve_head_name(requested: str) -> str:
         return "RTMDetHead"
     if normalized.startswith("centernet"):
         return "CenterNetHead"
+    if normalized.startswith("cornernet"):
+        return "CornerNetHead"
+    if normalized in {"detr", "detrhead"}:
+        return "DETRHead"
+    if normalized.startswith("conditionaldetr"):
+        return "ConditionalDETRHead"
+    if normalized.startswith("dabdetr"):
+        return "DABDETRHead"
+    if normalized.startswith("deformabledetr"):
+        return "DeformableDETRHead"
+    if normalized.startswith("dino"):
+        return "DINOHead"
     if normalized.startswith("vfnet"):
         return "VFNetHead"
     if normalized.startswith("reppoints"):

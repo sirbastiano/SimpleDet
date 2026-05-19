@@ -19,6 +19,18 @@ from .specs import DecoderSpec, DetectorSpec, EncoderSpec, HeadSpec, NeckSpec
 _DEFAULT_ALIAS_OUT_INDICES = (1, 2, 3, 4)
 _OUT_INDICES_UNSET = object()
 _TIMM_BACKBONE_PREFIX = "timm:"
+_TRANSFORMER_HEAD_KEYS = {
+    "detr",
+    "detrhead",
+    "conditionaldetr",
+    "conditionaldetrhead",
+    "dabdetr",
+    "dabdetrhead",
+    "deformabledetr",
+    "deformabledetrhead",
+    "dino",
+    "dinohead",
+}
 
 
 ARCHITECTURE_FAMILIES: dict[str, str] = {
@@ -68,6 +80,18 @@ def _normalize_architecture_name(name: str) -> str:
 
 def _compact_architecture_name(normalized: str) -> str:
     return "".join(char for char in normalized if char.isalnum())
+
+
+def _compact_component_name(name: str | None) -> str:
+    return "".join(char for char in str(name or "").strip().lower() if char.isalnum())
+
+
+def _is_transformer_head_request(name: str | None, head_cfg: dict[str, Any] | None) -> bool:
+    requested = None
+    if head_cfg:
+        requested = head_cfg.get("type")
+    token = _compact_component_name(requested or name)
+    return token in _TRANSFORMER_HEAD_KEYS
 
 
 def resolve_architecture_name(name: str) -> str:
@@ -485,7 +509,8 @@ def build_head(
 ) -> HeadSpec:
     native_in_channels = extra.pop("in_channels", None)
     native_out_channels = extra.pop("out_channels", None)
-    if native_in_channels is not None or native_out_channels is not None:
+    direct_transformer_head = _is_transformer_head_request(name, head_cfg)
+    if native_in_channels is not None or native_out_channels is not None or direct_transformer_head:
         if num_classes is None:
             raise ValueError("`num_classes` is required when building a native head.")
         from .native_plan import ComponentPlan
@@ -495,6 +520,8 @@ def build_head(
         params.update(extra)
         head_type = str(params.pop("type", name or "auto"))
         out_channels = native_in_channels if native_in_channels is not None else native_out_channels
+        if out_channels is None:
+            out_channels = params.get("in_channels") or params.get("hidden_dim") or params.get("embed_dims") or 256
         head, native_spec = build_native_head(
             ComponentPlan(
                 kind="head",

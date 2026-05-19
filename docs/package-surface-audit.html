@@ -193,11 +193,11 @@
               <tr>
                 <td>Native transformer scaffold</td>
                 <td><code>detr</code>, <code>deformable_detr</code>, <code>conditional_detr</code>, <code>dino</code></td>
-                <td>Registered through one transformer assembler and compact decoder/loss/postprocessor. Treat as a scaffold for query-detector rollout, not complete DETR-family parity.</td>
+                <td>Registered through one transformer assembler and compact decoder/loss/postprocessor. Head-level support now includes DETR, Conditional DETR, DAB-DETR, Deformable DETR, and DINO CPU query forward coverage, while full detector parity remains staged.</td>
               </tr>
               <tr>
                 <td>Missing from package catalog/runtime</td>
-                <td>Fast R-CNN, RPN detector, Cascade Mask R-CNN, Libra R-CNN, Double-Head R-CNN, Dynamic R-CNN, Sparse R-CNN, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, CornerNet, DAB-DETR, DDOD, AutoAssign, NAS-FCOS</td>
+                <td>Fast R-CNN, RPN detector, Cascade Mask R-CNN, Libra R-CNN, Double-Head R-CNN, Dynamic R-CNN, Sparse R-CNN, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, CornerNet detector, DAB-DETR detector, DDOD, AutoAssign, NAS-FCOS</td>
                 <td>No package-level catalog entry plus native assembler was found. Existing legacy configs, if any, do not count as support.</td>
               </tr>
               <tr>
