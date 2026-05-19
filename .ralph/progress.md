@@ -4,7 +4,6 @@ Started: Mon May 18 18:34:17 UTC 2026
 ## Codebase Patterns
 - (add reusable patterns here)
 
----
 ## [2026-05-18 23:47:02 UTC] - US-010: Implement assignment and sampling utilities
 Thread:
 Run: 20260518-183418-2827287 (iteration 10)
@@ -464,4 +463,55 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - This environment still has no bare `python`; use `python3` or Makefile defaults for executable validation.
   - Existing ROI tests use lightweight fake torch modules, so production helpers need real-tensor paths without breaking fake construction/runtime tests.
   - Empty ROI pooling should avoid calling `MultiScaleRoIAlign` and synthesize `(0, C, H, W)` from feature metadata.
+---
+## [2026-05-19 00:52:43 UTC] - US-013: Register core dense heads
+Thread:
+Run: 20260518-183418-2827287 (iteration 13)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-13.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-13.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: c77ad5e feat(heads): register core dense heads
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_native_backend_plan tests.test_suite tests.test_api_model_resolution` -> PASS (26 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_dense_heads.py'` -> PASS (5 skipped; torch CPU extra unavailable)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_tensor_contracts.py'` -> PASS (3 tests, 2 skipped)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_assignment.py'` -> PASS (7 skipped; torch CPU extra unavailable)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_components.py'` -> PASS (27 tests, 3 skipped)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (166 tests, 40 skipped)
+  - Command: `make test` -> PASS (166 tests, 40 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - simpledet/simpledet/__init__.py
+  - simpledet/simpledet/api.py
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/suite/__init__.py
+  - simpledet/simpledet/suite/catalog.py
+  - simpledet/simpledet/suite/specs.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_dense_heads.py
+  - tests/test_suite.py
+- What was implemented
+  - Registered native dense `RPNHead`, `FSAFHead`, and `FreeAnchorRetinaHead`, kept `RetinaHead`, `FCOSHead`, `ATSSHead`, and converted `FoveaHead` to the anchor-free output contract used by its assembler path.
+  - Added explicit dense aliases including `retina_head`, `fcos_head`, `atss_head`, `fsaf_head`, `fovea_head`, `free_anchor_head`, and `rpn_head`, exposed through `list_heads(kind="dense")`.
+  - Added positive `num_classes`, `in_channels`, and `num_anchors` validation before native head construction.
+  - Added RPN, FSAF, Fovea, and FreeAnchor dense loss/decode smoke paths using existing native geometry, assignment, and compatible Retina/FCOS contracts.
+  - Added registry/build-plan tests and a real-tensor dense-head construction, forward-shape, loss-smoke, and inference-decode matrix that skips cleanly when the optional torch CPU runtime is absent.
+  - Updated API docs for the new head discovery helper.
+  - Security/performance/regression review: no new file/network/secret handling; added decode/loss paths are tensor-local and reuse existing NMS/assignment utilities; alias collision and full regression gates passed.
+- **Learnings for future iterations:**
+  - Registry aliases are normalized by removing separators and case, so paired aliases such as `FreeAnchorHead` and `free_anchor_head` collide.
+  - `FOVEA` already resolves lowercase `fovea`; only the new `fovea_head` alias was needed.
+  - This environment still has no bare `python` and no torch CPU extra, so runtime tensor tests are present but skip under the base install.
 ---
