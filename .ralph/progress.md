@@ -1532,3 +1532,34 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `make build` should run before `make verify-dist` when documentation changes need fresh package metadata and sdist/wheel artifacts.
   - The repo-local `/shared/home/rdelprete/PythonProjects/MMDET/ralph` executable is absent, but the `ralph` helper is available on `PATH` and writes the required activity entries.
 ---
+## [2026-05-19 10:20:08 UTC] - US-038: Document quickstart workflow
+Thread:
+Run: 20260518-183418-2827287 (iteration 38)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-38.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-38.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 5affc43 docs(quickstart): add train test infer flow
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `make docs-check` -> PASS
+  - Command: `PYTHONPATH=simpledet python - <<'PY' ... quickstart config shape verified` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (294 tests, 90 skipped)
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+  - Command: `rg -n "torch\\.load|subprocess|eval\\(|exec\\(|curl|wget|http://|https://|/Data_large|/root|/home|/path/to|/data/project|\\.env|password|token|secret" docs/quickstart.html` -> PASS (no matches)
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/quickstart.html
+- What was implemented
+  - Reworked the quickstart into a short install-to-runtime workflow with `simpledet[cpu]`, `doctor`, a generated local COCO fixture, a registry-backed RetinaNet detector definition, and a project TOML config.
+  - Added one train command, one test command, and one inference command using `python -m simpledet --project-run quickstart.toml --stages ...`.
+  - Removed private-path placeholders from the quickstart command flow; all runnable paths are repo-local relative paths or user-replaceable dataset layout examples.
+  - Security/performance/regression review: docs only; no secrets, network fetches, unsafe load/eval patterns, or heavy runtime loops were introduced; full docs, tests, build, and dist gates passed.
+- **Learnings for future iterations:**
+  - `build_detector("retinanet", backbone="resnet18")` compiles to a native encoder plan without an automatic neck, so quickstart RetinaNet examples should pass an explicit `build_neck("FPN", ...)` or `[detector.neck]` config.
+  - `run_project` test and infer stages can be separate commands when the config workdir and checkpoint path point at the `save_last=True` checkpoint produced by training.
+  - The `ralph` logger is available on `PATH`; `./ralph` is not present in this checkout.
+---
