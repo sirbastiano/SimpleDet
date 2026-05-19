@@ -140,7 +140,13 @@ make sync-cpu
 make build
 make docs-audit
 make check
+make test-cpu-smoke
 ```
+
+`make test-cpu-smoke` is the optional slow CPU workflow gate for checkouts with
+`simpledet[cpu]` installed. It runs the tiny project-config smoke path through
+build, one training epoch, test/evaluation, inference, manifest writing, and
+prediction export.
 
 ## Repository structure
 

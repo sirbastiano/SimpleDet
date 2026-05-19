@@ -5,7 +5,7 @@ UV ?= uv
 UVX ?= uvx
 UV_SYNC_FLAGS ?=
 
-.PHONY: help venv sync sync-cpu install install-runtime install-editable build sdist wheel verify-dist check publish publish-test test clean docs-check docs-audit docs-verify
+.PHONY: help venv sync sync-cpu install install-runtime install-editable build sdist wheel verify-dist check publish publish-test test test-cpu-smoke clean docs-check docs-audit docs-verify
 
 help:
 	@echo "Targets:"
@@ -25,6 +25,7 @@ help:
 	@echo "  make check           Run tests, docs checks, artifact audits, and twine metadata checks"
 	@echo "  make publish         Run bootstrap, build, check, then upload to PyPI"
 	@echo "  make publish-test    Run bootstrap, build, check, then upload to TestPyPI"
+	@echo "  make test-cpu-smoke  Run optional real CPU install/build/train/test/infer smoke"
 	@echo "  make clean           Remove build artifacts"
 
 venv:
@@ -82,6 +83,10 @@ publish-test: bootstrap build check
 
 test:
 	PYTHONPATH=simpledet $(PYTHON) -m unittest discover -s tests -p 'test*.py'
+
+test-cpu-smoke:
+	SIMPLEDET_RUN_REAL_CPU_SMOKE=1 PYTHONPATH=simpledet $(PYTHON) -m unittest \
+		tests.test_cpu_smoke_workflow.RealCpuSmokeWorkflowTests
 
 clean:
 	rm -rf dist build .venv
