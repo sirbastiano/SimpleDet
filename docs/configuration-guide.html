@@ -68,9 +68,11 @@ spec = build_detector(
           <pre><code>from simpledet.suite import build_backbone, build_detector
 
 backbone = build_backbone("resnet50", out_indices=(1, 2, 3, 4))
-spec = build_detector("retinanet", encoder=backbone, num_classes=5)</code></pre>
+spec = build_detector(name="retinanet", backbone="resnet50", num_classes=5)
+module = build_detector(name="retinanet", backbone=backbone, num_classes=5, build=True)</code></pre>
           <p>
             Alias-backed backbones carry stage-channel metadata into the native build plan.
+            <code>build_detector(...)</code> returns a spec by default; use <code>build=True</code> only when you want the native module immediately.
             Native assembly uses that metadata to adapt downstream channel settings for concise names such as <code>resnet50</code>,
             <code>ConvNeXt</code>, <code>Swin Transformer</code>, and <code>ViT</code> without manual channel tables.
           </p>

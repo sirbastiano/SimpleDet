@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 06:06:47 | run=20260518-183418-2827287 | iter=25 | mode=build | story=US-025 | duration=2781s | status=success
 - 2026-05-19 05:20:22 | run=20260518-183418-2827287 | iter=24 | mode=build | story=US-024 | duration=1017s | status=success
 - 2026-05-19 05:03:20 | run=20260518-183418-2827287 | iter=23 | mode=build | story=US-023 | duration=1276s | status=success
 - 2026-05-19 04:42:00 | run=20260518-183418-2827287 | iter=22 | mode=build | story=US-022 | duration=1375s | status=success
@@ -217,3 +218,9 @@
 [2026-05-19 06:03:10] US-025 verification passed: targeted unittest slice, full unittest suite, docs-check, build, verify-dist, py_compile, and diff whitespace checks passed.
 [2026-05-19 06:03:35] US-025 final review complete: no secret-handling or command-execution changes; CornerNet pairing is top-k bounded; Sparse R-CNN stays RPN-free with sampled proposal features bound to selected proposals; regression gates passed.
 [2026-05-19 06:04:51] US-025 progress log updated with implementation commit 4d036a4 and final verification details.
+[2026-05-19 06:06:45] ITERATION 25 end (duration=2781s)
+[2026-05-19 06:06:50] ITERATION 26 start (mode=build story=US-026)
+[2026-05-19 06:10:10] Start US-026 public builder API work after reviewing guardrails, errors, PRD, and AGENTS
+[2026-05-19 06:18:49] US-026 code changes applied: public detector listing, backbone alias builder argument, build flag delegation, top-level/API exports, docs, and public API tests
+[2026-05-19 06:21:09] US-026 verification completed: focused public/suite tests, full unittest, make test, docs-check, build, and verify-dist passed
+[2026-05-19 06:21:54] US-026 pre-commit security performance regression review completed: no secret, network, or file-execution paths added; discovery uses bounded registry/catalog scans with retryable optional imports; public builder, docs, packaging, and full regression gates passed

@@ -201,11 +201,23 @@ def normalize_out_indices(
     if out_indices is None:
         return spec.out_indices
     if isinstance(out_indices, str):
-        values = tuple(
-            int(item.strip()) for item in out_indices.split(",") if item.strip()
-        )
+        try:
+            values = tuple(
+                int(item.strip()) for item in out_indices.split(",") if item.strip()
+            )
+        except ValueError as exc:
+            raise ValueError(
+                "Backbone out_indices must be an iterable of stage integers or "
+                "a comma-separated string."
+            ) from exc
     else:
-        values = tuple(int(item) for item in out_indices)
+        try:
+            values = tuple(int(item) for item in out_indices)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "Backbone out_indices must be an iterable of stage integers or "
+                "a comma-separated string."
+            ) from exc
     if not values:
         raise ValueError("Backbone out_indices must contain at least one stage index.")
     zero_based = _out_indices_are_zero_based(spec, values)

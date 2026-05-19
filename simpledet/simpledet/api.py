@@ -583,6 +583,48 @@ def list_heads(kind: str | None = None, pattern: str | None = None) -> list[str]
     return _list_heads(kind=kind, pattern=pattern)
 
 
+def list_detectors(family: str | None = None, pattern: str | None = None) -> list[str]:
+    from .suite import list_detectors as _list_detectors
+
+    return _list_detectors(family=family, pattern=pattern)
+
+
+def list_backbones(pattern: str | None = None) -> list[str]:
+    from .suite import list_backbones as _list_backbones
+
+    return _list_backbones(pattern=pattern)
+
+
+def build_backbone(*args: Any, **kwargs: Any) -> Any:
+    from .suite import build_backbone as _build_backbone
+
+    return _build_backbone(*args, **kwargs)
+
+
+def build_neck(*args: Any, **kwargs: Any) -> Any:
+    from .suite import build_neck as _build_neck
+
+    return _build_neck(*args, **kwargs)
+
+
+def build_head(*args: Any, **kwargs: Any) -> Any:
+    from .suite import build_head as _build_head
+
+    return _build_head(*args, **kwargs)
+
+
+def build_detector(*args: Any, **kwargs: Any) -> Any:
+    from .suite import build_detector as _build_detector
+
+    return _build_detector(*args, **kwargs)
+
+
+def compile_native_detector_plan(*args: Any, **kwargs: Any) -> Any:
+    from .suite import compile_native_detector_plan as _compile_native_detector_plan
+
+    return _compile_native_detector_plan(*args, **kwargs)
+
+
 def print_available_encoders(pattern: str | None = None) -> None:
     for name in list_available_encoders(pattern):
         print(name)

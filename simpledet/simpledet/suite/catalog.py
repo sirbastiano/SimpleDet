@@ -362,7 +362,7 @@ _YOLO_COMPATIBLE_NECKS = {"yoloxpafpn"}
 def _resolve_detector_name(architecture: str | None, name: str | None) -> str:
     if architecture is None:
         if name is None:
-            raise TypeError("build_detector() missing required architecture name.")
+            raise ValueError("build_detector() missing required architecture name.")
         return str(name)
     if name is not None:
         resolved_architecture = resolve_architecture_name(str(architecture))
@@ -485,18 +485,20 @@ def list_native_head_families(pattern: str | None = None) -> list[str]:
 def list_heads(kind: str | None = None, pattern: str | None = None) -> list[str]:
     """Return registered head names and aliases, optionally filtered by family."""
 
-    if not _native_registries_available():
-        return []
     family = None
     if kind is not None:
         family = str(kind).strip().lower()
         if family in {"", "all", "*"}:
             family = None
+        elif family not in {"dense", "roi", "transformer"}:
+            raise ValueError("Head kind must be one of: dense, roi, transformer.")
     token = None
     if pattern is not None:
         token = str(pattern).strip().lower()
         if not token:
             token = None
+    if not _native_registries_available():
+        return []
 
     results: list[str] = []
     seen: set[str] = set()
@@ -521,6 +523,20 @@ def list_native_neck_families(pattern: str | None = None) -> list[str]:
 
 def list_native_detector_families(pattern: str | None = None) -> list[str]:
     return _list_native_families(kind="detector", pattern=pattern)
+
+
+def list_detectors(family: str | None = None, pattern: str | None = None) -> list[str]:
+    """Return supported detector names and aliases."""
+
+    family_filter = _normalize_family_filter(family)
+    token = _normalize_pattern_filter(pattern)
+    if _native_registries_available():
+        return _list_registry_names_and_aliases(
+            "detector",
+            family=family_filter,
+            pattern=token,
+        )
+    return _list_static_detector_names(family=family_filter, pattern=token)
 
 
 def inspect_native_encoder_family(name: str) -> dict[str, Any]:
@@ -578,6 +594,80 @@ def _list_native_families(*, kind: str, pattern: str | None = None) -> list[str]
     return [name for name in names if token in name.lower()]
 
 
+def _normalize_family_filter(family: str | None) -> str | None:
+    if family is None:
+        return None
+    normalized = str(family).strip().lower()
+    if normalized in {"", "all", "*"}:
+        return None
+    valid = {"dense", "proposal", "roi", "transformer"}
+    if normalized not in valid:
+        expected = ", ".join(sorted(valid))
+        raise ValueError(f"Detector family must be one of: {expected}.")
+    return normalized
+
+
+def _normalize_pattern_filter(pattern: str | None) -> str | None:
+    if pattern is None:
+        return None
+    token = str(pattern).strip().lower()
+    return token or None
+
+
+def _list_registry_names_and_aliases(
+    kind: str,
+    *,
+    family: str | None = None,
+    pattern: str | None = None,
+) -> list[str]:
+    registry = _native_registry(kind)
+    results: list[str] = []
+    seen: set[str] = set()
+    for metadata in registry.entries():
+        metadata_family = None if metadata.family is None else str(metadata.family).lower()
+        if family is not None and metadata_family != family:
+            continue
+        for value in (metadata.name, *metadata.aliases):
+            if pattern is not None and pattern not in value.lower():
+                continue
+            key = value.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(value)
+    return sorted(results, key=str.lower)
+
+
+def _list_static_detector_names(
+    *,
+    family: str | None = None,
+    pattern: str | None = None,
+) -> list[str]:
+    values: list[str] = []
+    for name, detector_family in ARCHITECTURE_FAMILIES.items():
+        if family is not None and detector_family != family:
+            continue
+        values.append(name)
+    for alias in _ARCHITECTURE_SUGGESTION_ALIASES:
+        resolved = resolve_architecture_name(alias)
+        detector_family = ARCHITECTURE_FAMILIES.get(resolved)
+        if family is not None and detector_family != family:
+            continue
+        values.append(alias)
+
+    results: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if pattern is not None and pattern not in value.lower():
+            continue
+        key = value.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append(value)
+    return sorted(results, key=str.lower)
+
+
 def _inspect_native_family(kind: str, name: str) -> dict[str, Any]:
     if not _native_registries_available():
         _raise_native_registries_error()
@@ -625,13 +715,16 @@ def _raise_native_registries_error() -> None:
 
 def _load_native_registries() -> None:
     global _NATIVE_REGISTRY_IMPORTED, _NATIVE_REGISTRY_IMPORT_ERROR
-    if _NATIVE_REGISTRY_IMPORTED:
+    if _NATIVE_REGISTRY_IMPORTED and _NATIVE_REGISTRY_IMPORT_ERROR is None:
         return
-    _NATIVE_REGISTRY_IMPORTED = True
     try:
         import_module("simpledet.native")
     except Exception as exc:  # pragma: no cover - import-time optional deps
+        _NATIVE_REGISTRY_IMPORTED = False
         _NATIVE_REGISTRY_IMPORT_ERROR = exc
+    else:
+        _NATIVE_REGISTRY_IMPORTED = True
+        _NATIVE_REGISTRY_IMPORT_ERROR = None
 
 
 def _native_registry(kind: str):
@@ -738,11 +831,23 @@ def _normalize_timm_out_indices(
     out_indices: tuple[int, ...] | list[int] | str | object,
 ) -> tuple[int, ...]:
     if isinstance(out_indices, str):
-        values = tuple(
-            int(item.strip()) for item in out_indices.split(",") if item.strip()
-        )
+        try:
+            values = tuple(
+                int(item.strip()) for item in out_indices.split(",") if item.strip()
+            )
+        except ValueError as exc:
+            raise ValueError(
+                "TIMM backbone out_indices must be an iterable of non-negative "
+                "integers or a comma-separated string."
+            ) from exc
     else:
-        values = tuple(int(item) for item in out_indices)  # type: ignore[arg-type]
+        try:
+            values = tuple(int(item) for item in out_indices)  # type: ignore[arg-type]
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "TIMM backbone out_indices must be an iterable of non-negative "
+                "integers or a comma-separated string."
+            ) from exc
     if not values:
         raise ValueError("TIMM backbone out_indices must contain at least one stage index.")
     if any(index < 0 for index in values):
@@ -927,29 +1032,44 @@ def build_detector(
     name: str | None = None,
     num_classes: int = 1,
     encoder: str | EncoderSpec | None = None,
+    backbone: str | EncoderSpec | None = None,
     neck: NeckSpec | None = None,
     head: HeadSpec | None = None,
     decoder: DecoderSpec | None = None,
     in_channels: int = 3,
     pretrained: bool = True,
+    build: bool = False,
     strict_auto_adapt: bool = True,
     imports: tuple[str, ...] | list[str] | None = None,
     **overrides: Any,
-) -> DetectorSpec:
+) -> DetectorSpec | Any:
+    if not isinstance(build, bool):
+        raise ValueError("`build` must be a boolean.")
+    if backbone is not None:
+        if encoder is not None:
+            raise ValueError("Pass either `encoder` or `backbone`, not both.")
+        encoder = _coerce_backbone_argument(
+            backbone,
+            pretrained=pretrained,
+            in_channels=in_channels,
+        )
+    elif encoder is not None:
+        encoder = _coerce_encoder_argument(
+            encoder,
+            pretrained=pretrained,
+            in_channels=in_channels,
+        )
+    _validate_component_argument("neck", neck, NeckSpec)
+    _validate_component_argument("head", head, HeadSpec)
+    _validate_component_argument("decoder", decoder, DecoderSpec)
+
     requested_architecture = _resolve_detector_name(architecture, name)
     normalized_architecture = resolve_architecture_name(requested_architecture)
     family = ARCHITECTURE_FAMILIES.get(normalized_architecture)
     if family is None:
         raise ValueError(_unknown_architecture_message(requested_architecture, normalized_architecture))
 
-    if isinstance(encoder, str):
-        encoder = build_encoder(
-            encoder,
-            source="timm",
-            pretrained=pretrained,
-            in_channels=in_channels,
-        )
-    elif encoder is None:
+    if encoder is None:
         encoder = _default_encoder_for_architecture(
             normalized_architecture,
             pretrained=pretrained,
@@ -993,7 +1113,7 @@ def build_detector(
     else:
         head = replace(head, num_classes=num_classes if head.num_classes is None else head.num_classes)
 
-    return DetectorSpec(
+    detector_spec = DetectorSpec(
         architecture=normalized_architecture,
         family=family,
         num_classes=num_classes,
@@ -1004,6 +1124,67 @@ def build_detector(
         strict_auto_adapt=strict_auto_adapt,
         imports=tuple(imports or ()),
         overrides=dict(overrides),
+    )
+    if build:
+        return _build_native_detector_module(detector_spec, in_channels=in_channels)
+    return detector_spec
+
+
+def _coerce_encoder_argument(
+    encoder: str | EncoderSpec,
+    *,
+    pretrained: bool,
+    in_channels: int,
+) -> EncoderSpec:
+    if isinstance(encoder, EncoderSpec):
+        return encoder
+    if isinstance(encoder, str):
+        return build_encoder(
+            encoder,
+            source="timm",
+            pretrained=pretrained,
+            in_channels=in_channels,
+        )
+    raise ValueError("`encoder` must be a string model name, EncoderSpec, or None.")
+
+
+def _coerce_backbone_argument(
+    backbone: str | EncoderSpec,
+    *,
+    pretrained: bool,
+    in_channels: int,
+) -> EncoderSpec:
+    if isinstance(backbone, EncoderSpec):
+        return backbone
+    if isinstance(backbone, str):
+        return build_backbone(
+            backbone,
+            pretrained=pretrained,
+            in_channels=in_channels,
+        )
+    raise ValueError("`backbone` must be a string alias, EncoderSpec, or None.")
+
+
+def _validate_component_argument(
+    parameter: str,
+    value: Any,
+    expected_type: type,
+) -> None:
+    if value is None or isinstance(value, expected_type):
+        return
+    raise ValueError(
+        f"`{parameter}` must be a {expected_type.__name__} instance or None."
+    )
+
+
+def _build_native_detector_module(spec: DetectorSpec, *, in_channels: int) -> Any:
+    from ..native.modeling import build_native_model
+
+    return build_native_model(
+        spec.architecture,
+        num_classes=spec.num_classes,
+        in_channels=int(in_channels),
+        detector_spec=spec,
     )
 
 

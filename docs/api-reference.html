@@ -43,6 +43,8 @@
             <li><code>simpledet.__version__</code></li>
             <li><code>simpledet.train</code>, <code>simpledet.detect</code>, <code>simpledet.evaluate</code></li>
             <li><code>simpledet.run_training</code>, <code>simpledet.run_inference</code>, <code>simpledet.run_evaluation</code></li>
+            <li><code>simpledet.build_detector</code>, <code>build_backbone</code>, <code>build_neck</code>, <code>build_head</code></li>
+            <li><code>simpledet.list_detectors</code>, <code>list_heads</code>, <code>list_backbones</code>, <code>compile_native_detector_plan</code></li>
             <li><code>simpledet.native</code></li>
             <li><code>simpledet.ProjectLayout</code></li>
             <li><code>simpledet.DatasetConfig</code>, <code>simpledet.RuntimeConfig</code>, <code>simpledet.OptimizationConfig</code></li>
@@ -61,16 +63,21 @@ DetectorSpec
 
 build_encoder(...)
 build_custom_encoder(...)
+build_backbone(...)
 build_neck(...)
 build_custom_neck(...)
 build_head(...)
 build_custom_head(...)
 build_decoder(...)
 build_custom_decoder(...)
-build_detector(...)
+build_detector(name="retinanet", num_classes=3, backbone="resnet50", build=False)
+list_detectors(...)
+list_heads(...)
+list_backbones(...)
 compile_native_detector_plan(spec)</code></pre>
           <p>The <code>build_custom_*</code> helpers are the public mechanism for registry-backed custom components. They pair a component <code>type</code>, explicit <code>imports</code>, and the config fields needed by the planner and runtime registry loader.</p>
-          <p><code>compile_native_detector_plan(...)</code> produces the structured build plan consumed by the native runtime.</p>
+          <p><code>build_detector(...)</code> returns a <code>DetectorSpec</code> by default. Pass <code>build=True</code> to assemble the native module immediately through the same runtime builder used by training and inference.</p>
+          <p><code>compile_native_detector_plan(...)</code> produces the structured build plan consumed by the native runtime. Invalid public builder arguments raise <code>ValueError</code> with actionable messages.</p>
         </article>
         <article class="section">
           <h2>Project config helpers</h2>

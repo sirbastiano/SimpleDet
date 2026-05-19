@@ -63,7 +63,7 @@ class DetectorBuildPlan:
 def compile_native_detector_plan(spec: DetectorSpec) -> DetectorBuildPlan:
     """Compile a :class:`DetectorSpec` into a backend-neutral native build plan."""
     if not isinstance(spec, DetectorSpec):
-        raise TypeError("`spec` must be an instance of DetectorSpec.")
+        raise ValueError("`spec` must be an instance of DetectorSpec.")
 
     head = _compile_head_plan(spec.head)
     decoder = _compile_decoder_plan(spec.decoder)

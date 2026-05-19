@@ -306,6 +306,16 @@ class PublicApiTests(unittest.TestCase):
                 run_training,
                 validate_project_config,
             )
+            from simpledet.suite import (
+                build_backbone,
+                build_detector,
+                build_head,
+                build_neck,
+                compile_native_detector_plan,
+                list_backbones,
+                list_detectors,
+                list_heads,
+            )
 
         self.assertEqual(simpledet.ProjectLayout.__module__, ProjectLayout.__module__)
         self.assertEqual(simpledet.DatasetConfig.__module__, DatasetConfig.__module__)
@@ -325,3 +335,93 @@ class PublicApiTests(unittest.TestCase):
         self.assertEqual(simpledet.run_training.__name__, run_training.__name__)
         self.assertEqual(simpledet.run_inference.__name__, run_inference.__name__)
         self.assertEqual(simpledet.run_evaluation.__name__, run_evaluation.__name__)
+        self.assertEqual(simpledet.build_detector.__name__, build_detector.__name__)
+        self.assertEqual(simpledet.build_backbone.__name__, build_backbone.__name__)
+        self.assertEqual(simpledet.build_neck.__name__, build_neck.__name__)
+        self.assertEqual(simpledet.build_head.__name__, build_head.__name__)
+        self.assertEqual(simpledet.list_detectors.__name__, list_detectors.__name__)
+        self.assertEqual(simpledet.list_heads.__name__, list_heads.__name__)
+        self.assertEqual(simpledet.list_backbones.__name__, list_backbones.__name__)
+        self.assertEqual(
+            simpledet.compile_native_detector_plan.__name__,
+            compile_native_detector_plan.__name__,
+        )
+
+    def test_public_suite_builder_api_uses_backbone_aliases(self):
+        from simpledet.suite import (
+            build_backbone,
+            build_detector,
+            build_head,
+            build_neck,
+            compile_native_detector_plan,
+            list_backbones,
+            list_detectors,
+            list_heads,
+        )
+
+        spec = build_detector(name="retinanet", num_classes=3, backbone="resnet50")
+        plan = compile_native_detector_plan(spec)
+
+        self.assertEqual(spec.architecture, "retinanet")
+        self.assertEqual(spec.num_classes, 3)
+        self.assertEqual(spec.encoder.name, "resnet50")
+        self.assertEqual(spec.encoder.source, "native")
+        self.assertEqual(plan.encoder.type, "resnet50")
+        self.assertEqual(build_backbone("resnet50").source, "native")
+        self.assertEqual(build_neck("FPN").name, "FPN")
+        self.assertEqual(build_head("retina_head", num_classes=3).name, "retina_head")
+        self.assertIn("retinanet", list_detectors())
+        self.assertIn("retinanet", list_detectors(family="dense", pattern="retina"))
+        self.assertIn("resnet50", list_backbones(pattern="resnet"))
+        self.assertIsInstance(list_heads(pattern="retina"), list)
+
+    def test_public_suite_build_flag_delegates_to_native_builder(self):
+        from simpledet.suite import build_detector
+
+        sentinel = object()
+        with patch(
+            "simpledet.suite.catalog._build_native_detector_module",
+            return_value=sentinel,
+        ) as build_native:
+            result = build_detector(
+                name="retinanet",
+                num_classes=3,
+                backbone="resnet50",
+                build=True,
+            )
+
+        self.assertIs(result, sentinel)
+        spec = build_native.call_args.args[0]
+        self.assertEqual(spec.architecture, "retinanet")
+        self.assertEqual(spec.num_classes, 3)
+        self.assertEqual(spec.encoder.name, "resnet50")
+        self.assertEqual(build_native.call_args.kwargs["in_channels"], 3)
+
+    def test_public_suite_builder_api_rejects_invalid_arguments(self):
+        from simpledet.suite import (
+            build_backbone,
+            build_detector,
+            compile_native_detector_plan,
+            list_detectors,
+            list_heads,
+        )
+
+        invalid_cases = (
+            lambda: build_detector(),
+            lambda: build_detector(name="retinanet", build="yes"),
+            lambda: build_detector(name="retinanet", backbone=object()),
+            lambda: build_detector(
+                name="retinanet",
+                encoder="resnet18.a1_in1k",
+                backbone="resnet50",
+            ),
+            lambda: build_detector(name="retinanet", neck=object()),
+            lambda: build_backbone("resnet50", out_indices=object()),
+            lambda: list_detectors(family="unsupported"),
+            lambda: list_heads(kind="unsupported"),
+            lambda: compile_native_detector_plan({"architecture": "retinanet"}),
+        )
+        for call in invalid_cases:
+            with self.subTest(call=call):
+                with self.assertRaises(ValueError):
+                    call()
