@@ -561,6 +561,30 @@ def run_evaluation(**kwargs: Any) -> dict[str, Any]:
     return run_inference(**kwargs)
 
 
+def predict_image(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from .detectors.infer import predict_image as _predict_image
+
+    return _predict_image(*args, **kwargs)
+
+
+def predict_batch(*args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+    from .detectors.infer import predict_batch as _predict_batch
+
+    return _predict_batch(*args, **kwargs)
+
+
+def load_checkpoint_for_inference(*args: Any, **kwargs: Any) -> Any:
+    from .detectors.infer import load_checkpoint_for_inference as _load_checkpoint_for_inference
+
+    return _load_checkpoint_for_inference(*args, **kwargs)
+
+
+def export_predictions(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from .detectors.infer import export_predictions as _export_predictions
+
+    return _export_predictions(*args, **kwargs)
+
+
 def list_available_encoders(pattern: str | None = None) -> list[str]:
     try:
         import timm

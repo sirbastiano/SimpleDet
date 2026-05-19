@@ -91,23 +91,49 @@ result = run_inference(
           </p>
         </article>
         <article class="section">
-          <h2>Lightweight inference</h2>
+          <h2>Image prediction API</h2>
           <p class="section-lead">
-            Use this only for checkpoints created by the lightweight training flow or other compatible <code>torchvision</code> detector checkpoints.
+            Use this for direct image-level predictions from a model object that returns <code>boxes</code>, <code>scores</code>, and <code>labels</code>, or from a lightweight <code>torchvision</code>-compatible checkpoint.
           </p>
-          <pre><code>from simpledet.detectors.infer import load_model, predict
+          <pre><code>from simpledet import (
+    export_predictions,
+    load_checkpoint_for_inference,
+    predict_batch,
+    predict_image,
+)
 
-model = load_model(
+model = load_checkpoint_for_inference(
     "runs/exp001/epoch_001.pth",
     device="cpu",
+    model_name="retinanet_resnet50_fpn",
+    num_classes=3,
+    class_names=("wake", "ship"),
     score_threshold=0.10,
     max_detections=50,
 )
 
-single = predict("sample.png", model=model)
-batch = predict(["a.png", "b.png"], model=model)</code></pre>
+single = predict_image(model, "sample.png")
+batch = predict_batch(model, ["a.png", "b.png"])
+payload = export_predictions(batch, "predictions.json")</code></pre>
           <p>
-            This path returns Python dictionaries directly. It is useful for ad hoc prediction, but it does not reproduce the pipeline evaluator behavior.
+            <code>predict_image(...)</code> returns <code>boxes</code>, <code>scores</code>, <code>labels</code>, <code>class_names</code>, and <code>metadata</code>. Metadata includes the image path, file name, channel count, height, width, and tensor shape. Missing paths raise <code>FileNotFoundError</code> with the path. Existing paths that cannot be decoded raise <code>ImageLoadingError</code> with the path. Batch prediction is fail-fast on the first unreadable image.
+          </p>
+          <pre><code>{
+  "boxes": [[1.0, 2.0, 6.0, 8.0]],
+  "scores": [0.93],
+  "labels": [1],
+  "class_names": ["wake"],
+  "metadata": {
+    "path": "sample.png",
+    "file_name": "sample.png",
+    "channels": 3,
+    "height": 512,
+    "width": 512,
+    "shape": [3, 512, 512]
+  }
+}</code></pre>
+          <p>
+            <code>export_predictions(...)</code> returns and optionally writes <code>{"format": "simpledet_predictions", "version": 1, "predictions": [...]}</code>. The checkpoint loader is intentionally scoped to the lightweight checkpoint format; pipeline checkpoints should use the native project inference path above. Checkpoints are loaded with <code>torch.load</code>, so only load checkpoint files from trusted sources.
           </p>
         </article>
         <article class="section">
@@ -118,8 +144,8 @@ batch = predict(["a.png", "b.png"], model=model)</code></pre>
               <p>When you want pipeline-managed testing against the configured dataset and evaluator stack.</p>
             </article>
             <article class="callout">
-              <h3>Use <code>predict()</code></h3>
-              <p>When you want direct predictions from a compatible lightweight checkpoint in Python code.</p>
+              <h3>Use <code>predict_image()</code></h3>
+              <p>When you want structured detections for one image or a small image batch in Python code.</p>
             </article>
           </div>
         </article>

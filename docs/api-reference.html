@@ -43,6 +43,7 @@
             <li><code>simpledet.__version__</code></li>
             <li><code>simpledet.train</code>, <code>simpledet.detect</code>, <code>simpledet.evaluate</code></li>
             <li><code>simpledet.run_training</code>, <code>simpledet.run_inference</code>, <code>simpledet.run_evaluation</code></li>
+            <li><code>simpledet.predict_image</code>, <code>predict_batch</code>, <code>load_checkpoint_for_inference</code>, <code>export_predictions</code></li>
             <li><code>simpledet.build_detector</code>, <code>build_backbone</code>, <code>build_neck</code>, <code>build_head</code></li>
             <li><code>simpledet.list_detectors</code>, <code>list_heads</code>, <code>list_backbones</code>, <code>compile_native_detector_plan</code></li>
             <li><code>simpledet.native</code></li>
@@ -99,6 +100,16 @@ run_project(...)</code></pre>
 run_inference(...)
 run_evaluation(...)</code></pre>
           <p>Use these when you want native execution without creating a config file. They wrap the project-layout helpers and execute the relevant stages directly.</p>
+        </article>
+        <article class="section">
+          <h2>Image prediction helpers</h2>
+          <pre><code>load_checkpoint_for_inference(checkpoint, *, device="cpu", model_name=None, num_classes=None, class_names=None, score_threshold=0.05, max_detections=None)
+predict_image(model, image_path, *, class_names=None, device="cpu", score_threshold=None, max_detections=None, metadata=None)
+predict_batch(model, image_paths, *, class_names=None, device="cpu", score_threshold=None, max_detections=None, metadata=None)
+export_predictions(predictions, output_path=None, *, indent=2)</code></pre>
+          <p><code>predict_image(...)</code> returns <code>boxes</code>, <code>scores</code>, <code>labels</code>, <code>class_names</code>, and <code>metadata</code>. Labels are the detector labels; with <code>class_names=("wake", "ship")</code>, label <code>1</code> maps to <code>wake</code> and label <code>2</code> maps to <code>ship</code>. Metadata includes the path, file name, channel count, height, width, and tensor shape.</p>
+          <p>Missing image paths raise <code>FileNotFoundError</code> with the path. Existing paths that cannot be decoded raise <code>ImageLoadingError</code> with the path. <code>predict_batch(...)</code> is fail-fast on the first unreadable image. <code>export_predictions(...)</code> returns and optionally writes <code>{"format": "simpledet_predictions", "version": 1, "predictions": [...]}</code>.</p>
+          <p><code>load_checkpoint_for_inference(...)</code> is the lightweight checkpoint path for checkpoints compatible with the existing <code>torchvision</code>-based loader. It uses <code>torch.load</code>, so only load checkpoint files from trusted sources. Native pipeline checkpoints remain under the project runtime helpers.</p>
         </article>
         <article class="section">
           <h2><code>simpledet.native</code></h2>

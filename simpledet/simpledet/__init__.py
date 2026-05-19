@@ -24,6 +24,10 @@ __all__ = [
     "run_training",
     "run_inference",
     "run_evaluation",
+    "predict_image",
+    "predict_batch",
+    "load_checkpoint_for_inference",
+    "export_predictions",
     "build_detector",
     "build_backbone",
     "build_neck",
@@ -73,6 +77,15 @@ def __getattr__(name: str):
         from .detectors import evaluate as evaluate_module
 
         return evaluate_module.evaluate
+    if name in {
+        "predict_image",
+        "predict_batch",
+        "load_checkpoint_for_inference",
+        "export_predictions",
+    }:
+        from .detectors import infer as infer_module
+
+        return getattr(infer_module, name)
 
     api = import_module(".api", __name__)
 
