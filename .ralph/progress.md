@@ -718,3 +718,43 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `uv run --extra cpu` is the real tensor validation path when the base interpreter skips torch-backed tests.
   - The task-provided absolute activity helper path is absent, but `ralph log` is available on `PATH` and writes the required activity entries.
 ---
+## [2026-05-19 03:16:36 UTC] - US-019: Build single-stage detector composition
+Thread:
+Run: 20260518-183418-2827287 (iteration 19)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-19.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-19.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: d3e717d feat(native): add single-stage detector
+- Post-commit status: `clean` after implementation commit; progress/log update committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_single_stage.py'` -> PASS (5 skipped without torch in base interpreter)
+  - Command: `uv run --extra cpu env PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_single_stage.py'` -> PASS (5 real CPU tensor tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_components.py'` -> PASS (27 tests, 3 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_suite.py'` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (204 tests, 77 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+  - Command: `uv run --extra cpu env PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_components.py'` -> FAIL (additional diagnostic; pre-existing fake-module registry ordering makes neck classes lack `eval`, outside the US-019 path)
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/modeling.py
+  - tests/test_native_single_stage.py
+- What was implemented
+  - Added `SingleStageDetector` as the native dense/single-stage composition boundary with owned backbone, optional neck, dense head, loss module, prediction path, and postprocessor.
+  - Kept `NativeRetinaNetModel` import-compatible as a single-stage subclass and exported `simpledet.native.build_detector(name="retinanet", num_classes=3)`.
+  - Added dense-plan validation that rejects explicit non-dense/ROI-only heads before native head construction and again before final assembly.
+  - Added focused tests for module ownership, `forward_loss`, `predict`, eval-mode no-grad prediction, default RetinaNet construction, and ROI-only head rejection.
+  - Updated the API reference for the new native single-stage builder surface.
+  - Security/performance/regression review: no file/network/secret handling added; prediction uses `torch.no_grad()`; validation is registry metadata lookup only; existing dense assembly and full lightweight gates passed.
+- **Learnings for future iterations:**
+  - `simpledet.native.build_detector(...)` is the module-building entrypoint; `simpledet.suite.build_detector(...)` remains the spec-building entrypoint.
+  - Dense head validation should reject explicit non-dense metadata while preserving older dense aliases that do not yet carry full family metadata.
+  - Use `uv run --extra cpu` for real tensor story coverage when the base interpreter skips torch-backed tests.
+---
