@@ -1295,3 +1295,46 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Native model labels may be foreground-contiguous while COCO category IDs are sparse, so metrics should map labels through annotation categories instead of assuming IDs always match.
   - Keeping metric code outside `simpledet.native` avoids importing torch-heavy native modules when testing or using pure metric helpers.
 ---
+## [2026-05-19 08:30:06 UTC] - US-032: Implement inference API
+Thread:
+Run: 20260518-183418-2827287 (iteration 32)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-32.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-32.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: a4f42b0 feat(inference): add prediction helpers
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_inference_api tests.test_public_api` -> PASS (22 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (275 tests, 90 skipped)
+  - Command: `make test` -> PASS (275 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build refreshed dist artifacts
+  - Command: `python -m py_compile simpledet/simpledet/detectors/infer.py simpledet/simpledet/__init__.py simpledet/simpledet/api.py tests/test_inference_api.py` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/cli-reference.html
+  - docs/inference.html
+  - docs/package-surface-audit.html
+  - simpledet/simpledet/__init__.py
+  - simpledet/simpledet/api.py
+  - simpledet/simpledet/detectors/infer.py
+  - tests/test_inference_api.py
+- What was implemented
+  - Added `predict_image`, `predict_batch`, `load_checkpoint_for_inference`, and `export_predictions` through `simpledet.detectors.infer`, `simpledet.api`, and lazy top-level `simpledet` exports.
+  - Standardized direct image prediction payloads on `boxes`, `scores`, `labels`, `class_names`, and image `metadata`, with class-name mapping and `class_ids` compatibility normalization.
+  - Added path-aware image loading errors: missing paths raise `FileNotFoundError` with the path, and decode failures raise `ImageLoadingError` with the path; batch prediction is fail-fast.
+  - Added JSON-serializable SimpleDet prediction export payloads and optional file writing.
+  - Documented payload shape, batch failure behavior, lightweight checkpoint scope, and the trusted-checkpoint boundary for `torch.load`.
+  - Added generated image fixture tests with tiny fake models for single image prediction, batch prediction, missing/corrupt image paths, export payloads, checkpoint-loader delegation, and lazy public API access.
+  - Security/performance/regression review: checkpoint deserialization trust boundary is documented; explicit paths are surfaced in errors; batch loading and normalization are linear in image/detection count; old `load_model`/`predict` helpers remain available; full regression gates passed.
+- **Learnings for future iterations:**
+  - The base environment lacks torch/torchvision/PIL, so image prediction tests should use generated files plus fake runtime modules while keeping imports optional until execution.
+  - Native and lightweight prediction paths previously used `labels` and `class_ids` differently; public inference should normalize both to canonical `labels`.
+  - Any public checkpoint-loading helper that delegates to `torch.load` needs an explicit trusted-source warning in docs and docstrings.
+---
