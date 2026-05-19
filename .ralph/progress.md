@@ -42,6 +42,60 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
 ---
+## [2026-05-19 04:17:26 UTC] - US-021: Build query detector composition
+Thread:
+Run: 20260518-183418-2827287 (iteration 21)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-21.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-21.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: da9c4af feat(detectors): add query detector composition
+- Post-commit status: `clean` after follow-up progress commit
+- Verification:
+  - Command: `python3 -m py_compile simpledet/simpledet/native/modeling.py simpledet/simpledet/native/assemblers.py simpledet/simpledet/native/transformer_ops.py simpledet/simpledet/suite/native_plan.py simpledet/simpledet/suite/catalog.py simpledet/simpledet/native/__init__.py simpledet/simpledet/cli.py tests/test_native_query_detector.py tests/test_native_components.py tests/test_native_backend_plan.py tests/test_suite.py` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_query_detector.py'` -> PASS (3 tests, 2 skipped without torch)
+  - Command: `PYTHONPATH=simpledet:tests python -m unittest tests.test_suite tests.test_native_backend_plan tests.test_native_components` -> PASS (50 tests, 3 skipped)
+  - Command: `uv run --extra cpu env PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_query_detector.py'` -> PASS (3 real CPU tensor tests)
+  - Command: `uv run --extra cpu env PYTHONPATH=simpledet python - <<'PY' ... build_detector(name='detr', num_classes=3, num_queries=20) ... PY` -> FAIL (diagnostic: default encoder requires the `timm` extra)
+  - Command: `uv run --extra cpu --extra timm env PYTHONPATH=simpledet python - <<'PY' ... build_detector(name='detr', num_classes=3, num_queries=20) ... PY` -> PASS (`QueryDetector True (1, 20, 4) (1, 20, 4)`, boxes normalized)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (211 tests, 80 skipped)
+  - Command: `make test` -> PASS (211 tests, 80 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build refreshed dist artifacts
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/package-surface-audit.html
+  - docs/roadmap-changelog.html
+  - simpledet/simpledet/cli.py
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/native/transformer_ops.py
+  - simpledet/simpledet/suite/catalog.py
+  - simpledet/simpledet/suite/native_plan.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_components.py
+  - tests/test_native_query_detector.py
+  - tests/test_suite.py
+- What was implemented
+  - Added `QueryDetector` as the native DETR-family composition boundary with owned backbone, neck, transformer query head, DETR loss, postprocessor, and sine positional encoding.
+  - Replaced transformer detector assembly with registry-built `DETRHead`, `ConditionalDETRHead`, `DABDETRHead`, `DeformableDETRHead`, and `DINOHead` paths, including DAB-DETR detector/catalog/CLI support.
+  - Added transformer build-plan defaults for query heads and query counts, plus explicit construction failure when positional encoding settings are provided without `num_feats`.
+  - Added focused CPU construction, loss, prediction, build-plan, alias, and public example validation; Sparse R-CNN remains head-level only because no faithful learned-proposal detector path exists yet.
+  - Updated docs to reflect QueryDetector support and to avoid claiming Sparse R-CNN detector composition.
+  - Security/performance/regression review: no file, network, shell, or secret handling added; query prediction runs under `torch.no_grad()`; per-image loops are bounded by the provided image list and tiny query tests; full gates and real CPU/timm smoke passed.
+- **Learnings for future iterations:**
+  - `simpledet.native.build_detector(...)` now returns `QueryDetector` for DETR-family models; `simpledet.suite.build_detector(...)` still returns a `DetectorSpec`.
+  - The base interpreter skips real torch tests; use `uv run --extra cpu` for real tensor coverage and add `--extra timm` when exercising default TIMM-backed public detector construction.
+  - Registry aliases normalize separators, so display aliases like `Conditional DETR` can collide with canonical names; keep one non-colliding alias per detector registration.
+  - Sparse R-CNN should not be marked detector-supported until a learned proposal/features composition is implemented and tensor-validated.
+---
 ## [2026-05-19 02:34:28 UTC] - US-017: Register ROI bbox heads
 Thread:
 Run: 20260518-183418-2827287 (iteration 17)
