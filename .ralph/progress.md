@@ -765,8 +765,8 @@ Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-18
 Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-20.md
 - Guardrails reviewed: yes
 - No-commit run: false
-- Commit: 0edfdff feat(detectors): add two-stage composition
-- Post-commit status: `clean` after implementation commit; progress/log update pending follow-up commit
+- Commit: 0edfdff feat(detectors): add two-stage composition; 1dab8f0 docs(progress): record US-020 outcome; d6cb6a7 docs(progress): record US-020 completion
+- Post-commit status: `clean` after progress/log follow-up commits
 - Verification:
   - Command: `PYTHONPATH=simpledet:tests python -m unittest tests.test_native_two_stage tests.test_suite tests.test_native_backend_plan tests.test_native_components tests.test_native_runtime` -> PASS (56 tests, 4 skipped)
   - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (207 tests, 78 skipped)
