@@ -1254,3 +1254,44 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `scheduler_choice` already existed in project optimization config, but needed explicit native runtime propagation.
   - Checkpoint compatibility is easiest to keep stable by storing SimpleDet metadata under a namespaced checkpoint key instead of changing Lightning state dict behavior.
 ---
+## [2026-05-19 08:07:37 UTC] - US-031: Implement evaluation metrics
+Thread:
+Run: 20260518-183418-2827287 (iteration 31)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-31.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-31.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 8c86b6b feat(metrics): add native bbox evaluation
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_metrics` -> PASS (6 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_native_runtime` -> PASS (11 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_public_api tests.test_cli` -> PASS (41 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_metrics tests.test_native_runtime tests.test_public_api tests.test_cli` -> PASS (58 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_metrics tests.test_native_runtime` -> PASS (17 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (267 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check HEAD~1 HEAD` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/evaluation.html
+  - docs/quickstart.html
+  - simpledet/simpledet/metrics.py
+  - simpledet/simpledet/native/runtime.py
+  - tests/test_metrics.py
+  - tests/test_native_runtime.py
+- What was implemented
+  - Added a dependency-free COCO-like bbox metrics helper that evaluates serialized SimpleDet `xyxy` predictions against COCO-style annotations across IoU thresholds.
+  - Added mAP-style summary values, per-class AP and recall summaries, foreground-label to COCO-category mapping, and COCO `xywh` prediction export payloads.
+  - Wired native evaluation to compute metrics after `trainer.test(...)`, return `metrics` and `metrics_path`, and write `native-metrics.json` while preserving existing prediction and manifest outputs.
+  - Added metric tests for perfect, partial, empty, class-mismatched, and non-contiguous COCO-category export cases.
+  - Updated evaluation and quickstart docs to describe native metrics and the new metrics artifact.
+  - Security/performance/regression review: no secrets, subprocesses, network calls, or unsafe deserialization added; metric matching is local and deterministic with no external evaluator fallback; existing runtime/API/CLI behavior remains additive and full regression gates passed.
+- **Learnings for future iterations:**
+  - Serialized native prediction boxes are `xyxy`; COCO-style export and metrics need explicit `xywh` conversion.
+  - Native model labels may be foreground-contiguous while COCO category IDs are sparse, so metrics should map labels through annotation categories instead of assuming IDs always match.
+  - Keeping metric code outside `simpledet.native` avoids importing torch-heavy native modules when testing or using pure metric helpers.
+---
