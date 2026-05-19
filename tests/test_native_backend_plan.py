@@ -346,9 +346,17 @@ class ExtensionRegistryTests(unittest.TestCase):
 
         aliases = {
             "FOVEA": ("fovea", "dense"),
-            "FoveaBox": ("foveabox", "dense"),
+            "FoveaBox": ("fovea", "dense"),
+            "FSAF": ("fsaf", "dense"),
+            "FreeAnchor": ("free_anchor", "dense"),
+            "GFocalV2": ("gfocalv2", "dense"),
+            "PAA": ("paa", "dense"),
             "RepPoints": ("reppoints", "dense"),
             "YOLOF": ("yolof", "dense"),
+            "TOOD": ("tood", "dense"),
+            "DDOD": ("ddod", "dense"),
+            "AutoAssign": ("auto_assign", "dense"),
+            "NAS-FCOS": ("nas_fcos", "dense"),
             "CenterNet": ("centernet", "dense"),
             "Faster R-CNN": ("faster_rcnn", "roi"),
             "Fast R-CNN": ("fast_rcnn", "roi"),
@@ -460,7 +468,7 @@ class ExtensionRegistryTests(unittest.TestCase):
             "retina": "dense",
             "deformable_detr": "transformer",
             "dab_detr": "transformer",
-            "foveabox": "dense",
+            "FoveaBox": "dense",
             "faster-rcnn": "roi",
             "mask-rcnn": "roi",
             "gridrcnn": "roi",
@@ -469,7 +477,8 @@ class ExtensionRegistryTests(unittest.TestCase):
         for alias, expected_family in aliases.items():
             with self.subTest(alias=alias):
                 metadata = DETECTORS.lookup(alias)
-                self.assertEqual(metadata.name, alias)
+                expected_name = "fovea" if alias == "FoveaBox" else alias
+                self.assertEqual(metadata.name, expected_name)
                 self.assertEqual(metadata.family, expected_family)
                 self.assertTrue(metadata.required_dependencies)
                 self.assertTrue(metadata.tensor_contracts)

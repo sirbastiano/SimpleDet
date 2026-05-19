@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 04:42:00 | run=20260518-183418-2827287 | iter=22 | mode=build | story=US-022 | duration=1375s | status=success
 - 2026-05-19 04:18:59 | run=20260518-183418-2827287 | iter=21 | mode=build | story=US-021 | duration=1677s | status=success
 - 2026-05-19 03:50:57 | run=20260518-183418-2827287 | iter=20 | mode=build | story=US-020 | duration=1822s | status=success
 - 2026-05-19 03:20:32 | run=20260518-183418-2827287 | iter=19 | mode=build | story=US-019 | duration=1437s | status=success
@@ -194,3 +195,7 @@
 [2026-05-19 04:37:38] US-022 final verification passed after metadata cleanup: full unittest, docs-check, verify-dist, build, and post-build verify-dist
 [2026-05-19 04:38:26] US-022 pre-commit security performance regression review completed: no file/network/secret handling added; proposal/top-k paths bounded; full gates and CPU tensor smokes passed; legacy manual ROI fallback preserved
 [2026-05-19 04:41:06] US-022 progress log updated with implementation commit 2ab521e and final verification details
+[2026-05-19 04:41:57] ITERATION 22 end (duration=1375s)
+[2026-05-19 04:42:03] ITERATION 23 start (mode=build story=US-023)
+[2026-05-19 04:54:42] US-023 code changes applied: dense detector aliases registered with native defaults, Fovea alias consistency, suggestions, and CPU smoke coverage
+[2026-05-19 05:00:45] US-023 verification completed: focused tests, CPU-extra dense detector smoke, full unittest, make test, docs-check, verify-dist, build, and post-build verify-dist passed

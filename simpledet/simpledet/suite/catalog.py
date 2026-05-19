@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from difflib import get_close_matches
 from importlib import import_module
 from typing import Any
 
@@ -45,12 +46,18 @@ ARCHITECTURE_FAMILIES: dict[str, str] = {
     "dino": "transformer",
     "fcos": "dense",
     "atss": "dense",
+    "fsaf": "dense",
+    "free_anchor": "dense",
     "gfl": "dense",
+    "gfocalv2": "dense",
     "vfnet": "dense",
     "fovea": "dense",
-    "foveabox": "dense",
+    "paa": "dense",
     "reppoints": "dense",
     "yolof": "dense",
+    "ddod": "dense",
+    "auto_assign": "dense",
+    "nas_fcos": "dense",
     "centernet": "dense",
     "yolo": "dense",
     "yolo3": "dense",
@@ -162,8 +169,22 @@ def resolve_architecture_name(name: str) -> str:
         return "fcos"
     if compact.startswith("atss"):
         return "atss"
+    if compact.startswith("fsaf"):
+        return "fsaf"
+    if compact.startswith("freeanchor"):
+        return "free_anchor"
+    if compact.startswith("gflv2") or compact.startswith("gfocalv2"):
+        return "gfocalv2"
     if compact.startswith("gfl"):
         return "gfl"
+    if compact.startswith("paa"):
+        return "paa"
+    if compact.startswith("ddod"):
+        return "ddod"
+    if compact.startswith("autoassign"):
+        return "auto_assign"
+    if compact.startswith("nasfcos"):
+        return "nas_fcos"
     if compact.startswith("vfnet"):
         return "vfnet"
     if compact.startswith("fovea"):
@@ -210,9 +231,18 @@ def resolve_architecture_name(name: str) -> str:
 
 
 _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE = {
+    "retinanet": "RetinaHead",
     "fcos": "FCOSHead",
     "atss": "ATSSHead",
+    "fsaf": "FSAFHead",
+    "free_anchor": "FreeAnchorRetinaHead",
     "gfl": "GFLHead",
+    "gfocalv2": "GFLV2Head",
+    "gflv2": "GFLV2Head",
+    "paa": "PAAHead",
+    "ddod": "DDODHead",
+    "auto_assign": "AutoAssignHead",
+    "nas_fcos": "NASFCOSHead",
     "yolo": "YOLOXHead",
     "yolo3": "YOLOXHead",
     "yolo_v3": "YOLOXHead",
@@ -238,6 +268,49 @@ _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE = {
     "yolof": "YOLOFHead",
     "centernet": "CenterNetHead",
 }
+
+
+_ARCHITECTURE_SUGGESTION_ALIASES = (
+    "RetinaNet",
+    "FCOS",
+    "ATSS",
+    "FSAF",
+    "FoveaBox",
+    "FOVEA",
+    "FreeAnchor",
+    "GFL",
+    "GFocalV2",
+    "VFNet",
+    "PAA",
+    "RepPoints",
+    "YOLOF",
+    "TOOD",
+    "DDOD",
+    "AutoAssign",
+    "NAS-FCOS",
+    "CenterNet",
+    "Grid R-CNN",
+    "Cascade R-CNN",
+)
+
+
+def _default_dense_head_extra(architecture: str, neck: NeckSpec | None) -> dict[str, Any]:
+    if architecture != "reppoints":
+        return {}
+    num_levels = 4
+    if neck is not None and neck.num_outs is not None:
+        num_levels = int(neck.num_outs)
+    return {"point_strides": tuple(2 ** (level + 3) for level in range(num_levels))}
+
+
+def _unknown_architecture_message(requested: str, normalized: str) -> str:
+    candidates = sorted(set(ARCHITECTURE_FAMILIES) | set(_ARCHITECTURE_SUGGESTION_ALIASES), key=str.lower)
+    nearby = get_close_matches(str(requested), candidates, n=5, cutoff=0.25)
+    if not nearby:
+        nearby = get_close_matches(str(normalized), candidates, n=5, cutoff=0.25)
+    supported = ", ".join(sorted(ARCHITECTURE_FAMILIES))
+    suggestions = ", ".join(nearby) if nearby else "<none>"
+    return f"Unknown architecture '{requested}'. Supported: {supported}. Suggestions: {suggestions}."
 
 _ROI_DEFAULT_BBOX_HEAD_BY_ARCHITECTURE = {
     "cascade_rcnn": "CascadeBBoxHead",
@@ -716,8 +789,7 @@ def build_detector(
     normalized_architecture = resolve_architecture_name(architecture)
     family = ARCHITECTURE_FAMILIES.get(normalized_architecture)
     if family is None:
-        known = ", ".join(sorted(ARCHITECTURE_FAMILIES))
-        raise ValueError(f"Unknown architecture '{architecture}'. Supported: {known}.")
+        raise ValueError(_unknown_architecture_message(architecture, normalized_architecture))
 
     if isinstance(encoder, str):
         encoder = build_encoder(
@@ -744,6 +816,7 @@ def build_detector(
                 default_head,
                 num_classes=num_classes,
                 with_mask=normalized_architecture == "mask_rcnn",
+                **_default_dense_head_extra(normalized_architecture, neck),
             )
         elif family == "roi":
             head = build_head(
@@ -827,6 +900,7 @@ def build_custom_detector(
                 default_head,
                 num_classes=num_classes,
                 with_mask=with_mask,
+                **_default_dense_head_extra(normalized_architecture, neck),
             )
         elif normalized_family == "roi":
             head = build_head(

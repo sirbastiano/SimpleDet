@@ -61,17 +61,34 @@ class NativeSuiteTests(unittest.TestCase):
 
     def test_build_detector_supports_many_dense_and_roi_architectures(self):
         specs = {
+            "RetinaNet": "RetinaHead",
+            "FCOS": "FCOSHead",
+            "ATSS": "ATSSHead",
+            "FSAF": "FSAFHead",
+            "FreeAnchor": "FreeAnchorRetinaHead",
+            "GFL": "GFLHead",
+            "GFocalV2": "GFLV2Head",
             "vfnet": "VFNetHead",
+            "VFNet": "VFNetHead",
             "fovea": "FoveaHead",
-            "foveabox": "FoveaHead",
+            "FOVEA": "FoveaHead",
+            "FoveaBox": "FoveaHead",
+            "PAA": "PAAHead",
             "reppoints": "RepPointsHead",
+            "RepPoints": "RepPointsHead",
             "yolof": "YOLOFHead",
+            "YOLOF": "YOLOFHead",
+            "DDOD": "DDODHead",
+            "AutoAssign": "AutoAssignHead",
+            "NAS-FCOS": "NASFCOSHead",
             "centernet": "CenterNetHead",
         }
         for architecture, expected_head in specs.items():
             detector = build_detector(architecture, num_classes=3, encoder="resnet18.a1_in1k")
             self.assertEqual(detector.family, "dense")
             self.assertEqual(detector.head.name, expected_head)
+        self.assertEqual(build_detector("FOVEA", num_classes=3).architecture, "fovea")
+        self.assertEqual(build_detector("FoveaBox", num_classes=3).architecture, "fovea")
 
         more_architectures = {
             "yolo": "YOLOXHead",
@@ -123,6 +140,10 @@ class NativeSuiteTests(unittest.TestCase):
         self.assertEqual(libra.head.name, "Shared2FCBBoxHead")
         self.assertEqual(double_head.head.name, "DoubleConvFCBBoxHead")
         self.assertEqual(dynamic.head.name, "DynamicBBoxHead")
+
+    def test_build_detector_unknown_architecture_includes_suggestions(self):
+        with self.assertRaisesRegex(ValueError, "Suggestions:.*FoveaBox"):
+            build_detector("Foveboxx", num_classes=3, encoder="resnet18.a1_in1k")
 
     def test_build_custom_detector_defaults_mask_rcnn_head_with_masking(self):
         detector = build_custom_detector("mask_rcnn", family="roi", num_classes=3, encoder="resnet18.a1_in1k")

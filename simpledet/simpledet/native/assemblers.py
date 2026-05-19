@@ -11,19 +11,42 @@ from .backbones import build_native_backbone
 from .dense_ops import (
     DenseATSSDecoder,
     DenseATSSLoss,
+    DenseAutoAssignDecoder,
+    DenseAutoAssignLoss,
+    DenseDDODDecoder,
+    DenseDDODLoss,
     DenseEfficientDetDecoder,
     DenseEfficientDetLoss,
     DenseFCOSDecoder,
     DenseFCOSLoss,
+    DenseFSAFDecoder,
+    DenseFSAFLoss,
+    DenseFoveaDecoder,
+    DenseFoveaLoss,
+    DenseFreeAnchorRetinaNetDecoder,
+    DenseFreeAnchorRetinaNetLoss,
     DenseGFLDecoder,
     DenseGFLLoss,
+    DenseGFLV2Decoder,
+    DenseGFLV2Loss,
+    DenseNASFCOSDecoder,
+    DenseNASFCOSLoss,
+    DensePAADecoder,
+    DensePAALoss,
+    DenseRepPointsDecoder,
+    DenseRepPointsLoss,
     DenseRTMDetDecoder,
     DenseRTMDetLoss,
     DenseRetinaNetDecoder,
     DenseRetinaNetLoss,
     DenseSSDDecoder,
     DenseSSDLoss,
+    DenseTOODDecoder,
+    DenseTOODLoss,
+    DenseVFNetDecoder,
     DenseVFNetLoss,
+    DenseYOLOFDecoder,
+    DenseYOLOFLoss,
     DenseYOLOXDecoder,
     DenseYOLOXLoss,
 )
@@ -464,6 +487,38 @@ def assemble_atss_detector(components: NativeModelComponents, *, num_classes: in
 
 
 @DETECTORS.register(
+    "fsaf",
+    aliases=("FSAF",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+def assemble_fsaf_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseFSAFLoss,
+        decoder=DenseFSAFDecoder,
+    )
+
+
+@DETECTORS.register(
+    "free_anchor",
+    aliases=("FreeAnchor",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+def assemble_free_anchor_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseFreeAnchorRetinaNetLoss,
+        decoder=DenseFreeAnchorRetinaNetDecoder,
+    )
+
+
+@DETECTORS.register(
     "gfl",
     aliases=("GFL",),
     required_dependencies=_DETECTOR_DEPENDENCIES,
@@ -480,6 +535,22 @@ def assemble_gfl_detector(components: NativeModelComponents, *, num_classes: int
 
 
 @DETECTORS.register(
+    "gfocalv2",
+    aliases=("GFocalV2", "GFLV2"),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+def assemble_gfocalv2_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseGFLV2Loss,
+        decoder=DenseGFLV2Decoder,
+    )
+
+
+@DETECTORS.register(
     "vfnet",
     aliases=("VFNet",),
     required_dependencies=_DETECTOR_DEPENDENCIES,
@@ -492,7 +563,7 @@ def assemble_vfnet_detector(components: NativeModelComponents, *, num_classes: i
     return _assemble_dense_detector(
         components=components,
         loss_fn=DenseVFNetLoss,
-        decoder=DenseATSSDecoder,
+        decoder=DenseVFNetDecoder,
     )
 
 
@@ -532,18 +603,33 @@ def assemble_rtmdet_detector(components: NativeModelComponents, *, num_classes: 
 
 @DETECTORS.register(
     "fovea",
-    aliases=("FOVEA",),
+    aliases=("FOVEA", "FoveaBox"),
     required_dependencies=_DETECTOR_DEPENDENCIES,
     tensor_contracts=_DENSE_CONTRACTS,
     validation_status="compatibility_alias",
     family="dense",
 )
-@DETECTORS.register("foveabox", aliases=("FoveaBox",))
 def assemble_fovea_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseFCOSLoss,
-        decoder=DenseFCOSDecoder,
+        loss_fn=DenseFoveaLoss,
+        decoder=DenseFoveaDecoder,
+    )
+
+
+@DETECTORS.register(
+    "paa",
+    aliases=("PAA",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+def assemble_paa_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DensePAALoss,
+        decoder=DensePAADecoder,
     )
 
 
@@ -558,8 +644,8 @@ def assemble_fovea_detector(components: NativeModelComponents, *, num_classes: i
 def assemble_reppoints_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseATSSLoss,
-        decoder=DenseATSSDecoder,
+        loss_fn=DenseRepPointsLoss,
+        decoder=DenseRepPointsDecoder,
     )
 
 
@@ -588,14 +674,21 @@ def assemble_efficientdet_detector(components: NativeModelComponents, *, num_cla
     )
 
 
-@DETECTORS.register("tood")
+@DETECTORS.register(
+    "tood",
+    aliases=("TOOD",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
 @DETECTORS.register("solov2")
 @DETECTORS.register("solov2_light")
 def assemble_tood_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseFCOSLoss,
-        decoder=DenseFCOSDecoder,
+        loss_fn=DenseTOODLoss,
+        decoder=DenseTOODDecoder,
     )
 
 
@@ -610,8 +703,56 @@ def assemble_tood_detector(components: NativeModelComponents, *, num_classes: in
 def assemble_yolof_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseFCOSLoss,
-        decoder=DenseFCOSDecoder,
+        loss_fn=DenseYOLOFLoss,
+        decoder=DenseYOLOFDecoder,
+    )
+
+
+@DETECTORS.register(
+    "ddod",
+    aliases=("DDOD",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+def assemble_ddod_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseDDODLoss,
+        decoder=DenseDDODDecoder,
+    )
+
+
+@DETECTORS.register(
+    "auto_assign",
+    aliases=("AutoAssign",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+def assemble_auto_assign_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseAutoAssignLoss,
+        decoder=DenseAutoAssignDecoder,
+    )
+
+
+@DETECTORS.register(
+    "nas_fcos",
+    aliases=("NAS-FCOS",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+)
+def assemble_nas_fcos_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseNASFCOSLoss,
+        decoder=DenseNASFCOSDecoder,
     )
 
 
