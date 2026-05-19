@@ -44,11 +44,11 @@
             <table>
               <thead><tr><th>Format</th><th>Status</th><th>Notes</th></tr></thead>
               <tbody>
-                <tr><td><code>coco</code></td><td>Implemented</td><td>Best aligned with the training pipeline</td></tr>
-                <tr><td><code>csv</code></td><td>Implemented</td><td>Flat annotation tables for exploration</td></tr>
-                <tr><td><code>json</code> / <code>jsonl</code> / <code>ndjson</code></td><td>Implemented</td><td>Line-delimited records</td></tr>
-                <tr><td><code>yolo</code></td><td>Implemented</td><td>Use for loading, not for the pipeline runtime</td></tr>
-                <tr><td><code>voc</code></td><td>Implemented</td><td>Pascal VOC XML support</td></tr>
+                <tr><td><code>coco</code></td><td>Implemented</td><td>COCO JSON with boxes normalized from xywh to xyxy</td></tr>
+                <tr><td><code>csv</code></td><td>Implemented</td><td>Flat annotation tables with path, bbox, label, and optional split columns</td></tr>
+                <tr><td><code>json</code> / <code>jsonl</code> / <code>ndjson</code></td><td>Implemented</td><td>Simple records as a JSON list, records object, or line-delimited objects</td></tr>
+                <tr><td><code>yolo</code></td><td>Implemented</td><td>YOLO TXT labels with split inferred from label subfolders</td></tr>
+                <tr><td><code>voc</code></td><td>Implemented</td><td>Pascal VOC XML with ImageSets split files when present</td></tr>
               </tbody>
             </table>
           </div>
@@ -57,12 +57,16 @@
           <h2>Recommended layout</h2>
           <pre><code>dataset_root/
   annotations/
-    train.json
-    val.json
-    test.json
-  imgs/
-    image_0001.tif
-    image_0002.tif</code></pre>
+    instances_train.json
+    instances_val.json
+    instances_test.json
+  images/
+    image_0001.png
+    image_0002.png</code></pre>
+        </article>
+        <article class="section">
+          <h2>Normalized loader payload</h2>
+          <p><code>load_dataset()</code> returns <code>images</code>, <code>annotations</code>, <code>samples</code>, <code>categories</code>, <code>category_map</code>, <code>splits</code>, and <code>meta</code> for every supported adapter. Annotation boxes use <code>x_min</code>, <code>y_min</code>, <code>x_max</code>, and <code>y_max</code>. Image, annotation, and sample records carry the resolved split so training helpers can filter deterministically.</p>
         </article>
         <article class="section">
           <h2>COCO example</h2>

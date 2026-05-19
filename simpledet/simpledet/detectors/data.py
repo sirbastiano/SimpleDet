@@ -175,6 +175,8 @@ def _detect_dataset_format(dataset_root: Path, *, format_override: str | None = 
         if dataset_root.is_dir():
             if any(_is_json_file(path) and _looks_like_coco_annotation(path) for path in dataset_root.glob("instances_*.json")):
                 candidates.add("coco")
+            if any(_is_json_file(path) and _looks_like_coco_annotation(path) for path in (dataset_root / "annotations").glob("instances_*.json")):
+                candidates.add("coco")
             if (
                 _has_any_files(dataset_root, "labels", "*.txt")
                 and _has_any_files(dataset_root, "images", "*")
@@ -314,6 +316,99 @@ def _normalize_row_keys(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _normalize_split_name(value: Any, *, default: str = "train") -> str:
+    if value is None:
+        split = default
+    elif isinstance(value, str):
+        split = value.strip()
+    else:
+        split = str(value).strip()
+    if not split:
+        split = default
+    if not split:
+        raise ValueError("Dataset split must be a non-empty string.")
+    return split
+
+
+def _infer_split_from_name(path: Path, *, default: str = "train") -> str:
+    name = path.stem.lower()
+    for split in ("train", "val", "valid", "validation", "test"):
+        if name == split or name.endswith(f"_{split}") or name.endswith(f"-{split}"):
+            return "val" if split in {"valid", "validation"} else split
+    return default
+
+
+def _build_split_index(images: list[dict[str, Any]]) -> dict[str, list[int]]:
+    splits: dict[str, list[int]] = defaultdict(list)
+    for image in images:
+        split = _normalize_split_name(image.get("split"), default="train")
+        splits[split].append(int(image["image_id"]))
+    return {name: ids for name, ids in sorted(splits.items())}
+
+
+def _resolve_tabular_annotation_file(
+    dataset_root: Path,
+    annotation_file: str | Path,
+    *,
+    format_label: str,
+    suffixes: set[str],
+) -> Path:
+    explicit_annotation = Path(annotation_file)
+    if explicit_annotation.is_absolute():
+        annotation_path = explicit_annotation
+    elif dataset_root.is_file():
+        candidate = dataset_root.parent / explicit_annotation
+        if (
+            dataset_root.name == explicit_annotation.name
+            and dataset_root.suffix.lower() in suffixes
+        ):
+            annotation_path = dataset_root
+        elif candidate.exists():
+            annotation_path = candidate
+        else:
+            raise FileNotFoundError(
+                f"Missing {format_label} annotation file: {candidate} (checked '{dataset_root}')"
+            )
+    else:
+        annotation_path = dataset_root / explicit_annotation
+
+    if not annotation_path.exists():
+        raise FileNotFoundError(f"Missing {format_label} annotation file: {annotation_path}")
+    if annotation_path.suffix.lower() not in suffixes:
+        expected = ", ".join(sorted(suffixes))
+        raise ValueError(
+            f"{format_label} annotation file must use one of {expected}: {annotation_path}"
+        )
+    return annotation_path
+
+
+def _resolve_generic_json_annotation_file(
+    dataset_root: Path,
+    annotation_file: str | Path | None,
+) -> Path:
+    if annotation_file is not None:
+        return _resolve_tabular_annotation_file(
+            dataset_root,
+            annotation_file,
+            format_label="JSON",
+            suffixes={".json", ".jsonl", ".ndjson"},
+        )
+
+    if dataset_root.is_file():
+        if dataset_root.suffix.lower() not in {".json", ".jsonl", ".ndjson"}:
+            raise ValueError(
+                f"Unsupported JSON dataset path '{dataset_root}'. "
+                "Expected '.json', '.jsonl', or '.ndjson'."
+            )
+        return dataset_root
+
+    for name in ("annotations.jsonl", "annotations.ndjson", "annotations.json"):
+        candidate = dataset_root / name
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(f"Missing JSON annotation file: {dataset_root / 'annotations.json'}")
+
+
 def _validate_generic_columns_present(
     source_file: Path,
     row: dict[str, Any],
@@ -396,20 +491,12 @@ def _coerce_split(
     row_source: str,
     default_split: str,
 ) -> str:
-    if split_value is None:
-        return default_split
-    if isinstance(split_value, str):
-        split = split_value.strip()
-    else:
-        split = str(split_value).strip()
-    if split:
-        return split
-
-    if default_split:
-        return default_split
-    raise ValueError(
-        f"{row_source} row {row_no} split value is empty and no default split provided."
-    )
+    try:
+        return _normalize_split_name(split_value, default=default_split)
+    except ValueError as exc:
+        raise ValueError(
+            f"{row_source} row {row_no} split value is empty and no default split provided."
+        ) from exc
 
 
 def _read_generic_annotation_row(
@@ -480,14 +567,24 @@ def _read_generic_annotation_row(
     }
 
 
-def _resolve_annotation_image_path(dataset_root: Path, image_path: str, *, row_no: int, row_source: str) -> Path:
+def _resolve_annotation_image_path(
+    dataset_root: Path,
+    images_root: Path,
+    image_path: str,
+    *,
+    row_no: int,
+    row_source: str,
+) -> Path:
     path = Path(image_path)
-    image_path = path if path.is_absolute() else dataset_root / path
-    if not image_path.exists():
-        raise FileNotFoundError(
-            f"{row_source} row {row_no} references missing image '{path}'."
-        )
-    return image_path
+    candidates = [path] if path.is_absolute() else [dataset_root / path, images_root / path]
+    if not path.is_absolute() and path.name == path.as_posix():
+        candidates.append(images_root / path.name)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        f"{row_source} row {row_no} references missing image '{path}'."
+    )
 
 
 def _load_generic_annotations(
@@ -520,6 +617,7 @@ def _load_generic_annotations(
 
         image_path = _resolve_annotation_image_path(
             dataset_root,
+            images_root,
             annotation["path"],
             row_no=row_no,
             row_source=source,
@@ -609,7 +707,7 @@ class GenericCsvDatasetAdapter(DatasetAdapter):
 
     def load(self, path: str, **kwargs: Any) -> DatasetPayload:
         dataset_root = Path(path).expanduser()
-        annotation_file = kwargs.pop("annotation_file", "annotations.csv")
+        annotation_file = kwargs.pop("annotation_file", None)
         images_dir = kwargs.pop("images_dir", "images")
         columns = _normalize_generic_columns(
             kwargs.pop("columns", None),
@@ -620,29 +718,18 @@ class GenericCsvDatasetAdapter(DatasetAdapter):
         if not dataset_root.exists():
             raise FileNotFoundError(f"Dataset path not found: {dataset_root}")
 
-        explicit_annotation = Path(annotation_file)
-        if explicit_annotation.is_absolute():
-            annotation_path = explicit_annotation
-        elif dataset_root.is_file():
-            candidate = dataset_root.parent / explicit_annotation
-            if (
-                dataset_root.name == explicit_annotation.name
-                and dataset_root.suffix.lower() == ".csv"
-            ):
-                annotation_path = dataset_root
-            elif candidate.exists():
-                annotation_path = candidate
-            else:
-                raise FileNotFoundError(
-                    f"Missing CSV annotation file: {candidate} (checked '{dataset_root}')"
-                )
+        if annotation_file is None and dataset_root.is_file():
+            annotation_path = dataset_root
+            if annotation_path.suffix.lower() != ".csv":
+                raise ValueError(f"CSV annotation file must use '.csv' extension: {annotation_path}")
         else:
-            annotation_path = dataset_root / explicit_annotation
-
-        if not annotation_path.exists():
-            raise FileNotFoundError(f"Missing CSV annotation file: {annotation_path}")
-        if annotation_path.suffix.lower() != ".csv":
-            raise ValueError(f"CSV annotation file must use '.csv' extension: {annotation_path}")
+            annotation_path = _resolve_tabular_annotation_file(
+                dataset_root,
+                annotation_file or "annotations.csv",
+                format_label="CSV",
+                suffixes={".csv"},
+            )
+        annotation_root = dataset_root.parent if dataset_root.is_file() else dataset_root
 
         parsed_rows: list[tuple[int, dict[str, Any]]] = []
         with annotation_path.open("r", encoding="utf-8") as handle:
@@ -661,7 +748,7 @@ class GenericCsvDatasetAdapter(DatasetAdapter):
 
         dataset_payload = _load_generic_annotations(
             parsed_rows,
-            dataset_root,
+            annotation_root,
             columns=columns,
             default_split=default_split,
             images_dir=images_dir,
@@ -674,7 +761,7 @@ class GenericCsvDatasetAdapter(DatasetAdapter):
                 "path": str(dataset_root),
                 "annotation_file": str(annotation_path),
                 "source": str(annotation_path),
-                "images_dir": str(_resolve_dir(dataset_root, images_dir, name="images")),
+                "images_dir": str(_resolve_dir(annotation_root, images_dir, name="images")),
             }
         )
         return dataset_payload
@@ -682,50 +769,86 @@ class GenericCsvDatasetAdapter(DatasetAdapter):
 
 @register_dataset_adapter("json", aliases=("jsonl", "generic-json", "ndjson"))
 class GenericJsonlDatasetAdapter(DatasetAdapter):
-    """Adapter for line-delimited JSON annotation files."""
+    """Adapter for simple JSON, JSONL, and NDJSON annotation files."""
 
     format_key = "json"
     aliases = ("jsonl", "generic-json", "ndjson")
 
     def load(self, path: str, **kwargs: Any) -> DatasetPayload:
         dataset_root = Path(path).expanduser()
-        annotation_file = kwargs.pop("annotation_file", "annotations.jsonl")
+        annotation_file = kwargs.pop("annotation_file", None)
         images_dir = kwargs.pop("images_dir", "images")
         columns = _normalize_generic_columns(
             kwargs.pop("schema", None) or kwargs.pop("columns", None),
-            source="JSONL",
+            source="JSON",
         )
         default_split = kwargs.pop("default_split", "train")
 
         if not dataset_root.exists():
             raise FileNotFoundError(f"Dataset path not found: {dataset_root}")
 
-        explicit_annotation = Path(annotation_file)
-        if explicit_annotation.is_absolute():
-            annotation_path = explicit_annotation
-        elif dataset_root.is_file():
-            candidate = dataset_root.parent / explicit_annotation
-            if (
-                dataset_root.name == explicit_annotation.name
-                and dataset_root.suffix.lower() in {".jsonl", ".json", ".ndjson"}
-            ):
-                annotation_path = dataset_root
-            elif candidate.exists():
-                annotation_path = candidate
-            else:
-                raise FileNotFoundError(
-                    f"Missing JSONL annotation file: {candidate} (checked '{dataset_root}')"
+        annotation_path = _resolve_generic_json_annotation_file(dataset_root, annotation_file)
+        annotation_root = dataset_root.parent if dataset_root.is_file() else dataset_root
+        parsed_rows = self._read_rows(annotation_path)
+
+        dataset_payload = _load_generic_annotations(
+            parsed_rows,
+            annotation_root,
+            columns=columns,
+            default_split=default_split,
+            images_dir=images_dir,
+            source_file=str(annotation_path),
+            source=f"JSON '{annotation_path}'",
+        )
+        dataset_payload.update(
+            {
+                "format": self.format_key,
+                "path": str(dataset_root),
+                "annotation_file": str(annotation_path),
+                "source": str(annotation_path),
+                "images_dir": str(_resolve_dir(annotation_root, images_dir, name="images")),
+            }
+        )
+        return dataset_payload
+
+    @staticmethod
+    def _read_rows(annotation_path: Path) -> list[tuple[int, dict[str, Any]]]:
+        if annotation_path.suffix.lower() in {".jsonl", ".ndjson"}:
+            return GenericJsonlDatasetAdapter._read_json_lines(annotation_path)
+
+        try:
+            payload = json.loads(annotation_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"JSON annotation file '{annotation_path}' contains invalid JSON.") from exc
+
+        if isinstance(payload, list):
+            rows = payload
+        elif isinstance(payload, dict):
+            rows = None
+            for key in ("records", "annotations", "samples"):
+                value = payload.get(key)
+                if isinstance(value, list):
+                    rows = value
+                    break
+            if rows is None:
+                raise ValueError(
+                    f"JSON annotation file '{annotation_path}' must contain a list "
+                    "or an object with 'records', 'annotations', or 'samples'."
                 )
         else:
-            annotation_path = dataset_root / explicit_annotation
+            raise ValueError(f"JSON annotation file '{annotation_path}' must contain a JSON array or object.")
 
-        if not annotation_path.exists():
-            raise FileNotFoundError(f"Missing JSONL annotation file: {annotation_path}")
-        if annotation_path.suffix.lower() not in {".jsonl", ".json", ".ndjson"}:
-            raise ValueError(
-                f"JSONL annotation file must be '.jsonl' or '.ndjson': {annotation_path}"
-            )
+        parsed_rows: list[tuple[int, dict[str, Any]]] = []
+        for row_no, row in enumerate(rows, start=1):
+            if not isinstance(row, dict):
+                raise ValueError(
+                    f"JSON annotation file '{annotation_path}' row {row_no} must contain a JSON object."
+                )
+            parsed_rows.append((row_no, _normalize_row_keys(row)))
+        return parsed_rows
 
+    @staticmethod
+    def _read_json_lines(annotation_path: Path) -> list[tuple[int, dict[str, Any]]]:
         parsed_rows: list[tuple[int, dict[str, Any]]] = []
         with annotation_path.open("r", encoding="utf-8") as handle:
             for row_no, raw_line in enumerate(handle, start=1):
@@ -736,35 +859,16 @@ class GenericJsonlDatasetAdapter(DatasetAdapter):
                     row = json.loads(line)
                 except json.JSONDecodeError as exc:
                     raise ValueError(
-                        f"JSONL annotation file '{annotation_path}' row {row_no} "
-                        f"contains invalid JSON."
+                        f"JSON annotation file '{annotation_path}' row {row_no} "
+                        "contains invalid JSON."
                     ) from exc
                 if not isinstance(row, dict):
                     raise ValueError(
-                        f"JSONL annotation file '{annotation_path}' row {row_no} "
-                        f"must contain a JSON object."
+                        f"JSON annotation file '{annotation_path}' row {row_no} "
+                        "must contain a JSON object."
                     )
                 parsed_rows.append((row_no, _normalize_row_keys(row)))
-
-        dataset_payload = _load_generic_annotations(
-            parsed_rows,
-            dataset_root,
-            columns=columns,
-            default_split=default_split,
-            images_dir=images_dir,
-            source_file=str(annotation_path),
-            source=f"JSONL '{annotation_path}'",
-        )
-        dataset_payload.update(
-            {
-                "format": self.format_key,
-                "path": str(dataset_root),
-                "annotation_file": str(annotation_path),
-                "source": str(annotation_path),
-                "images_dir": str(_resolve_dir(dataset_root, images_dir, name="images")),
-            }
-        )
-        return dataset_payload
+        return parsed_rows
 
 
 def _read_image_size(path: Path) -> tuple[int, int]:
@@ -937,6 +1041,35 @@ def _parse_voc_bbox(
             f"({x_min}, {y_min}, {x_max}, {y_max})."
         )
     return x_min, y_min, x_max, y_max
+
+
+def _load_voc_split_memberships(dataset_root: Path) -> dict[str, str]:
+    split_dir = dataset_root / "ImageSets" / "Main"
+    if not split_dir.exists():
+        return {}
+
+    memberships: dict[str, str] = {}
+    for split_name, file_name in (
+        ("train", "train.txt"),
+        ("val", "val.txt"),
+        ("test", "test.txt"),
+    ):
+        split_file = split_dir / file_name
+        if not split_file.exists():
+            continue
+        for line_no, raw_line in enumerate(split_file.read_text(encoding="utf-8").splitlines(), start=1):
+            line = raw_line.strip()
+            if not line:
+                continue
+            image_stem = line.split()[0]
+            existing = memberships.get(image_stem)
+            if existing is not None and existing != split_name:
+                raise ValueError(
+                    f"VOC image '{image_stem}' appears in both '{existing}' and "
+                    f"'{split_name}' split files under '{split_dir}'."
+                )
+            memberships[image_stem] = split_name
+    return memberships
 
 
 def _parse_yolo_class_map(path: Path) -> dict[int, str]:
@@ -1116,6 +1249,13 @@ def _parse_yolo_bbox_line(
     return class_id, x_min, y_min, x_max, y_max
 
 
+def _infer_yolo_split(label_path: Path, labels_root: Path, *, default: str = "train") -> str:
+    relative = label_path.relative_to(labels_root)
+    if len(relative.parts) > 1:
+        return _normalize_split_name(relative.parts[0], default=default)
+    return default
+
+
 @register_dataset_adapter("yolo", aliases=("yolo-txt", "yolov5", "yolov8"))
 class YoloDatasetAdapter(DatasetAdapter):
     """Adapter for YOLOv5/YOLOv8 style TXT annotations."""
@@ -1128,6 +1268,7 @@ class YoloDatasetAdapter(DatasetAdapter):
         labels_dir = kwargs.pop("labels_dir", "labels")
         images_dir = kwargs.pop("images_dir", "images")
         classes_file = kwargs.pop("classes_file", None)
+        default_split = kwargs.pop("default_split", "train")
 
         if not dataset_root.exists():
             raise FileNotFoundError(f"Dataset path not found: {dataset_root}")
@@ -1147,11 +1288,13 @@ class YoloDatasetAdapter(DatasetAdapter):
         parsed_images: list[dict[str, Any]] = []
         parsed_annotations: list[dict[str, Any]] = []
         annotations_by_image: dict[int, list[dict[str, Any]]] = defaultdict(list)
-        image_records: dict[Path, dict[str, Any]] = {}
+        image_records: dict[tuple[str, Path], dict[str, Any]] = {}
 
         for label_path in label_paths:
+            split = _infer_yolo_split(label_path, labels_root, default=default_split)
             image_path = _find_image_for_label(images_root, labels_root, label_path)
-            image_record = image_records.get(image_path)
+            image_key = (split, image_path)
+            image_record = image_records.get(image_key)
             if image_record is None:
                 width, height = _read_image_size(image_path)
                 image_id = len(parsed_images) + 1
@@ -1161,9 +1304,10 @@ class YoloDatasetAdapter(DatasetAdapter):
                     "width": width,
                     "height": height,
                     "file_path": str(image_path),
+                    "split": split,
                 }
                 parsed_images.append(image_record)
-                image_records[image_path] = image_record
+                image_records[image_key] = image_record
 
             image_id = image_record["image_id"]
             lines = label_path.read_text(encoding="utf-8").splitlines()
@@ -1210,6 +1354,7 @@ class YoloDatasetAdapter(DatasetAdapter):
                     "bbox": bbox,
                     "area": width * height,
                     "iscrowd": 0,
+                    "split": split,
                 }
                 parsed_annotations.append(annotation)
                 annotations_by_image[image_id].append(annotation)
@@ -1221,6 +1366,7 @@ class YoloDatasetAdapter(DatasetAdapter):
                 "width": image_record["width"],
                 "height": image_record["height"],
                 "annotations": annotations_by_image.get(image_record["image_id"], []),
+                "split": image_record["split"],
             }
             for image_record in parsed_images
         ]
@@ -1243,6 +1389,7 @@ class YoloDatasetAdapter(DatasetAdapter):
             "samples": samples,
             "categories": categories,
             "category_map": class_map,
+            "splits": _build_split_index(parsed_images),
             "meta": {
                 "num_samples": len(samples),
                 "num_images": len(parsed_images),
@@ -1275,6 +1422,11 @@ class CocoDatasetAdapter(DatasetAdapter):
         annotation_file = kwargs.pop("annotation_file", None)
         images_dir = kwargs.pop("images_dir", "images")
         annotation_path = self._resolve_annotation_file(dataset_root, annotation_file)
+        split = _normalize_split_name(
+            kwargs.pop("split", None),
+            default=_infer_split_from_name(annotation_path),
+        )
+        image_dataset_root = self._resolve_dataset_root(dataset_root, annotation_path)
 
         payload = _load_json_file(annotation_path)
         _require_coco_list_fields(payload, str(annotation_path))
@@ -1285,11 +1437,18 @@ class CocoDatasetAdapter(DatasetAdapter):
         category_map = self._parse_categories(categories)
         parsed_images = self._parse_images(
             images,
-            annotation_path.parent,
+            image_dataset_root,
             images_dir,
             annotation_path=annotation_path,
+            split=split,
         )
-        parsed_annotations = self._parse_annotations(annotations, category_map)
+        image_ids = {image["image_id"] for image in parsed_images}
+        parsed_annotations = self._parse_annotations(
+            annotations,
+            category_map,
+            image_ids=image_ids,
+            split=split,
+        )
         annotations_by_image: dict[int, list[dict[str, Any]]] = defaultdict(list)
 
         for annotation in parsed_annotations:
@@ -1305,6 +1464,7 @@ class CocoDatasetAdapter(DatasetAdapter):
                     "width": image["width"],
                     "height": image["height"],
                     "annotations": annotations_by_image.get(image_id, []),
+                    "split": image["split"],
                 }
             )
 
@@ -1317,10 +1477,11 @@ class CocoDatasetAdapter(DatasetAdapter):
             "samples": samples,
             "categories": categories,
             "category_map": category_map,
-            "images_dir": str(self._resolve_images_dir(dataset_root, annotation_path, images_dir)),
+            "images_dir": str(self._resolve_images_dir(image_dataset_root, annotation_path, images_dir)),
+            "splits": _build_split_index(parsed_images),
             "meta": {
                 "num_samples": len(samples),
-                "num_images": len(samples),
+                "num_images": len(parsed_images),
                 "num_annotations": len(parsed_annotations),
                 "num_categories": len(categories),
             },
@@ -1333,13 +1494,13 @@ class CocoDatasetAdapter(DatasetAdapter):
                 raise ValueError("COCO category entries must be dictionaries.")
             category_id = category.get("id")
             category_name = category.get("name")
-            if not isinstance(category_id, int):
+            if not isinstance(category_id, int) or isinstance(category_id, bool):
                 raise ValueError("Each COCO category must include integer 'id'.")
-            if not isinstance(category_name, str):
+            if not isinstance(category_name, str) or not category_name.strip():
                 raise ValueError(
                     "Each COCO category must include string 'name'."
                 )
-            category_map[category_id] = category_name
+            category_map[category_id] = category_name.strip()
 
         return category_map
 
@@ -1392,6 +1553,7 @@ class CocoDatasetAdapter(DatasetAdapter):
         images_dir: str | Path,
         *,
         annotation_path: Path,
+        split: str,
     ) -> list[dict[str, Any]]:
         images_root = self._resolve_images_dir(
             dataset_root,
@@ -1404,17 +1566,24 @@ class CocoDatasetAdapter(DatasetAdapter):
                 raise ValueError("COCO image entries must be dictionaries.")
             image_id = image.get("id")
             file_name = image.get("file_name")
-            if not isinstance(image_id, int):
+            if not isinstance(image_id, int) or isinstance(image_id, bool):
                 raise ValueError("Each COCO image must include integer 'id'.")
             if not isinstance(file_name, str) or not file_name:
                 raise ValueError("Each COCO image must include string 'file_name'.")
             file_path = self._find_image_file(dataset_root, images_root, file_name)
             width = image.get("width")
             height = image.get("height")
-            if not isinstance(width, int) or not isinstance(height, int):
+            if (
+                not isinstance(width, int)
+                or isinstance(width, bool)
+                or not isinstance(height, int)
+                or isinstance(height, bool)
+            ):
                 raise ValueError(
                     f"COCO image '{file_name}' must include integer width/height."
                 )
+            if width <= 0 or height <= 0:
+                raise ValueError(f"COCO image '{file_name}' width/height must be positive.")
             parsed_images.append(
                 {
                     "image_id": image_id,
@@ -1422,6 +1591,7 @@ class CocoDatasetAdapter(DatasetAdapter):
                     "width": width,
                     "height": height,
                     "file_path": str(file_path),
+                    "split": split,
                 }
             )
         return parsed_images
@@ -1430,6 +1600,9 @@ class CocoDatasetAdapter(DatasetAdapter):
         self,
         annotations: list[dict[str, Any]],
         category_map: dict[int, str],
+        *,
+        image_ids: set[int],
+        split: str,
     ) -> list[dict[str, Any]]:
         parsed_annotations: list[dict[str, Any]] = []
         for annotation in annotations:
@@ -1438,11 +1611,13 @@ class CocoDatasetAdapter(DatasetAdapter):
             image_id = annotation.get("image_id")
             category_id = annotation.get("category_id")
             bbox = annotation.get("bbox")
-            if not isinstance(image_id, int):
+            if not isinstance(image_id, int) or isinstance(image_id, bool):
                 raise ValueError(
                     "Each COCO annotation must include integer 'image_id'."
                 )
-            if not isinstance(category_id, int):
+            if image_id not in image_ids:
+                raise ValueError(f"COCO annotation refers to unknown image_id {image_id}.")
+            if not isinstance(category_id, int) or isinstance(category_id, bool):
                 raise ValueError(
                     "Each COCO annotation must include integer 'category_id'."
                 )
@@ -1451,15 +1626,27 @@ class CocoDatasetAdapter(DatasetAdapter):
                     f"COCO annotation for image_id {image_id} must include bbox [x,y,w,h]."
                 )
             x_min, y_min, width, height = bbox
-            if not all(isinstance(value, int | float) for value in (x_min, y_min, width, height)):
+            if not all(
+                isinstance(value, int | float) and not isinstance(value, bool)
+                for value in (x_min, y_min, width, height)
+            ):
                 raise ValueError(
                     f"COCO annotation for image_id {image_id} has non-numeric bbox values."
+                )
+            if not all(math.isfinite(float(value)) for value in (x_min, y_min, width, height)):
+                raise ValueError(
+                    f"COCO annotation for image_id {image_id} has non-finite bbox values."
+                )
+            if width <= 0 or height <= 0:
+                raise ValueError(
+                    f"COCO annotation for image_id {image_id} has non-positive bbox width/height."
                 )
             category_name = category_map.get(category_id)
             if category_name is None:
                 raise ValueError(
                     f"COCO annotation refers to unknown category_id {category_id}."
                 )
+            area = annotation.get("area", width * height)
             parsed_annotations.append(
                 {
                     "id": annotation.get("id"),
@@ -1473,8 +1660,9 @@ class CocoDatasetAdapter(DatasetAdapter):
                         "x_max": x_min + width,
                         "y_max": y_min + height,
                     },
-                    "area": annotation.get("area"),
+                    "area": area,
                     "iscrowd": annotation.get("iscrowd", 0),
+                    "split": split,
                 }
             )
         return parsed_annotations
@@ -1488,6 +1676,8 @@ class CocoDatasetAdapter(DatasetAdapter):
             explicit_path = Path(annotation_file)
             if explicit_path.is_absolute():
                 annotation_path = explicit_path
+            elif dataset_root.is_file():
+                annotation_path = dataset_root.parent / explicit_path
             else:
                 annotation_path = dataset_root / explicit_path
             if not annotation_path.exists():
@@ -1505,13 +1695,26 @@ class CocoDatasetAdapter(DatasetAdapter):
         if not dataset_root.is_dir():
             raise FileNotFoundError(f"Dataset path not found: {dataset_root}")
 
-        candidates = sorted(dataset_root.glob("instances_*.json"))
+        default_annotation = dataset_root / "annotations" / "instances_train.json"
+        candidates = [
+            default_annotation,
+            dataset_root / "instances_train.json",
+            *sorted((dataset_root / "annotations").glob("instances_*.json")),
+            *sorted(dataset_root.glob("instances_*.json")),
+        ]
+        candidates = [candidate for candidate in candidates if candidate.exists()]
         if not candidates:
-            raise FileNotFoundError(
-                f"No COCO annotation file found in: {dataset_root}"
-            )
+            raise FileNotFoundError(f"Missing COCO annotation file: {default_annotation}")
 
         return candidates[0]
+
+    @staticmethod
+    def _resolve_dataset_root(dataset_root: Path, annotation_path: Path) -> Path:
+        if dataset_root.is_dir():
+            return dataset_root
+        if annotation_path.parent.name.lower() == "annotations":
+            return annotation_path.parent.parent
+        return annotation_path.parent
 
 
 @register_dataset_adapter("voc", aliases=("pascal-voc", "pascal_voc"))
@@ -1533,6 +1736,7 @@ class VocDatasetAdapter(DatasetAdapter):
             dataset_root, annotations_dir, name="annotations"
         )
         images_root = _resolve_dir(dataset_root, images_dir, name="images")
+        split_memberships = _load_voc_split_memberships(dataset_root)
         annotation_paths = sorted(annotations_root.rglob("*.xml"))
         if not annotation_paths:
             raise FileNotFoundError(
@@ -1544,14 +1748,16 @@ class VocDatasetAdapter(DatasetAdapter):
         parsed_annotations: list[dict[str, Any]] = []
         raw_annotations: list[dict[str, Any]] = []
         annotations_by_image: dict[int, list[dict[str, Any]]] = defaultdict(list)
-        image_records: dict[Path, dict[str, Any]] = {}
+        image_records: dict[tuple[str, Path], dict[str, Any]] = {}
 
         for annotation_path in annotation_paths:
             root = _read_voc_xml(annotation_path)
             _, width, height = self._read_image_metadata(root, annotation_path)
             image_path = _find_image_for_voc_annotation(images_root, annotation_path)
+            split = split_memberships.get(annotation_path.stem, "train")
 
-            image_record = image_records.get(image_path)
+            image_key = (split, image_path)
+            image_record = image_records.get(image_key)
             if image_record is None:
                 image_id = len(parsed_images) + 1
                 image_record = {
@@ -1560,9 +1766,10 @@ class VocDatasetAdapter(DatasetAdapter):
                     "width": width,
                     "height": height,
                     "file_path": str(image_path),
+                    "split": split,
                 }
                 parsed_images.append(image_record)
-                image_records[image_path] = image_record
+                image_records[image_key] = image_record
 
             objects = root.findall("object")
             if not objects:
@@ -1614,6 +1821,7 @@ class VocDatasetAdapter(DatasetAdapter):
                         },
                         "pose": pose,
                         "difficult": difficult,
+                        "split": split,
                     }
                 )
 
@@ -1656,6 +1864,7 @@ class VocDatasetAdapter(DatasetAdapter):
                 "iscrowd": raw_annotation["difficult"],
                 "pose": raw_annotation["pose"],
                 "difficult": raw_annotation["difficult"],
+                "split": raw_annotation["split"],
             }
             parsed_annotations.append(annotation)
             annotations_by_image[annotation["image_id"]].append(annotation)
@@ -1667,6 +1876,7 @@ class VocDatasetAdapter(DatasetAdapter):
                 "width": image_record["width"],
                 "height": image_record["height"],
                 "annotations": annotations_by_image.get(image_record["image_id"], []),
+                "split": image_record["split"],
             }
             for image_record in parsed_images
         ]
@@ -1681,6 +1891,7 @@ class VocDatasetAdapter(DatasetAdapter):
             "samples": samples,
             "categories": categories,
             "category_map": category_map,
+            "splits": _build_split_index(parsed_images),
             "meta": {
                 "num_samples": len(samples),
                 "num_images": len(parsed_images),
