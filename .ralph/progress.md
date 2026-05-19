@@ -758,3 +758,55 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Dense head validation should reject explicit non-dense metadata while preserving older dense aliases that do not yet carry full family metadata.
   - Use `uv run --extra cpu` for real tensor story coverage when the base interpreter skips torch-backed tests.
 ---
+## [2026-05-19 03:48:29 UTC] - US-020: Build two-stage detector composition
+Thread:
+Run: 20260518-183418-2827287 (iteration 20)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-20.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-20.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 0edfdff feat(detectors): add two-stage composition
+- Post-commit status: `clean` after implementation commit; progress/log update pending follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet:tests python -m unittest tests.test_native_two_stage tests.test_suite tests.test_native_backend_plan tests.test_native_components tests.test_native_runtime` -> PASS (56 tests, 4 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (207 tests, 78 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build refreshed dist artifacts
+  - Command: `git diff --check` -> PASS
+  - Command: `python3 -m py_compile simpledet/simpledet/suite/catalog.py simpledet/simpledet/suite/native_plan.py simpledet/simpledet/native/assemblers.py simpledet/simpledet/native/roi.py simpledet/simpledet/native/modeling.py simpledet/simpledet/native/__init__.py tests/test_native_two_stage.py` -> PASS
+  - Command: `make docs-check` -> PASS after docs update
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/roadmap-changelog.html
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/native/roi.py
+  - simpledet/simpledet/suite/catalog.py
+  - simpledet/simpledet/suite/native_plan.py
+  - tests/test_cli.py
+  - tests/test_native_api_routing.py
+  - tests/test_native_backbones.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_components.py
+  - tests/test_native_runtime.py
+  - tests/test_native_two_stage.py
+  - tests/test_public_api.py
+  - tests/test_suite.py
+- What was implemented
+  - Added `TwoStageDetector` as the native ROI composition boundary with owned backbone, neck, RPN head, ROI extractor, bbox head, optional mask/grid heads, loss path, prediction path, and cascade proposal refinement.
+  - Updated ROI suite defaults and native build plans so Faster/Grid/Mask/Cascade R-CNN use ROI bbox heads instead of dense Retina heads, with explicit RPN, bbox, mask, and grid component plans.
+  - Added registry-family validation for ROI heads and a negative build-plan validation error for `mask_rcnn` when the selected ROI head is not mask-enabled.
+  - Updated native assembly to instantiate RPN, bbox, mask, and grid heads through `build_native_head` and to normalize ROI aliases before variant-specific assembly.
+  - Added focused two-stage smoke tests and adjusted existing fake torch shims and expectations for the new native two-stage contracts.
+  - Updated changelog docs for the user-visible native two-stage builder behavior.
+  - Security/performance/regression review: no file/network/secret handling added; proposal loops remain bounded by feature-map anchors/top-k smoke paths; reviewer-found `__call__` and cascade regressions were fixed; full gates passed.
+- **Learnings for future iterations:**
+  - `simpledet.native.build_detector(...)` now returns `SingleStageDetector` for dense families and `TwoStageDetector` for ROI families; tests should assert the public contract rather than old `NativeRoIModel` naming.
+  - ROI architecture support should be validated through registry-built heads; dense `RetinaHead` defaults are not valid for two-stage detector specs.
+  - The base interpreter lacks torch, so real tensor smoke tests skip there; use the repo's CPU-extra environment for deeper tensor validation when available.
+  - Gatekeeper blocks untracked test files even when tests passed, so stage new tests before final publish checks.
+---
