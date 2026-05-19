@@ -1685,3 +1685,36 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The base environment can lack PyTorch, so alias-construction matrix tests should use fake native modules for registry coverage and leave real tensor forwards to the existing focused family tests.
   - The `Region Proposal Network` alias was registered but not suite-resolvable until `resolve_architecture_name()` recognized its compact form.
 ---
+## [2026-05-19 11:25:51 UTC] - US-043: Add head matrix tests
+Thread:
+Run: 20260518-183418-2827287 (iteration 43)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-43.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-43.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 11f7813 test(heads): add head matrix coverage
+- Post-commit status: `clean` after implementation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_native_head_matrix` -> FAIL (direct module run omitted the `tests` helper path)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_head_matrix.py'` -> PASS (3 tests, 1 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (305 tests, 91 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS (pre-build wheel check and 13 packaging tests)
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS (rebuilt wheel check and 13 packaging tests)
+  - Command: `git diff --check HEAD~1 HEAD` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - tests/test_native_head_matrix.py
+- What was implemented
+  - Added a native head matrix that loads the registry under fake CPU runtime modules, asserts at least 31 runtime-validated head names/aliases are discoverable, and constructs every validated name/alias through `build_native_head`.
+  - Added matrix metadata checks for callable factories, tensor contracts, runtime validation status, supported families, and non-placeholder factory paths.
+  - Added negative matrix cases for heads missing a factory, tensor contract, or runtime validation status.
+  - Added representative forward smokes for dense, ROI, and transformer head families when PyTorch is installed.
+  - Security/performance/regression review: test-only change; fake optional dependencies stay local to the test process; alias loops are bounded to registry metadata; no runtime package behavior, external input handling, network access, or dependency direction changed; full gates passed.
+- **Learnings for future iterations:**
+  - Head matrix coverage should source raw `(metadata.name, *metadata.aliases)` from `HEADS.entries()` so public `list_heads(kind=...)` remains backed by registry metadata.
+  - Construction-only matrix tests can use fake native modules for breadth in base environments without PyTorch, while real tensor forward checks should remain representative and skip cleanly when torch is absent.
+  - Direct module unittest invocations that import `native_tensor_contracts` need `tests` on `PYTHONPATH`; discover mode from `tests/` matches the repo gate.
+---
