@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ..detectors._deps import require_dependency
+from ..extensions import LOSSES
 
 require_dependency("torch", "native dense ops")
 import torch  # noqa: E402
@@ -340,6 +341,67 @@ class DenseGFLLoss(DenseATSSLoss):
     """GFL currently reuses the anchor-based ATSS loss path."""
 
 
+class DenseVFNetLoss(nn.Module):
+    """VFNet-style dense loss composed from the shared native loss registry."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        LOSSES.import_modules("simpledet.native.losses")
+        self.loss_cls = LOSSES.get("varifocal")()
+        self.loss_bbox = LOSSES.get("iou")()
+
+    def forward(self, images, targets, feature_pyramids, head_outputs_per_image):
+        total_cls = torch.tensor(0.0, device=images[0].device)
+        total_box = torch.tensor(0.0, device=images[0].device)
+
+        for image, target, feature_maps, head_outputs in zip(
+            images,
+            targets,
+            feature_pyramids,
+            head_outputs_per_image,
+        ):
+            feature_maps = _feature_sequence(feature_maps)
+            anchors_per_level = _anchor_priors_per_level_for_image(image, feature_maps)
+            anchors = torch.cat(anchors_per_level, dim=0)
+            cls_logits = flatten_anchor_cls_logits(head_outputs["cls_logits"])
+            bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
+
+            assignment = atss_assign(
+                anchors,
+                target["boxes"],
+                target["labels"],
+                num_level_priors=tuple(level.shape[0] for level in anchors_per_level),
+                ignored_boxes=_ignored_boxes_from_target(target),
+            )
+            matched_boxes = assignment.matched_boxes
+            matched_labels = assignment.labels
+            positive_mask = assignment.positive_mask
+            valid_mask = ~assignment.ignored_mask
+            class_targets = torch.zeros_like(cls_logits)
+
+            if positive_mask.any():
+                positive_labels = matched_labels[positive_mask].long().clamp(min=1) - 1
+                decoded_positive = decode_boxes(anchors[positive_mask], bbox_regression[positive_mask])
+                with torch.no_grad():
+                    quality_targets = _aligned_box_iou(
+                        decoded_positive.detach(),
+                        matched_boxes[positive_mask],
+                    ).clamp(min=0.0, max=1.0)
+                class_targets[positive_mask, positive_labels] = quality_targets
+                total_box = total_box + self.loss_bbox(decoded_positive, matched_boxes[positive_mask])
+
+            total_cls = total_cls + self.loss_cls(cls_logits[valid_mask], class_targets[valid_mask])
+
+        num_images = max(len(images), 1)
+        loss_cls = total_cls / num_images
+        loss_bbox = total_box / num_images
+        return {
+            "loss_cls": loss_cls,
+            "loss_bbox": loss_bbox,
+            "loss_total": loss_cls + loss_bbox,
+        }
+
+
 class _NativeAnchorGenerator:
     def __init__(self, num_levels: int) -> None:
         self.num_levels = int(num_levels)
@@ -488,6 +550,23 @@ def _binary_cross_entropy_valid(logits, targets, valid_mask):
     if valid_mask.any():
         return F.binary_cross_entropy_with_logits(logits[valid_mask], targets[valid_mask], reduction="mean")
     return logits.sum() * 0.0
+
+
+def _aligned_box_iou(boxes1, boxes2):
+    if boxes1.shape != boxes2.shape:
+        raise ValueError(
+            f"aligned IoU expects matching box shapes, got {tuple(boxes1.shape)} and {tuple(boxes2.shape)}."
+        )
+    if boxes1.numel() == 0:
+        return boxes1.new_zeros((boxes1.shape[0],))
+    lt = torch.maximum(boxes1[:, :2], boxes2[:, :2])
+    rb = torch.minimum(boxes1[:, 2:], boxes2[:, 2:])
+    wh = (rb - lt).clamp(min=0)
+    inter = wh[:, 0] * wh[:, 1]
+    area1 = (boxes1[:, 2] - boxes1[:, 0]).clamp(min=0) * (boxes1[:, 3] - boxes1[:, 1]).clamp(min=0)
+    area2 = (boxes2[:, 2] - boxes2[:, 0]).clamp(min=0) * (boxes2[:, 3] - boxes2[:, 1]).clamp(min=0)
+    union = area1 + area2 - inter
+    return inter / union.clamp(min=torch.finfo(boxes1.dtype).eps)
 
 
 def _ignored_boxes_from_target(target):

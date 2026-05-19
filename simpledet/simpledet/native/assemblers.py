@@ -17,6 +17,7 @@ from .dense_ops import (
     DenseGFLLoss,
     DenseRetinaNetDecoder,
     DenseRetinaNetLoss,
+    DenseVFNetLoss,
 )
 from .heads import build_native_head
 from .modeling import NativeDetrModel, NativeRetinaNetModel
@@ -216,7 +217,7 @@ def assemble_gfl_detector(components: NativeModelComponents, *, num_classes: int
 def assemble_vfnet_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseATSSLoss,
+        loss_fn=DenseVFNetLoss,
         decoder=DenseATSSDecoder,
     )
 

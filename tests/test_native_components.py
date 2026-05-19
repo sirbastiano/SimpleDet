@@ -5,7 +5,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-from simpledet.extensions import DETECTORS, ENCODERS, HEADS, NECKS
+from simpledet.extensions import DETECTORS, ENCODERS, HEADS, LOSSES, NECKS
 from simpledet.suite import (
     build_custom_detector,
     build_custom_encoder,
@@ -16,7 +16,7 @@ from simpledet.suite import (
 from native_tensor_contracts import require_torch
 
 _COUNTER = itertools.count()
-_NATIVE_REGISTRIES = (DETECTORS, ENCODERS, HEADS, NECKS)
+_NATIVE_REGISTRIES = (DETECTORS, ENCODERS, HEADS, LOSSES, NECKS)
 
 
 def _clear_native_modules():

@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-18 23:51:55 | run=20260518-183418-2827287 | iter=10 | mode=build | story=US-010 | duration=1746s | status=success
 - 2026-05-18 23:22:39 | run=20260518-183418-2827287 | iter=9 | mode=build | story=US-009 | duration=983s | status=success
 - 2026-05-18 23:06:10 | run=20260518-183418-2827287 | iter=8 | mode=build | story=US-008 | duration=1096s | status=success
 - 2026-05-18 22:47:32 | run=20260518-183418-2827287 | iter=7 | mode=build | story=US-007 | duration=1715s | status=success
@@ -93,3 +94,9 @@
 [2026-05-18 23:47:27] US-010 progress log updated with implementation commit 7f9ff69 and verification outcomes
 [2026-05-18 23:50:25] US-010 sampler test expectation corrected and verification rerun: python3 full tests, make test, docs-check, build, verify-dist, and diff check passed
 [2026-05-18 23:51:00] US-010 progress log updated with follow-up sampler test commit 75e6fd4
+[2026-05-18 23:51:49] ITERATION 10 end (duration=1746s)
+[2026-05-18 23:52:00] ITERATION 11 start (mode=build story=US-011)
+[2026-05-18 23:56:00] US-011 started: guardrails errors PRD AGENTS command surface and loss/head registry audit in progress; activity helper path was missing so this entry was appended directly
+[2026-05-19 00:02:00] US-011 code changes applied: native LOSSES registry implementations, VFNet registered loss wiring, DenseVFNetLoss integration, and focused tensor loss tests
+[2026-05-19 00:06:01] US-011 verification completed: exact python gate failed because python is unavailable; python3 full unittest, docs-check, build, and verify-dist passed after review fix
+[2026-05-19 00:06:31] US-011 pre-commit security performance regression review completed: tensor-only losses, no file/network/secret handling, aligned VFNet IoU avoids quadratic target scoring, and registry import regressions passed

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..detectors._deps import require_dependency
-from ..extensions import HEADS
+from ..extensions import HEADS, LOSSES
 
 require_dependency("torch", "native heads")
 import torch.nn as nn  # noqa: E402
@@ -216,6 +216,26 @@ class ATSSV2Head(ATSSDenseHead):
 )
 class VFNetHead(ATSSDenseHead):
     """Dense alias for the VFNet head family."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_anchors: int = 9,
+        num_convs: int = 4,
+        loss_cls: str = "varifocal",
+        loss_bbox: str = "iou",
+    ) -> None:
+        super().__init__(
+            in_channels=in_channels,
+            num_classes=num_classes,
+            num_anchors=num_anchors,
+            num_convs=num_convs,
+        )
+        LOSSES.import_modules("simpledet.native.losses")
+        self.loss_cls = LOSSES.get(loss_cls)()
+        self.loss_bbox = LOSSES.get(loss_bbox)()
 
 
 @HEADS.register(
