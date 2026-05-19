@@ -112,6 +112,7 @@ from .losses import (
 from .modeling import (
     NativeFeatureExtractorBackbone,
     NativeRetinaNetModel,
+    QueryDetector,
     SingleStageDetector,
     TwoStageDetector,
     build_detector,
@@ -281,6 +282,7 @@ __all__ = [
     "MaskLoss",
     "build_loss",
     "NativeFeatureExtractorBackbone",
+    "QueryDetector",
     "SingleStageDetector",
     "TwoStageDetector",
     "BatchedRoIProposals",

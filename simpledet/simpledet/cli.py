@@ -25,6 +25,11 @@ _DETECTOR_HELP = {
         "family": "transformer",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
+    "dab_detr": {
+        "summary": "DAB-DETR detector with dynamic anchor query defaults on the native query path.",
+        "family": "transformer",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
     "dino": {
         "summary": "DINO-style transformer detector family routed to the native transformer path.",
         "family": "transformer",

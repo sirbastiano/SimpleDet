@@ -28,10 +28,10 @@ from .dense_ops import (
     DenseYOLOXLoss,
 )
 from .heads import build_native_head
-from .modeling import NativeDetrModel, NativeRetinaNetModel
+from .modeling import NativeRetinaNetModel, QueryDetector
 from .necks import build_native_neck
 from .roi import build_native_roi_detector
-from .transformer_ops import NativeDetrDecoder, NativeDetrLoss, NativeDetrPostProcessor
+from .transformer_ops import NativeDetrLoss, NativeDetrPostProcessor, SinePositionEncoding
 
 
 @dataclass(slots=True)
@@ -53,17 +53,11 @@ class NativeModelComponents:
     grid_head_spec: object | None = None
 
 
-_TRANSFORMER_QUERY_DEFAULTS = {
-    "detr": 100,
-    "deformable_detr": 300,
-    "conditional_detr": 300,
-    "dino": 300,
-}
-
 _DETECTOR_DEPENDENCIES = (("torch", "cpu"), ("torchvision", "cpu"))
 _DENSE_CONTRACTS = ("feature_pyramid", "dense_predictions", "postprocessed_boxes")
 _ROI_CONTRACTS = ("feature_pyramid", "roi_proposals", "postprocessed_boxes")
 _TRANSFORMER_CONTRACTS = ("feature_sequence", "set_predictions", "postprocessed_boxes")
+_POSITIONAL_ENCODING_UNSET = object()
 
 
 def build_native_components(detector_spec) -> NativeModelComponents:
@@ -114,6 +108,13 @@ def build_native_components(detector_spec) -> NativeModelComponents:
                 out_channels=neck_spec.out_channels,
                 num_classes=int(plan.num_classes),
             )
+    if plan.family == "transformer":
+        _validate_transformer_head_plan(plan)
+        head, head_spec = build_native_head(
+            plan.head,
+            out_channels=neck_spec.out_channels,
+            num_classes=int(plan.num_classes),
+        )
     return NativeModelComponents(
         plan=plan,
         backbone=backbone,
@@ -131,26 +132,6 @@ def build_native_components(detector_spec) -> NativeModelComponents:
         grid_head=grid_head,
         grid_head_spec=grid_head_spec,
     )
-
-
-def _build_transformer_components(
-    plan,
-    neck_spec,
-    *,
-    num_classes: int,
-):
-    params: dict[str, Any] = {}
-    if plan.decoder is not None:
-        params.update(plan.decoder.params)
-        if "embed_dims" in params:
-            params.setdefault("in_channels", params.pop("embed_dims"))
-    params.setdefault("in_channels", int(neck_spec.out_channels))
-    params.setdefault("num_classes", int(num_classes))
-    params.setdefault(
-        "num_queries",
-        _TRANSFORMER_QUERY_DEFAULTS.get(plan.architecture, 100),
-    )
-    return NativeDetrDecoder(**params), NativeDetrLoss(), NativeDetrPostProcessor()
 
 
 def _assemble_dense_detector(
@@ -218,6 +199,18 @@ def _validate_roi_head_plan(plan) -> None:
         _validate_optional_roi_head(plan, plan.grid_head, "grid")
 
 
+def _validate_transformer_head_plan(plan) -> None:
+    if plan.head is None:
+        raise ValueError(f"Query detector '{plan.architecture}' requires a transformer head plan.")
+    metadata = HEADS.lookup(plan.head.type)
+    head_family = None if metadata.family is None else str(metadata.family).strip().lower()
+    if head_family != "transformer":
+        raise ValueError(
+            f"Query detector '{plan.architecture}' requires a transformer head, "
+            f"but head '{metadata.name}' has family '{metadata.family}'."
+        )
+
+
 def _validate_optional_roi_head(plan, head_plan, role: str) -> None:
     metadata = HEADS.lookup(head_plan.type)
     family = None if metadata.family is None else str(metadata.family).strip().lower()
@@ -232,6 +225,24 @@ def _build_default_yolox_loss():
     return DenseYOLOXLoss(objectness_target_config={"positive": 1.0, "negative": 0.0})
 
 
+def _build_query_position_encoding(plan, neck_spec):
+    configured = getattr(plan, "overrides", {}).get("positional_encoding", _POSITIONAL_ENCODING_UNSET)
+    if configured is None:
+        return None
+    if configured is _POSITIONAL_ENCODING_UNSET:
+        params = {"num_feats": max(int(neck_spec.out_channels) // 2, 1)}
+    else:
+        if not isinstance(configured, dict):
+            raise ValueError("QueryDetector positional_encoding must be a mapping of settings.")
+        params = dict(configured)
+        if "num_feats" not in params:
+            raise ValueError(
+                "QueryDetector requires positional_encoding.num_feats when positional_encoding is provided."
+            )
+    params.setdefault("normalize", True)
+    return SinePositionEncoding(**params)
+
+
 @DETECTORS.register(
     "detr",
     aliases=("DETR",),
@@ -240,21 +251,57 @@ def _build_default_yolox_loss():
     validation_status="runtime_validated",
     family="transformer",
 )
-@DETECTORS.register("deformable_detr")
-@DETECTORS.register("conditional_detr")
-@DETECTORS.register("dino")
+@DETECTORS.register(
+    "deformable_detr",
+    aliases=("DeformableDETR",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_TRANSFORMER_CONTRACTS,
+    validation_status="runtime_validated",
+    family="transformer",
+)
+@DETECTORS.register(
+    "conditional_detr",
+    aliases=("ConditionalDETR",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_TRANSFORMER_CONTRACTS,
+    validation_status="runtime_validated",
+    family="transformer",
+)
+@DETECTORS.register(
+    "dab_detr",
+    aliases=("DAB-DETR",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_TRANSFORMER_CONTRACTS,
+    validation_status="runtime_validated",
+    family="transformer",
+)
+@DETECTORS.register(
+    "dino",
+    aliases=("DINO",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_TRANSFORMER_CONTRACTS,
+    validation_status="runtime_validated",
+    family="transformer",
+)
 def assemble_transformer_detector(components: NativeModelComponents, *, num_classes: int):
-    decoder, loss_fn, postprocessor = _build_transformer_components(
-        components.plan,
-        components.neck_spec,
-        num_classes=num_classes,
-    )
-    return NativeDetrModel(
+    if components.plan.family != "transformer":
+        raise ValueError(
+            f"Query detector assembly requires a transformer detector plan, got "
+            f"{components.plan.family!r} for '{components.plan.architecture}'."
+        )
+    _validate_transformer_head_plan(components.plan)
+    if components.head is None or components.head_spec is None:
+        raise ValueError(f"{components.plan.architecture} assembly requires a native query head.")
+    return QueryDetector(
         backbone=components.backbone,
         neck=components.neck,
-        decoder=decoder,
-        loss_fn=loss_fn,
-        postprocessor=postprocessor,
+        head=components.head,
+        backbone_spec=components.backbone_spec,
+        neck_spec=components.neck_spec,
+        head_spec=components.head_spec,
+        loss_fn=NativeDetrLoss(),
+        postprocessor=NativeDetrPostProcessor(),
+        positional_encoding=_build_query_position_encoding(components.plan, components.neck_spec),
     )
 
 

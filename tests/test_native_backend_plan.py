@@ -47,6 +47,18 @@ def _fake_torch_modules():
             super().__init__()
             self.weight = object()
 
+    class TransformerEncoderLayer(Module):
+        pass
+
+    class TransformerDecoderLayer(Module):
+        pass
+
+    class TransformerEncoder(Module):
+        pass
+
+    class TransformerDecoder(Module):
+        pass
+
     class ReLU(Module):
         pass
 
@@ -58,6 +70,10 @@ def _fake_torch_modules():
     fake_nn.Identity = Identity
     fake_nn.Linear = Linear
     fake_nn.Embedding = Embedding
+    fake_nn.TransformerEncoderLayer = TransformerEncoderLayer
+    fake_nn.TransformerDecoderLayer = TransformerDecoderLayer
+    fake_nn.TransformerEncoder = TransformerEncoder
+    fake_nn.TransformerDecoder = TransformerDecoder
     fake_nn.ReLU = ReLU
     fake_torch.nn = fake_nn
     return {
@@ -152,6 +168,33 @@ class NativeBuildPlanTests(unittest.TestCase):
             build_detector("cascade_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
         )
         self.assertEqual(cascade.bbox_head.type, "CascadeBBoxHead")
+
+    def test_compile_native_detector_plan_for_query_components(self):
+        expected_heads = {
+            "detr": "DETRHead",
+            "conditional_detr": "ConditionalDETRHead",
+            "dab_detr": "DABDETRHead",
+            "deformable_detr": "DeformableDETRHead",
+            "dino": "DINOHead",
+        }
+        for architecture, expected_head in expected_heads.items():
+            with self.subTest(architecture=architecture):
+                plan = compile_native_detector_plan(
+                    build_detector(
+                        architecture,
+                        num_classes=3,
+                        encoder="resnet18.a1_in1k",
+                        num_queries=20,
+                        hidden_dim=16,
+                        num_heads=4,
+                    )
+                )
+
+                self.assertEqual(plan.family, "transformer")
+                self.assertEqual(plan.head.type, expected_head)
+                self.assertEqual(plan.head.params["num_classes"], 3)
+                self.assertEqual(plan.head.params["num_queries"], 20)
+                self.assertEqual(plan.head.params["hidden_dim"], 16)
 
 
 class ExtensionRegistryTests(unittest.TestCase):
@@ -308,6 +351,7 @@ class ExtensionRegistryTests(unittest.TestCase):
             "Mask R-CNN": ("mask_rcnn", "roi"),
             "Grid R-CNN": ("grid_rcnn", "roi"),
             "Cascade R-CNN": ("cascade_rcnn", "roi"),
+            "DAB-DETR": ("dab_detr", "transformer"),
         }
         for alias, (expected_name, expected_family) in aliases.items():
             with self.subTest(alias=alias):
@@ -382,6 +426,7 @@ class ExtensionRegistryTests(unittest.TestCase):
         aliases = {
             "retina": "dense",
             "deformable_detr": "transformer",
+            "dab_detr": "transformer",
             "foveabox": "dense",
             "faster-rcnn": "roi",
             "mask-rcnn": "roi",

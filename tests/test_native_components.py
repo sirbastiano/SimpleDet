@@ -113,6 +113,18 @@ def _fake_torch_modules():
             super().__init__()
             self.weight = f"embedding-{num_embeddings}-{embedding_dim}"
 
+    class TransformerEncoderLayer(Module):
+        pass
+
+    class TransformerDecoderLayer(Module):
+        pass
+
+    class TransformerEncoder(Module):
+        pass
+
+    class TransformerDecoder(Module):
+        pass
+
     class ReLU(Module):
         def __init__(self, *args, **kwargs):
             super().__init__()
@@ -128,6 +140,10 @@ def _fake_torch_modules():
     fake_nn.Identity = Identity
     fake_nn.Linear = Linear
     fake_nn.Embedding = Embedding
+    fake_nn.TransformerEncoderLayer = TransformerEncoderLayer
+    fake_nn.TransformerDecoderLayer = TransformerDecoderLayer
+    fake_nn.TransformerEncoder = TransformerEncoder
+    fake_nn.TransformerDecoder = TransformerDecoder
     fake_nn.ReLU = ReLU
     fake_torch.nn = fake_nn
     fake_torch.tensor = lambda value, **kwargs: value
@@ -1089,7 +1105,8 @@ class NativeComponentTests(unittest.TestCase):
             spec = build_detector("detr_r50_fpn", num_classes=2, encoder="resnet18.a1_in1k")
             model = build_native_model("detr", num_classes=2, detector_spec=spec)
 
-        self.assertEqual(type(model).__name__, "NativeDetrModel")
+        self.assertEqual(type(model).__name__, "QueryDetector")
+        self.assertEqual(model.head_spec.name, "DETRHead")
 
     def test_build_transformer_decoder_rejects_invalid_architecture(self):
         fake_timm = types.ModuleType("timm")

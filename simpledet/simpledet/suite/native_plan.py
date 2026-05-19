@@ -66,6 +66,7 @@ def compile_native_detector_plan(spec: DetectorSpec) -> DetectorBuildPlan:
         raise TypeError("`spec` must be an instance of DetectorSpec.")
 
     head = _compile_head_plan(spec.head)
+    decoder = _compile_decoder_plan(spec.decoder)
     rpn_head = None
     bbox_head = None
     mask_head = None
@@ -79,6 +80,8 @@ def compile_native_detector_plan(spec: DetectorSpec) -> DetectorBuildPlan:
             mask_head = _default_head_plan("FCNMaskHead", num_classes=spec.num_classes)
         if spec.architecture == "grid_rcnn":
             grid_head = _default_head_plan("GridHead", num_classes=spec.num_classes, grid_size=7)
+    elif spec.family == "transformer":
+        head = _compile_transformer_head_plan(spec, head, decoder)
 
     return DetectorBuildPlan(
         architecture=spec.architecture,
@@ -92,7 +95,7 @@ def compile_native_detector_plan(spec: DetectorSpec) -> DetectorBuildPlan:
         bbox_head=bbox_head,
         mask_head=mask_head,
         grid_head=grid_head,
-        decoder=_compile_decoder_plan(spec.decoder),
+        decoder=decoder,
         overrides=_copy_mapping(spec.overrides),
     )
 
@@ -105,6 +108,62 @@ def _default_roi_bbox_head_type(architecture: str) -> str:
     if architecture == "cascade_rcnn":
         return "CascadeBBoxHead"
     return "Shared2FCBBoxHead"
+
+
+_TRANSFORMER_DEFAULT_HEAD_BY_ARCHITECTURE = {
+    "detr": "DETRHead",
+    "conditional_detr": "ConditionalDETRHead",
+    "dab_detr": "DABDETRHead",
+    "deformable_detr": "DeformableDETRHead",
+    "dino": "DINOHead",
+}
+
+_TRANSFORMER_QUERY_DEFAULTS = {
+    "detr": 100,
+    "conditional_detr": 300,
+    "dab_detr": 300,
+    "deformable_detr": 300,
+    "dino": 300,
+}
+
+_TRANSFORMER_HEAD_PARAM_KEYS = {
+    "num_queries",
+    "hidden_dim",
+    "num_heads",
+    "num_encoder_layers",
+    "num_decoder_layers",
+    "dim_feedforward",
+    "dropout",
+    "activation",
+    "num_feature_levels",
+}
+
+
+def _compile_transformer_head_plan(
+    spec: DetectorSpec,
+    head: ComponentPlan | None,
+    decoder: ComponentPlan | None,
+) -> ComponentPlan:
+    if head is not None:
+        return head
+
+    head_type = _TRANSFORMER_DEFAULT_HEAD_BY_ARCHITECTURE.get(spec.architecture)
+    if head_type is None:
+        raise ValueError(
+            f"Transformer detector '{spec.architecture}' requires an explicit query head."
+        )
+
+    params: dict[str, Any] = {}
+    if decoder is not None:
+        params.update(decoder.params)
+        if "embed_dims" in params:
+            params.setdefault("hidden_dim", params.pop("embed_dims"))
+    for key in _TRANSFORMER_HEAD_PARAM_KEYS:
+        if key in spec.overrides:
+            params[key] = spec.overrides[key]
+    params.setdefault("num_classes", spec.num_classes)
+    params.setdefault("num_queries", _TRANSFORMER_QUERY_DEFAULTS.get(spec.architecture, 100))
+    return ComponentPlan(kind="head", type=head_type, params=params)
 
 
 def _validate_roi_detector_spec(spec: DetectorSpec, head: ComponentPlan | None) -> None:

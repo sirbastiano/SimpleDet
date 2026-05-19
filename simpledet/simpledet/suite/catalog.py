@@ -40,6 +40,8 @@ ARCHITECTURE_FAMILIES: dict[str, str] = {
     "deformable_detr": "transformer",
     "deformabledetr": "transformer",
     "conditional_detr": "transformer",
+    "dab_detr": "transformer",
+    "dabdetr": "transformer",
     "dino": "transformer",
     "fcos": "dense",
     "atss": "dense",
@@ -105,12 +107,16 @@ def resolve_architecture_name(name: str) -> str:
         return "deformable_detr"
     if compact in {"conditionaldetr", "conditionaldetrnext"}:
         return "conditional_detr"
+    if compact in {"dabdetr", "dabdetrnext", "dabdetrv2"}:
+        return "dab_detr"
     if compact in {"dino", "dinov2", "dino2"}:
         return "dino"
     if compact.startswith("deformabledetr"):
         return "deformable_detr"
     if compact.startswith("conditionaldetr"):
         return "conditional_detr"
+    if compact.startswith("dabdetr"):
+        return "dab_detr"
     if compact.startswith("dino"):
         return "dino"
     if compact.startswith("detr"):

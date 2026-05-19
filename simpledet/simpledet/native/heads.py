@@ -44,6 +44,60 @@ def _validate_attention_config(*, hidden_dim: int, num_heads: int) -> None:
         )
 
 
+class _PassthroughTransformerEncoder(nn.Module):
+    def forward(self, source: Any) -> Any:
+        return source
+
+
+class _PassthroughTransformerDecoder(nn.Module):
+    def forward(self, target: Any, memory: Any) -> Any:
+        return target
+
+
+def _build_transformer_encoder(
+    *,
+    hidden_dim: int,
+    num_heads: int,
+    dim_feedforward: int,
+    dropout: float,
+    activation: str,
+    num_layers: int,
+) -> nn.Module:
+    if not hasattr(nn, "TransformerEncoderLayer") or not hasattr(nn, "TransformerEncoder"):
+        return _PassthroughTransformerEncoder()
+    layer = nn.TransformerEncoderLayer(
+        d_model=hidden_dim,
+        nhead=num_heads,
+        dim_feedforward=dim_feedforward,
+        dropout=dropout,
+        activation=activation,
+        batch_first=True,
+    )
+    return nn.TransformerEncoder(layer, num_layers=num_layers)
+
+
+def _build_transformer_decoder(
+    *,
+    hidden_dim: int,
+    num_heads: int,
+    dim_feedforward: int,
+    dropout: float,
+    activation: str,
+    num_layers: int,
+) -> nn.Module:
+    if not hasattr(nn, "TransformerDecoderLayer") or not hasattr(nn, "TransformerDecoder"):
+        return _PassthroughTransformerDecoder()
+    layer = nn.TransformerDecoderLayer(
+        d_model=hidden_dim,
+        nhead=num_heads,
+        dim_feedforward=dim_feedforward,
+        dropout=dropout,
+        activation=activation,
+        batch_first=True,
+    )
+    return nn.TransformerDecoder(layer, num_layers=num_layers)
+
+
 def _positive_int_tuple(value: Any, name: str) -> tuple[int, ...]:
     if value is None:
         raise ValueError(f"{name} is required.")
@@ -1701,24 +1755,22 @@ class DETRHead(nn.Module):
         _validate_attention_config(hidden_dim=self.hidden_dim, num_heads=self.num_heads)
 
         self.input_proj = nn.Conv2d(self.in_channels, self.hidden_dim, kernel_size=1)
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.hidden_dim,
-            nhead=self.num_heads,
+        self.encoder = _build_transformer_encoder(
+            hidden_dim=self.hidden_dim,
+            num_heads=self.num_heads,
             dim_feedforward=self.dim_feedforward,
             dropout=self.dropout,
             activation=self.activation,
-            batch_first=True,
+            num_layers=self.num_encoder_layers,
         )
-        decoder_layer = nn.TransformerDecoderLayer(
-            d_model=self.hidden_dim,
-            nhead=self.num_heads,
+        self.decoder = _build_transformer_decoder(
+            hidden_dim=self.hidden_dim,
+            num_heads=self.num_heads,
             dim_feedforward=self.dim_feedforward,
             dropout=self.dropout,
             activation=self.activation,
-            batch_first=True,
+            num_layers=self.num_decoder_layers,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=self.num_encoder_layers)
-        self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=self.num_decoder_layers)
         self.query_embed = nn.Embedding(self.num_queries, self.hidden_dim)
         self.class_embed = nn.Linear(self.hidden_dim, self.num_classes + 1)
         self.bbox_embed = nn.Sequential(

@@ -34,9 +34,11 @@ class NativeSuiteTests(unittest.TestCase):
 
     def test_build_detector_rejects_removed_legacy_architectures(self):
         detector = build_detector("detr", num_classes=2, encoder="resnet18.a1_in1k")
+        plan = compile_native_detector_plan(detector)
 
         self.assertEqual(detector.family, "transformer")
         self.assertIsNone(detector.head)
+        self.assertEqual(plan.head.type, "DETRHead")
 
     def test_build_head_rejects_non_positive_num_classes(self):
         with self.assertRaisesRegex(ValueError, "num_classes.*positive integer"):
@@ -47,6 +49,7 @@ class NativeSuiteTests(unittest.TestCase):
             "detr_r50_fpn": "detr",
             "deformable-detr_r50": "deformable_detr",
             "conditional_detr-4scale": "conditional_detr",
+            "dab-detr-r50": "dab_detr",
             "dino4": "dino",
             "deformable-detr-v2": "deformable_detr",
             "detr3d": "detr",

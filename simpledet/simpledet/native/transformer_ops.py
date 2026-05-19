@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from ..detectors._deps import require_dependency
 
 require_dependency("torch", "native transformer ops")
@@ -10,6 +12,67 @@ import torch.nn as nn  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 
 from .assignment import HungarianAssigner  # noqa: E402
+
+
+class SinePositionEncoding(nn.Module):
+    """2D sine/cosine positional encoding for query detector feature maps."""
+
+    def __init__(
+        self,
+        *,
+        num_feats: int,
+        temperature: float = 10000.0,
+        normalize: bool = True,
+        scale: float | None = None,
+    ) -> None:
+        super().__init__()
+        self.num_feats = int(num_feats)
+        if self.num_feats <= 0:
+            raise ValueError("positional_encoding.num_feats must be a positive integer.")
+        self.temperature = float(temperature)
+        if self.temperature <= 0:
+            raise ValueError("positional_encoding.temperature must be positive.")
+        self.normalize = bool(normalize)
+        self.scale = float(2.0 * math.pi if scale is None else scale)
+
+    def forward(self, feature):
+        shape = getattr(feature, "shape", ())
+        if len(shape) != 4:
+            raise ValueError("SinePositionEncoding expects a 4D NCHW feature tensor.")
+        batch_size, _channels, height, width = (int(value) for value in shape)
+        if height <= 0 or width <= 0:
+            raise ValueError("SinePositionEncoding requires non-empty spatial dimensions.")
+
+        if self.normalize:
+            y_positions = torch.linspace(
+                0.0,
+                self.scale,
+                steps=height,
+                device=feature.device,
+                dtype=feature.dtype,
+            )
+            x_positions = torch.linspace(
+                0.0,
+                self.scale,
+                steps=width,
+                device=feature.device,
+                dtype=feature.dtype,
+            )
+        else:
+            y_positions = torch.arange(height, device=feature.device, dtype=feature.dtype)
+            x_positions = torch.arange(width, device=feature.device, dtype=feature.dtype)
+
+        y_grid, x_grid = torch.meshgrid(y_positions, x_positions, indexing="ij")
+        dimensions = torch.arange(
+            self.num_feats,
+            device=feature.device,
+            dtype=feature.dtype,
+        ).view(-1, 1, 1)
+        frequencies = self.temperature ** (dimensions / float(max(self.num_feats, 1)))
+        encoded_y = torch.sin(y_grid.unsqueeze(0) / frequencies)
+        encoded_x = torch.cos(x_grid.unsqueeze(0) / frequencies)
+        position = torch.cat((encoded_y, encoded_x), dim=0).unsqueeze(0)
+        return position.expand(batch_size, -1, -1, -1)
 
 
 class NativeDetrDecoder(nn.Module):
