@@ -1591,3 +1591,33 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Dense-head support is split across registry metadata, native construction, forward shape checks, finite loss smoke tests, and decode payload checks in `tests/test_native_dense_heads.py`.
   - The repo-local `/shared/home/rdelprete/PythonProjects/MMDET/ralph` executable is absent, but the `ralph` helper is available on `PATH` and writes activity entries.
 ---
+## [2026-05-19 10:48:43 UTC] - US-040: Strengthen packaging tests
+Thread:
+Run: 20260518-183418-2827287 (iteration 40)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-40.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-40.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: b6f4ffc test(packaging): strengthen dist verification
+- Post-commit status: `clean` after implementation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_packaging` -> PASS (13 tests)
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS (check-wheel-contents OK; 13 packaging tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (298 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - tests/test_packaging.py
+- What was implemented
+  - Added reusable wheel and sdist verification helpers that check package modules, wheel metadata, optional extras metadata, console script entry points, required sdist docs/project files, and generated cache exclusions.
+  - Expanded package import coverage so optional runtime dependencies remain blocked while safe public modules and registry discovery import from the base package.
+  - Added negative verifier cases for missing docs, missing package modules in sdist and wheel artifacts, missing pyproject metadata, and generated cache files.
+  - Security/performance/regression review: tests only read local built artifacts and pyproject metadata; archive scans are bounded to member-name sets; no runtime package behavior, external input handling, network access, or dependency direction changed; full gates passed.
+- **Learnings for future iterations:**
+  - `make build` should precede `make verify-dist` whenever packaging tests inspect current sdist or wheel contents.
+  - Wheel `Requires-Python` metadata can normalize specifier ordering, so tests should compare normalized specifier sets against `pyproject.toml`.
+  - `make verify-dist` combines `check-wheel-contents` with `tests.test_packaging`, making that file the right home for release artifact contract tests.
+---
