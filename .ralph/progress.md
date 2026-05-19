@@ -42,6 +42,54 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
 ---
+## [2026-05-19 06:22:59 UTC] - US-026: Expose public builder API
+Thread:
+Run: 20260518-183418-2827287 (iteration 26)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-26.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-26.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 08f5e48 feat(api): expose public builders
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_public_api tests.test_suite tests.test_native_backbones tests.test_native_backend_plan tests.test_cli` -> PASS (78 tests, 1 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (233 tests, 90 skipped)
+  - Command: `make test` -> PASS (233 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `PYTHONPATH=simpledet python - <<'PY'
+from simpledet.suite import build_detector, compile_native_detector_plan
+spec = build_detector(name='retinanet', num_classes=3, backbone='resnet50')
+plan = compile_native_detector_plan(spec)
+print(type(spec).__name__, spec.architecture, spec.encoder.name, plan.encoder.type)
+PY` -> PASS (`DetectorSpec retinanet resnet50 resnet50`)
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/configuration-guide.html
+  - simpledet/simpledet/__init__.py
+  - simpledet/simpledet/api.py
+  - simpledet/simpledet/suite/__init__.py
+  - simpledet/simpledet/suite/backbone_aliases.py
+  - simpledet/simpledet/suite/catalog.py
+  - simpledet/simpledet/suite/native_plan.py
+  - tests/test_public_api.py
+- What was implemented
+  - Added stable public builder/discovery exports for `build_detector`, `build_backbone`, `build_neck`, `build_head`, `list_detectors`, `list_heads`, `list_backbones`, and `compile_native_detector_plan` through `simpledet.suite`, `simpledet.api`, and lazy top-level `simpledet` access where practical.
+  - Added `build_detector(..., backbone="resnet50")` as a concise native backbone alias path while preserving existing `encoder="resnet18.a1_in1k"` TIMM-string behavior.
+  - Added `build_detector(..., build=True)` delegation to native module assembly; default behavior remains spec-returning.
+  - Added `list_detectors(family=None, pattern=None)` with registry-backed names/aliases and a static catalog fallback when optional native dependencies are unavailable.
+  - Hardened invalid public builder arguments to raise `ValueError`, including missing detector names, conflicting `encoder`/`backbone`, invalid component specs, invalid discovery filters, invalid out-index inputs, and non-`DetectorSpec` build-plan compilation.
+  - Updated public API docs and configuration examples with the `backbone=` and `build=` behavior.
+  - Security/performance/regression review: no new secret, network, shell execution, or unsafe file handling paths; discovery uses bounded registry/catalog iteration and retryable optional native imports; existing TIMM `encoder=` behavior remains unchanged; full unittest, docs, build, and packaging gates passed.
+- **Learnings for future iterations:**
+  - Keep `encoder=` and `backbone=` semantics separate: `encoder` remains the backward-compatible TIMM model string path, while `backbone` is the native alias convenience path.
+  - Public discovery helpers can be called before optional CPU dependencies are installed; failed native registry imports should not poison later registry tests in the same process.
+  - `make verify-dist` should run after `make build` so it audits the current wheel.
+---
 ## [2026-05-19 05:02:10 UTC] - US-023: Register dense detector families
 Thread:
 Run: 20260518-183418-2827287 (iteration 23)
