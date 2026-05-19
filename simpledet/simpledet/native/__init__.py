@@ -113,6 +113,7 @@ from .modeling import (
     NativeFeatureExtractorBackbone,
     NativeRetinaNetModel,
     SingleStageDetector,
+    TwoStageDetector,
     build_detector,
 )
 from .necks import (
@@ -281,6 +282,7 @@ __all__ = [
     "build_loss",
     "NativeFeatureExtractorBackbone",
     "SingleStageDetector",
+    "TwoStageDetector",
     "BatchedRoIProposals",
     "NativeRoIBackbone",
     "RoIBBoxTargets",

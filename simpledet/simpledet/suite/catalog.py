@@ -202,6 +202,13 @@ _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE = {
     "centernet": "CenterNetHead",
 }
 
+_ROI_DEFAULT_BBOX_HEAD_BY_ARCHITECTURE = {
+    "cascade_rcnn": "CascadeBBoxHead",
+    "faster_rcnn": "Shared2FCBBoxHead",
+    "grid_rcnn": "Shared2FCBBoxHead",
+    "mask_rcnn": "Shared2FCBBoxHead",
+}
+
 
 def list_native_encoder_families(pattern: str | None = None) -> list[str]:
     return _list_native_families(kind="encoder", pattern=pattern)
@@ -697,7 +704,14 @@ def build_detector(
                 with_mask=normalized_architecture == "mask_rcnn",
             )
         elif family == "roi":
-            head = build_head("RetinaHead", num_classes=num_classes, with_mask=normalized_architecture == "mask_rcnn")
+            head = build_head(
+                _ROI_DEFAULT_BBOX_HEAD_BY_ARCHITECTURE.get(
+                    normalized_architecture,
+                    "Shared2FCBBoxHead",
+                ),
+                num_classes=num_classes,
+                with_mask=normalized_architecture == "mask_rcnn",
+            )
         else:
             head = None
     else:
@@ -767,7 +781,14 @@ def build_custom_detector(
                 with_mask=with_mask,
             )
         elif normalized_family == "roi":
-            head = build_head("RetinaHead", num_classes=num_classes, with_mask=normalized_architecture == "mask_rcnn")
+            head = build_head(
+                _ROI_DEFAULT_BBOX_HEAD_BY_ARCHITECTURE.get(
+                    normalized_architecture,
+                    "Shared2FCBBoxHead",
+                ),
+                num_classes=num_classes,
+                with_mask=normalized_architecture == "mask_rcnn",
+            )
         else:
             head = None
     else:

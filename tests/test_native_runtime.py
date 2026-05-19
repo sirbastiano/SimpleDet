@@ -35,6 +35,8 @@ class NativeRuntimeTests(unittest.TestCase):
         fake_nn.ModuleList = list
         fake_nn.Sequential = lambda *layers: Module()
         fake_nn.Conv2d = lambda *args, **kwargs: Module()
+        fake_nn.ConvTranspose2d = lambda *args, **kwargs: Module()
+        fake_nn.Identity = lambda *args, **kwargs: Module()
         fake_nn.ReLU = lambda *args, **kwargs: Module()
         fake_torch.nn = fake_nn
         fake_torch.tensor = lambda *args, **kwargs: 0

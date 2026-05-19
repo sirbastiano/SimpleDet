@@ -43,6 +43,14 @@ class NativeModelComponents:
     neck_spec: object
     head: object | None = None
     head_spec: object | None = None
+    rpn_head: object | None = None
+    rpn_head_spec: object | None = None
+    bbox_head: object | None = None
+    bbox_head_spec: object | None = None
+    mask_head: object | None = None
+    mask_head_spec: object | None = None
+    grid_head: object | None = None
+    grid_head_spec: object | None = None
 
 
 _TRANSFORMER_QUERY_DEFAULTS = {
@@ -72,6 +80,40 @@ def build_native_components(detector_spec) -> NativeModelComponents:
             out_channels=neck_spec.out_channels,
             num_classes=int(plan.num_classes),
         )
+    rpn_head = None
+    rpn_head_spec = None
+    bbox_head = None
+    bbox_head_spec = None
+    mask_head = None
+    mask_head_spec = None
+    grid_head = None
+    grid_head_spec = None
+    if plan.family == "roi":
+        _validate_roi_head_plan(plan)
+        rpn_head, rpn_head_spec = build_native_head(
+            plan.rpn_head,
+            out_channels=neck_spec.out_channels,
+            num_classes=1,
+        )
+        bbox_head, bbox_head_spec = build_native_head(
+            plan.bbox_head,
+            out_channels=neck_spec.out_channels,
+            num_classes=int(plan.num_classes),
+        )
+        head = bbox_head
+        head_spec = bbox_head_spec
+        if plan.mask_head is not None:
+            mask_head, mask_head_spec = build_native_head(
+                plan.mask_head,
+                out_channels=neck_spec.out_channels,
+                num_classes=int(plan.num_classes),
+            )
+        if plan.grid_head is not None:
+            grid_head, grid_head_spec = build_native_head(
+                plan.grid_head,
+                out_channels=neck_spec.out_channels,
+                num_classes=int(plan.num_classes),
+            )
     return NativeModelComponents(
         plan=plan,
         backbone=backbone,
@@ -80,6 +122,14 @@ def build_native_components(detector_spec) -> NativeModelComponents:
         neck_spec=neck_spec,
         head=head,
         head_spec=head_spec,
+        rpn_head=rpn_head,
+        rpn_head_spec=rpn_head_spec,
+        bbox_head=bbox_head,
+        bbox_head_spec=bbox_head_spec,
+        mask_head=mask_head,
+        mask_head_spec=mask_head_spec,
+        grid_head=grid_head,
+        grid_head_spec=grid_head_spec,
     )
 
 
@@ -136,6 +186,44 @@ def _validate_dense_head_plan(plan) -> None:
     if head_family is not None and head_family != "dense":
         raise ValueError(
             f"Single-stage detector '{plan.architecture}' requires a dense head, "
+            f"but head '{metadata.name}' has family '{metadata.family}'."
+        )
+
+
+def _validate_roi_head_plan(plan) -> None:
+    if plan.rpn_head is None:
+        raise ValueError(f"Two-stage detector '{plan.architecture}' requires an RPN head plan.")
+    rpn_metadata = HEADS.lookup(plan.rpn_head.type)
+    if rpn_metadata.name != "RPNHead":
+        raise ValueError(
+            f"Two-stage detector '{plan.architecture}' requires RPNHead for proposal generation, "
+            f"got '{rpn_metadata.name}'."
+        )
+    if plan.bbox_head is None:
+        raise ValueError(f"Two-stage detector '{plan.architecture}' requires an ROI bbox head plan.")
+    bbox_metadata = HEADS.lookup(plan.bbox_head.type)
+    bbox_family = None if bbox_metadata.family is None else str(bbox_metadata.family).strip().lower()
+    if bbox_family != "roi":
+        raise ValueError(
+            f"Two-stage detector '{plan.architecture}' requires an ROI bbox head, "
+            f"but head '{bbox_metadata.name}' has family '{bbox_metadata.family}'."
+        )
+    if plan.architecture == "mask_rcnn" and plan.mask_head is None:
+        raise ValueError("mask_rcnn build-plan validation requires a native mask head.")
+    if plan.mask_head is not None:
+        _validate_optional_roi_head(plan, plan.mask_head, "mask")
+    if plan.architecture == "grid_rcnn" and plan.grid_head is None:
+        raise ValueError("grid_rcnn build-plan validation requires a native grid head.")
+    if plan.grid_head is not None:
+        _validate_optional_roi_head(plan, plan.grid_head, "grid")
+
+
+def _validate_optional_roi_head(plan, head_plan, role: str) -> None:
+    metadata = HEADS.lookup(head_plan.type)
+    family = None if metadata.family is None else str(metadata.family).strip().lower()
+    if family != "roi":
+        raise ValueError(
+            f"Two-stage detector '{plan.architecture}' requires an ROI {role} head, "
             f"but head '{metadata.name}' has family '{metadata.family}'."
         )
 

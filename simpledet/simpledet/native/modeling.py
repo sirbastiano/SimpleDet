@@ -10,7 +10,7 @@ from ..suite.catalog import resolve_architecture_name
 require_dependency("torch", "native")
 import torch  # noqa: E402
 import torch.nn as nn  # noqa: E402
-from .roi import NativeRoIBackbone  # noqa: E402
+from .roi import NativeRoIBackbone, TwoStageDetector  # noqa: E402
 
 
 SUPPORTED_NATIVE_ARCHITECTURES = {
@@ -236,7 +236,7 @@ def build_detector(
     in_channels: int = 3,
     pretrained: bool = True,
     **overrides: Any,
-) -> SingleStageDetector:
+) -> nn.Module:
     """Build a native detector module from the public suite defaults."""
 
     if detector_spec is None:
@@ -255,9 +255,9 @@ def build_detector(
         in_channels=int(in_channels),
         detector_spec=detector_spec,
     )
-    if not isinstance(model, SingleStageDetector):
+    if not isinstance(model, (SingleStageDetector, TwoStageDetector)):
         raise ValueError(
-            f"build_detector(name={name!r}) expected a single-stage detector, "
+            f"build_detector(name={name!r}) expected a native detector, "
             f"got {type(model).__name__}."
         )
     return model

@@ -45,6 +45,7 @@
             <li><code>run_training(...)</code>, <code>run_inference(...)</code>, and <code>run_evaluation(...)</code> are the canonical runtime path.</li>
             <li>Lightweight dense heads now include native YOLOX, RTMDet, SSD, and EfficientDet construction, target assignment, and decode smoke coverage.</li>
             <li>Keypoint and query heads now include native CenterNet, CornerNet, DETR, Conditional DETR, DAB-DETR, Deformable DETR, and DINO construction plus CPU forward smoke coverage.</li>
+            <li>US-020 promotes Faster R-CNN, Mask R-CNN, Grid R-CNN, and Cascade R-CNN to native two-stage composition: RPN and ROI heads are built through registries, <code>build_detector(name="faster_rcnn", num_classes=3)</code> returns a native <code>TwoStageDetector</code>, and <code>mask_rcnn</code> build plans fail validation when the selected ROI head is not mask-enabled.</li>
           </ul>
         </article>
         <article class="section">

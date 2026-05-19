@@ -48,6 +48,10 @@ class DetectorBuildPlan:
     encoder: ComponentPlan | None = None
     neck: ComponentPlan | None = None
     head: ComponentPlan | None = None
+    rpn_head: ComponentPlan | None = None
+    bbox_head: ComponentPlan | None = None
+    mask_head: ComponentPlan | None = None
+    grid_head: ComponentPlan | None = None
     decoder: ComponentPlan | None = None
     overrides: dict[str, Any] = field(default_factory=dict)
 
@@ -61,6 +65,21 @@ def compile_native_detector_plan(spec: DetectorSpec) -> DetectorBuildPlan:
     if not isinstance(spec, DetectorSpec):
         raise TypeError("`spec` must be an instance of DetectorSpec.")
 
+    head = _compile_head_plan(spec.head)
+    rpn_head = None
+    bbox_head = None
+    mask_head = None
+    grid_head = None
+    if spec.family == "roi":
+        _validate_roi_detector_spec(spec, head)
+        rpn_head = _default_head_plan("RPNHead", num_classes=1, num_anchors=1)
+        bbox_head = head or _default_head_plan(_default_roi_bbox_head_type(spec.architecture), num_classes=spec.num_classes)
+        head = bbox_head
+        if spec.architecture == "mask_rcnn":
+            mask_head = _default_head_plan("FCNMaskHead", num_classes=spec.num_classes)
+        if spec.architecture == "grid_rcnn":
+            grid_head = _default_head_plan("GridHead", num_classes=spec.num_classes, grid_size=7)
+
     return DetectorBuildPlan(
         architecture=spec.architecture,
         family=spec.family,
@@ -68,10 +87,33 @@ def compile_native_detector_plan(spec: DetectorSpec) -> DetectorBuildPlan:
         imports=_collect_imports(spec),
         encoder=_compile_encoder_plan(spec.encoder),
         neck=_compile_neck_plan(spec.neck),
-        head=_compile_head_plan(spec.head),
+        head=head,
+        rpn_head=rpn_head,
+        bbox_head=bbox_head,
+        mask_head=mask_head,
+        grid_head=grid_head,
         decoder=_compile_decoder_plan(spec.decoder),
         overrides=_copy_mapping(spec.overrides),
     )
+
+
+def _default_head_plan(head_type: str, **params: Any) -> ComponentPlan:
+    return ComponentPlan(kind="head", type=head_type, params=dict(params))
+
+
+def _default_roi_bbox_head_type(architecture: str) -> str:
+    if architecture == "cascade_rcnn":
+        return "CascadeBBoxHead"
+    return "Shared2FCBBoxHead"
+
+
+def _validate_roi_detector_spec(spec: DetectorSpec, head: ComponentPlan | None) -> None:
+    if spec.architecture == "mask_rcnn":
+        if head is None or not bool(head.params.get("with_mask", False)):
+            raise ValueError(
+                "mask_rcnn build-plan validation requires a mask head; use "
+                "build_detector('mask_rcnn', ...) defaults or pass a head with with_mask=True."
+            )
 
 
 def _compile_encoder_plan(encoder: EncoderSpec | None) -> ComponentPlan | None:

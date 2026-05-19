@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from contextlib import nullcontext
 from collections import OrderedDict
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -443,29 +444,44 @@ class NativeRoIBackbone(nn.Module):
         return _normalize_feature_pyramid(pyramid, self.core_spec.featmap_names)
 
 
-class NativeRoIModel(nn.Module):
-    """Compact native ROI detector used for Faster and Mask R-CNN variants."""
+class TwoStageDetector(nn.Module):
+    """Native two-stage detector composition for proposal and ROI families."""
 
     def __init__(
         self,
         *,
-        backbone: NativeRoIBackbone,
+        backbone: nn.Module,
+        neck: nn.Module | None = None,
         box_roi_pool: nn.Module,
         num_classes: int,
         in_channels: int,
         core_spec: RoICoreSpec,
+        rpn_head: nn.Module | None = None,
+        bbox_head: nn.Module | None = None,
         mask_roi_pool: nn.Module | None = None,
+        mask_head: nn.Module | None = None,
+        grid_roi_pool: nn.Module | None = None,
+        grid_head: nn.Module | None = None,
         roi_variant: str = "faster_rcnn",
         cascade_num_stages: int = 1,
         grid_size: int | None = None,
     ) -> None:
         super().__init__()
         self.backbone = backbone
+        self.neck = neck
         self.box_roi_pool = box_roi_pool
+        self.roi_extractor = box_roi_pool
         self.mask_roi_pool = mask_roi_pool
+        self.mask_roi_extractor = mask_roi_pool
+        self.grid_roi_pool = grid_roi_pool
+        self.grid_roi_extractor = grid_roi_pool
+        self.rpn_head = rpn_head
+        self.bbox_head = bbox_head
+        self.mask_head = mask_head
+        self.grid_head = grid_head
         self.num_classes = int(num_classes)
         self.core_spec = core_spec
-        self.with_mask = mask_roi_pool is not None
+        self.with_mask = mask_roi_pool is not None or mask_head is not None
         self.roi_variant = str(roi_variant)
         self.cascade_num_stages = max(1, int(cascade_num_stages))
         self.grid_size = grid_size
@@ -473,25 +489,32 @@ class NativeRoIModel(nn.Module):
         self.roi_sample_size = 2
         self.postprocess_topk = 4
         hidden_channels = max(128, int(in_channels))
-        self.proposal_head = nn.Sequential(
-            nn.Linear(int(in_channels), hidden_channels),
-            nn.ReLU(),
-            nn.Linear(hidden_channels, hidden_channels),
-            nn.ReLU(),
-        )
-        self.proposal_objectness = nn.Linear(hidden_channels, 1)
-        self.proposal_regressor = nn.Linear(hidden_channels, 4)
-        self.box_head = nn.Sequential(
-            nn.Linear(int(in_channels), hidden_channels),
-            nn.ReLU(),
-            nn.Linear(hidden_channels, hidden_channels),
-            nn.ReLU(),
-        )
-        self.box_classifier = nn.Linear(hidden_channels, self.num_classes + 1)
-        self.box_regressor = nn.Linear(hidden_channels, (self.num_classes + 1) * 4)
-        self.mask_head = None
+        self.proposal_head = None
+        self.proposal_objectness = None
+        self.proposal_regressor = None
+        if self.rpn_head is None:
+            self.proposal_head = nn.Sequential(
+                nn.Linear(int(in_channels), hidden_channels),
+                nn.ReLU(),
+                nn.Linear(hidden_channels, hidden_channels),
+                nn.ReLU(),
+            )
+            self.proposal_objectness = nn.Linear(hidden_channels, 1)
+            self.proposal_regressor = nn.Linear(hidden_channels, 4)
+        self.box_head = None
+        self.box_classifier = None
+        self.box_regressor = None
+        if self.bbox_head is None:
+            self.box_head = nn.Sequential(
+                nn.Linear(int(in_channels), hidden_channels),
+                nn.ReLU(),
+                nn.Linear(hidden_channels, hidden_channels),
+                nn.ReLU(),
+            )
+            self.box_classifier = nn.Linear(hidden_channels, self.num_classes + 1)
+            self.box_regressor = nn.Linear(hidden_channels, (self.num_classes + 1) * 4)
         self.mask_predictor = None
-        if self.with_mask:
+        if self.with_mask and self.mask_head is None:
             self.mask_head = nn.Sequential(
                 nn.Linear(int(in_channels), hidden_channels),
                 nn.ReLU(),
@@ -501,11 +524,25 @@ class NativeRoIModel(nn.Module):
             self.mask_predictor = nn.Linear(hidden_channels, 1)
 
     def forward(self, images, targets=None):
+        if targets is not None:
+            return self.forward_loss(images, targets)
+        return self.predict(images)
+
+    def forward_loss(self, images, targets):
         self._validate_inputs(images, targets=targets)
+        return self._forward_impl(images, targets=targets)
+
+    def predict(self, images):
+        self._validate_inputs(images)
+        no_grad = torch.no_grad() if hasattr(torch, "no_grad") else nullcontext()
+        with no_grad:
+            return self._forward_impl(images, targets=None)
+
+    def _forward_impl(self, images, targets=None):
         detections: list[dict[str, Any]] = []
         losses: list[dict[str, torch.Tensor]] = []
         for image_index, image in enumerate(images):
-            features = self.backbone(image.unsqueeze(0))
+            features = self.extract_features(image)
             anchors, anchor_tensor, refined_proposals, proposal_logits = self._run_rpn_stage(image, features)
             image_shapes = [self._image_shape(image)]
             proposal_scores = self._proposal_scores(proposal_logits)
@@ -517,10 +554,11 @@ class NativeRoIModel(nn.Module):
                     targets[image_index],
                 )
                 sampled_proposals = refined_proposals[sampled_indices]
-                class_logits, box_deltas = self._run_roi_box_head(
+                class_logits, box_deltas, sampled_proposals = self._run_cascade_roi_box_head(
                     features,
                     [sampled_proposals],
                     image_shapes,
+                    labels=sampled_labels,
                 )
                 mask_loss = None
                 if self.with_mask and self.mask_roi_pool is not None and self.mask_head is not None:
@@ -528,6 +566,14 @@ class NativeRoIModel(nn.Module):
                         features,
                         sampled_proposals,
                         sampled_labels,
+                        image_shapes,
+                        targets[image_index],
+                    )
+                grid_loss = None
+                if self.grid_head is not None and self.grid_roi_pool is not None:
+                    grid_loss = self._grid_loss(
+                        features,
+                        sampled_proposals,
                         image_shapes,
                         targets[image_index],
                     )
@@ -541,17 +587,18 @@ class NativeRoIModel(nn.Module):
                         sampled_labels,
                         targets[image_index],
                         mask_loss=mask_loss,
+                        grid_loss=grid_loss,
                     )
                 )
                 continue
 
-            class_logits, box_deltas = self._run_roi_box_head(
+            class_logits, box_deltas, detection_proposals = self._run_cascade_roi_box_head(
                 features,
                 [refined_proposals],
                 image_shapes,
             )
             boxes, scores, labels, detection_indices = self._postprocess_detections(
-                refined_proposals,
+                detection_proposals,
                 proposal_scores,
                 class_logits,
                 box_deltas,
@@ -562,17 +609,27 @@ class NativeRoIModel(nn.Module):
                 "labels": labels,
             }
             if self.with_mask and self.mask_roi_pool is not None and self.mask_head is not None:
-                mask_proposals = self._select_rows(refined_proposals, detection_indices, reference=boxes)
+                mask_proposals = self._select_rows(detection_proposals, detection_indices, reference=boxes)
                 mask_features = self._roi_pool(
                     self.mask_roi_pool,
                     features,
                     [mask_proposals],
                     image_shapes,
                 )
-                mask_features = mask_features.mean(dim=(-1, -2))
-                mask_representation = self.mask_head(mask_features)
-                mask_logits = self.mask_predictor(mask_representation)
-                detection["masks"] = torch.sigmoid(mask_logits).reshape(-1, 1, 1, 1)
+                detection["masks"] = self._decode_masks(mask_features, labels)
+            if self.grid_head is not None and self.grid_roi_pool is not None:
+                grid_proposals = self._select_rows(detection_proposals, detection_indices, reference=boxes)
+                grid_features = self._roi_pool(
+                    self.grid_roi_pool,
+                    features,
+                    [grid_proposals],
+                    image_shapes,
+                )
+                grid_outputs = self.grid_head(grid_features)
+                if hasattr(self.grid_head, "decode"):
+                    detection["grids"] = self.grid_head.decode(grid_outputs, proposals=grid_proposals)
+                else:
+                    detection["grids"] = grid_outputs
 
             detections.append(detection)
 
@@ -582,14 +639,22 @@ class NativeRoIModel(nn.Module):
 
     def _validate_inputs(self, images, *, targets=None):
         if not images:
-            raise ValueError("NativeRoIModel requires at least one image.")
+            raise ValueError("TwoStageDetector requires at least one image.")
         for image in images:
             if not hasattr(image, "shape") or not hasattr(image, "unsqueeze"):
                 raise TypeError(
-                    "NativeRoIModel expects tensor-like images with 'shape' and 'unsqueeze'."
+                    "TwoStageDetector expects tensor-like images with 'shape' and 'unsqueeze'."
                 )
         if targets is not None and len(targets) != len(images):
             raise ValueError("Number of targets must match number of images.")
+
+    def extract_features(self, image):
+        batched = image.unsqueeze(0)
+        if self.neck is None:
+            features = self.backbone(batched)
+        else:
+            features = self.neck(self.backbone(batched))
+        return _normalize_feature_pyramid(features, self.core_spec.featmap_names)
 
     def _loss_from_targets(
         self,
@@ -602,6 +667,7 @@ class NativeRoIModel(nn.Module):
         target,
         *,
         mask_loss=None,
+        grid_loss=None,
     ):
         proposal_reference = anchors[0] if len(anchors) > 0 else sampled_proposals
         target_box = self._coerce_box(self._first_target_box(target, proposal_reference), reference=class_logits)
@@ -616,6 +682,8 @@ class NativeRoIModel(nn.Module):
         losses = {**rpn_losses, **roi_losses}
         if self.with_mask:
             losses["loss_mask"] = mask_loss if mask_loss is not None else self._zero_loss_like(roi_losses["loss_roi_classifier"])
+        if self.grid_head is not None:
+            losses["loss_grid"] = grid_loss if grid_loss is not None else self._zero_loss_like(roi_losses["loss_roi_classifier"])
         losses["loss_total"] = sum(losses.values())
         return losses
 
@@ -701,6 +769,15 @@ class NativeRoIModel(nn.Module):
     def _run_rpn_stage(self, image, features):
         anchors = self._generate_anchor_proposals(image, features)
         anchor_tensor = self._boxes_to_tensor(anchors, reference=image)
+        if self.rpn_head is not None:
+            rpn_outputs = self.rpn_head(_feature_sequence(features))
+            proposal_logits, proposal_deltas = self._flatten_rpn_outputs(rpn_outputs, anchor_tensor)
+            matched_count = min(_row_count(anchor_tensor), _row_count(proposal_logits), _row_count(proposal_deltas))
+            if matched_count != _row_count(anchor_tensor):
+                anchors = anchors[:matched_count]
+                anchor_tensor = anchor_tensor[:matched_count]
+            refined_proposals = self._decode_boxes(anchor_tensor, proposal_deltas)
+            return anchors, anchor_tensor, refined_proposals, proposal_logits
         image_shapes = [self._image_shape(image)]
         pooled = self._roi_pool(self.box_roi_pool, features, [anchor_tensor], image_shapes)
         pooled = pooled.mean(dim=(-1, -2))
@@ -712,11 +789,126 @@ class NativeRoIModel(nn.Module):
 
     def _run_roi_box_head(self, features, proposals, image_shapes):
         pooled = self._roi_pool(self.box_roi_pool, features, proposals, image_shapes)
+        if self.bbox_head is not None:
+            outputs = self.bbox_head(pooled)
+            class_logits, box_deltas = self._unpack_bbox_outputs(outputs)
+            return class_logits, box_deltas
         pooled = pooled.mean(dim=(-1, -2))
         representation = self.box_head(pooled)
         class_logits = self.box_classifier(representation)
         box_deltas = self.box_regressor(representation)
         return class_logits, box_deltas
+
+    def _run_cascade_roi_box_head(self, features, proposals, image_shapes, *, labels=None):
+        current_proposals = proposals[0]
+        class_logits = None
+        box_deltas = None
+        for stage_index in range(self.cascade_num_stages):
+            class_logits, box_deltas = self._run_roi_box_head(features, [current_proposals], image_shapes)
+            if stage_index >= self.cascade_num_stages - 1:
+                break
+            current_labels = labels if labels is not None else self._labels_from_logits(class_logits)
+            current_proposals = self._refine_cascade_proposals(
+                current_proposals,
+                class_logits,
+                box_deltas,
+                current_labels,
+                image_shape=image_shapes[0] if image_shapes else None,
+            )
+        return class_logits, box_deltas, current_proposals
+
+    def _refine_cascade_proposals(self, proposals, class_logits, box_deltas, labels, *, image_shape):
+        if (
+            self.bbox_head is not None
+            and hasattr(self.bbox_head, "refine_proposals")
+            and _has_real_tensor_ops()
+            and hasattr(proposals, "shape")
+        ):
+            stage = self.bbox_head.refine_proposals(
+                proposals,
+                {"cls_score": class_logits, "bbox_pred": box_deltas},
+                labels,
+                image_shape=image_shape,
+            )
+            return stage.proposals
+        selected = self._select_class_specific_box_deltas(box_deltas, labels, reference=box_deltas)
+        return self._decode_boxes(proposals, selected)
+
+    def _labels_from_logits(self, class_logits):
+        if hasattr(torch, "argmax") and hasattr(class_logits, "shape"):
+            return torch.argmax(class_logits, dim=1).clamp(min=0, max=self.num_classes)
+        probabilities = self._proposal_rows(self._softmax_logits(class_logits))
+        return [self._foreground_label_and_score(row)[1] for row in probabilities]
+
+    def _flatten_rpn_outputs(self, outputs, anchor_tensor):
+        if not isinstance(outputs, dict):
+            raise ValueError("RPN head outputs must include objectness_logits and bbox_regression.")
+        objectness_levels = outputs.get("objectness_logits")
+        bbox_levels = outputs.get("bbox_regression")
+        if objectness_levels is None or bbox_levels is None:
+            raise ValueError("RPN head outputs must include objectness_logits and bbox_regression.")
+        if not isinstance(objectness_levels, (list, tuple)):
+            objectness_levels = (objectness_levels,)
+        if not isinstance(bbox_levels, (list, tuple)):
+            bbox_levels = (bbox_levels,)
+        logits = self._flatten_rpn_objectness(objectness_levels)
+        deltas = self._flatten_rpn_bbox_deltas(bbox_levels, reference=anchor_tensor)
+        return self._match_rpn_rows(logits, deltas, anchor_tensor)
+
+    def _flatten_rpn_objectness(self, levels):
+        rows = []
+        for level in levels:
+            if hasattr(level, "dim") and level.dim() == 4:
+                rows.append(level[0].permute(1, 2, 0).reshape(-1))
+            elif hasattr(level, "reshape"):
+                rows.append(level.reshape(-1))
+            else:
+                rows.extend(list(level))
+        if rows and hasattr(torch, "cat") and hasattr(rows[0], "shape"):
+            return torch.cat(rows, dim=0)
+        return self._tensor_from_data(rows, dtype=self._float_dtype())
+
+    def _flatten_rpn_bbox_deltas(self, levels, *, reference):
+        rows = []
+        for level in levels:
+            if hasattr(level, "dim") and level.dim() == 4:
+                channels = int(level.shape[1])
+                anchors_per_location = max(1, channels // 4)
+                rows.append(
+                    level[0]
+                    .reshape(anchors_per_location, 4, int(level.shape[-2]), int(level.shape[-1]))
+                    .permute(2, 3, 0, 1)
+                    .reshape(-1, 4)
+                )
+            elif hasattr(level, "reshape"):
+                rows.append(level.reshape(-1, 4))
+            else:
+                rows.extend(list(level))
+        if rows and hasattr(torch, "cat") and hasattr(rows[0], "shape"):
+            return torch.cat(rows, dim=0)
+        return self._boxes_to_tensor(rows, reference=reference)
+
+    def _match_rpn_rows(self, logits, deltas, anchor_tensor):
+        anchor_count = _row_count(anchor_tensor)
+        logit_count = _row_count(logits)
+        delta_count = _row_count(deltas)
+        count = min(anchor_count, logit_count, delta_count)
+        if count <= 0:
+            zero_logits = anchor_tensor.new_zeros((0,)) if hasattr(anchor_tensor, "new_zeros") else []
+            zero_deltas = anchor_tensor.new_zeros((0, 4)) if hasattr(anchor_tensor, "new_zeros") else []
+            return zero_logits, zero_deltas
+        if logit_count != count:
+            logits = logits[:count]
+        if delta_count != count:
+            deltas = deltas[:count]
+        return logits, deltas
+
+    def _unpack_bbox_outputs(self, outputs):
+        if isinstance(outputs, dict):
+            return outputs["cls_score"], outputs["bbox_pred"]
+        if isinstance(outputs, (tuple, list)) and len(outputs) == 2:
+            return outputs[0], outputs[1]
+        raise ValueError("ROI bbox head outputs must include cls_score and bbox_pred.")
 
     def _heuristic_proposals(self, image):
         height, width = self._image_shape(image)
@@ -944,6 +1136,16 @@ class NativeRoIModel(nn.Module):
             pos_iou_thr=self.proposal_iou_threshold,
             neg_iou_thr=self.proposal_iou_threshold,
         )
+        if hasattr(self.mask_head, "get_targets") and hasattr(self.mask_head, "loss"):
+            mask_features = self._roi_pool(self.mask_roi_pool, features, [sampled_proposals], image_shapes)
+            mask_outputs = self.mask_head(mask_features)
+            mask_targets = self.mask_head.get_targets(
+                sampled_proposals,
+                target["masks"],
+                bbox_targets.matched_gt_indices,
+            )
+            losses = self.mask_head.loss(mask_outputs, mask_targets, labels=bbox_targets.labels)
+            return losses.get("loss_mask", losses.get("loss_total"))
         mask_targets = build_roi_mask_targets(
             sampled_proposals,
             target["masks"],
@@ -959,6 +1161,37 @@ class NativeRoIModel(nn.Module):
         mask_logits = self.mask_predictor(mask_representation).reshape(-1, 1)
         targets = mask_targets.mask_targets.reshape(mask_targets.mask_targets.shape[0], -1).mean(dim=1, keepdim=True)
         return F.binary_cross_entropy_with_logits(mask_logits, targets)
+
+    def _grid_loss(self, features, sampled_proposals, image_shapes, target):
+        if target is None or _row_count(sampled_proposals) == 0:
+            return None
+        if not (_has_real_tensor_ops() and hasattr(sampled_proposals, "shape")):
+            return None
+        target_box = self._coerce_box(
+            self._first_target_box(target, sampled_proposals),
+            reference=sampled_proposals,
+        )
+        matched_boxes = self._expand_target_box(
+            target_box,
+            _row_count(sampled_proposals),
+            reference=sampled_proposals,
+        )
+        grid_features = self._roi_pool(self.grid_roi_pool, features, [sampled_proposals], image_shapes)
+        grid_outputs = self.grid_head(grid_features)
+        if hasattr(self.grid_head, "get_targets") and hasattr(self.grid_head, "loss"):
+            grid_targets = self.grid_head.get_targets(sampled_proposals, matched_boxes)
+            losses = self.grid_head.loss(grid_outputs, grid_targets)
+            return losses.get("loss_grid", losses.get("loss_total"))
+        return None
+
+    def _decode_masks(self, mask_features, labels):
+        if hasattr(self.mask_head, "decode"):
+            mask_outputs = self.mask_head(mask_features)
+            return self.mask_head.decode(mask_outputs, labels=labels)
+        mask_features = mask_features.mean(dim=(-1, -2))
+        mask_representation = self.mask_head(mask_features)
+        mask_logits = self.mask_predictor(mask_representation)
+        return torch.sigmoid(mask_logits).reshape(-1, 1, 1, 1)
 
     def _image_shape(self, image):
         return int(image.shape[-2]), int(image.shape[-1])
@@ -1348,6 +1581,10 @@ class NativeRoIModel(nn.Module):
         )
 
 
+class NativeRoIModel(TwoStageDetector):
+    """Backward-compatible name for the native two-stage detector."""
+
+
 def _normalize_proposal_items(proposals, *, batch_size: int | None) -> tuple[Any, ...]:
     if batch_size is not None and int(batch_size) < 0:
         raise ValueError("batch_size must be non-negative.")
@@ -1512,6 +1749,12 @@ def _first_feature_tensor(features):
     return values[0] if values else None
 
 
+def _feature_sequence(features):
+    if hasattr(features, "values"):
+        return list(features.values())
+    return list(features)
+
+
 def _empty_roi_pool_output(features, pool):
     feature = _first_feature_tensor(features)
     output_h, output_w = _normalize_output_size(getattr(pool, "output_size", 1))
@@ -1624,19 +1867,19 @@ def build_native_roi_detector(factory_name: str, components, *, num_classes: int
     require_dependency("torchvision", "native roi")
     from torchvision.ops import MultiScaleRoIAlign
 
-    normalized_factory = str(factory_name).strip().lower()
+    normalized_factory = _normalize_roi_factory_name(factory_name)
     core_spec = RoICoreSpec.from_num_levels(components.neck_spec.num_outs)
-    roi_backbone = build_native_roi_backbone(
-        components.backbone,
-        components.neck,
-        num_levels=components.neck_spec.num_outs,
-    )
     featmap_names = list(core_spec.featmap_names)
     kwargs = {
-        "backbone": roi_backbone,
+        "backbone": components.backbone,
+        "neck": components.neck,
         "num_classes": int(num_classes),
         "in_channels": int(components.neck_spec.out_channels),
         "core_spec": core_spec,
+        "rpn_head": components.rpn_head,
+        "bbox_head": components.bbox_head,
+        "mask_head": components.mask_head,
+        "grid_head": components.grid_head,
         "roi_variant": normalized_factory,
         "box_roi_pool": MultiScaleRoIAlign(
             featmap_names=featmap_names,
@@ -1654,7 +1897,26 @@ def build_native_roi_detector(factory_name: str, components, *, num_classes: int
             output_size=core_spec.mask_output_size,
             sampling_ratio=core_spec.sampling_ratio,
         )
-    return NativeRoIModel(**kwargs)
+    if normalized_factory == "grid_rcnn":
+        kwargs["grid_roi_pool"] = MultiScaleRoIAlign(
+            featmap_names=featmap_names,
+            output_size=core_spec.mask_output_size,
+            sampling_ratio=core_spec.sampling_ratio,
+        )
+    return TwoStageDetector(**kwargs)
+
+
+def _normalize_roi_factory_name(factory_name: str) -> str:
+    compact = "".join(char for char in str(factory_name).strip().lower() if char.isalnum())
+    if compact == "fasterrcnn":
+        return "faster_rcnn"
+    if compact == "maskrcnn":
+        return "mask_rcnn"
+    if compact == "gridrcnn":
+        return "grid_rcnn"
+    if compact == "cascadercnn":
+        return "cascade_rcnn"
+    return str(factory_name).strip().lower().replace("-", "_")
 
 
 def _normalize_feature_pyramid(pyramid, featmap_names):

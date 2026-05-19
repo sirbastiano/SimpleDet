@@ -69,6 +69,10 @@ def _fake_torch_modules():
         def forward(self, x):
             return x
 
+    class Identity(Module):
+        def forward(self, x):
+            return x
+
     class Linear(Module):
         def forward(self, x):
             return x
@@ -84,6 +88,8 @@ def _fake_torch_modules():
     fake_nn.ModuleList = ModuleList
     fake_nn.Sequential = Sequential
     fake_nn.Conv2d = Conv2d
+    fake_nn.ConvTranspose2d = Conv2d
+    fake_nn.Identity = Identity
     fake_nn.Linear = Linear
     fake_nn.ReLU = ReLU
     fake_torch.nn = fake_nn

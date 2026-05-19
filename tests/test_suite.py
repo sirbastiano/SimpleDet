@@ -27,9 +27,9 @@ class NativeSuiteTests(unittest.TestCase):
         self.assertEqual(gfl.family, "dense")
         self.assertEqual(gfl.head.name, "GFLHead")
         self.assertEqual(faster_rcnn.family, "roi")
-        self.assertEqual(faster_rcnn.head.name, "RetinaHead")
+        self.assertEqual(faster_rcnn.head.name, "Shared2FCBBoxHead")
         self.assertEqual(mask_rcnn.family, "roi")
-        self.assertEqual(mask_rcnn.head.name, "RetinaHead")
+        self.assertEqual(mask_rcnn.head.name, "Shared2FCBBoxHead")
         self.assertTrue(mask_rcnn.head.with_mask)
 
     def test_build_detector_rejects_removed_legacy_architectures(self):
@@ -103,8 +103,8 @@ class NativeSuiteTests(unittest.TestCase):
         cascade = build_detector("cascade_rcnn", num_classes=2, encoder="resnet18.a1_in1k")
         self.assertEqual(grid.family, "roi")
         self.assertEqual(cascade.family, "roi")
-        self.assertEqual(grid.head.name, "RetinaHead")
-        self.assertEqual(cascade.head.name, "RetinaHead")
+        self.assertEqual(grid.head.name, "Shared2FCBBoxHead")
+        self.assertEqual(cascade.head.name, "CascadeBBoxHead")
 
     def test_build_custom_detector_defaults_mask_rcnn_head_with_masking(self):
         detector = build_custom_detector("mask_rcnn", family="roi", num_classes=3, encoder="resnet18.a1_in1k")

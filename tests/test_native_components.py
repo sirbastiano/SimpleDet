@@ -100,6 +100,10 @@ def _fake_torch_modules():
         def forward(self, x):
             return x
 
+    class Identity(Module):
+        def forward(self, x):
+            return x
+
     class Linear(Module):
         def forward(self, x):
             return x
@@ -120,6 +124,8 @@ def _fake_torch_modules():
     fake_nn.ModuleList = ModuleList
     fake_nn.Sequential = Sequential
     fake_nn.Conv2d = Conv2d
+    fake_nn.ConvTranspose2d = Conv2d
+    fake_nn.Identity = Identity
     fake_nn.Linear = Linear
     fake_nn.Embedding = Embedding
     fake_nn.ReLU = ReLU
@@ -1139,10 +1145,13 @@ class NativeComponentTests(unittest.TestCase):
             spec = build_detector("mask_rcnn", num_classes=2, encoder="resnet18.a1_in1k")
             model = build_native_model("mask_rcnn", num_classes=2, detector_spec=spec)
 
-        self.assertEqual(type(model).__name__, "NativeRoIModel")
-        self.assertEqual(type(model.backbone).__name__, "NativeRoIBackbone")
+        self.assertEqual(type(model).__name__, "TwoStageDetector")
+        self.assertEqual(type(model.backbone).__name__, "TimmFeatureBackbone")
         self.assertTrue(model.with_mask)
         self.assertEqual(model.num_classes, 2)
+        self.assertEqual(model.rpn_head.__class__.__name__, "RPNHead")
+        self.assertEqual(model.bbox_head.__class__.__name__, "Shared2FCBBoxHead")
+        self.assertEqual(model.mask_head.__class__.__name__, "FCNMaskHead")
         self.assertIsNotNone(model.mask_roi_pool)
 
     def test_build_native_model_builds_faster_rcnn(self):
@@ -1182,10 +1191,12 @@ class NativeComponentTests(unittest.TestCase):
             spec = build_detector("faster_rcnn", num_classes=2, encoder="resnet18.a1_in1k")
             model = build_native_model("faster_rcnn", num_classes=2, detector_spec=spec)
 
-        self.assertEqual(type(model).__name__, "NativeRoIModel")
-        self.assertEqual(type(model.backbone).__name__, "NativeRoIBackbone")
+        self.assertEqual(type(model).__name__, "TwoStageDetector")
+        self.assertEqual(type(model.backbone).__name__, "TimmFeatureBackbone")
         self.assertFalse(model.with_mask)
         self.assertEqual(model.num_classes, 2)
+        self.assertEqual(model.rpn_head.__class__.__name__, "RPNHead")
+        self.assertEqual(model.bbox_head.__class__.__name__, "Shared2FCBBoxHead")
         self.assertIsNotNone(model.box_roi_pool)
 
     def test_build_native_model_configures_cascade_and_grid_roi_variants(self):
@@ -1232,6 +1243,30 @@ class NativeComponentTests(unittest.TestCase):
         self.assertIsNone(cascade.grid_size)
         self.assertEqual(grid.roi_variant, "grid_rcnn")
         self.assertEqual(grid.grid_size, 7)
+
+        cascade_proposals = []
+
+        def _fake_roi_stage(features, proposals, image_shapes):
+            cascade_proposals.append(proposals[0])
+            return "class_logits", "box_deltas"
+
+        def _fake_refine(proposals, class_logits, box_deltas, labels, *, image_shape):
+            return f"{proposals}-refined"
+
+        cascade._run_roi_box_head = _fake_roi_stage
+        cascade._refine_cascade_proposals = _fake_refine
+
+        class_logits, box_deltas, final_proposals = cascade._run_cascade_roi_box_head(
+            "features",
+            ["p0"],
+            [(32, 32)],
+            labels=[1],
+        )
+
+        self.assertEqual(class_logits, "class_logits")
+        self.assertEqual(box_deltas, "box_deltas")
+        self.assertEqual(cascade_proposals, ["p0", "p0-refined", "p0-refined-refined"])
+        self.assertEqual(final_proposals, "p0-refined-refined")
 
     def test_native_model_rejects_non_tensor_like_inputs(self):
         fake_timm = types.ModuleType("timm")

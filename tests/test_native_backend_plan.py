@@ -36,6 +36,9 @@ def _fake_torch_modules():
     class Conv2d(Module):
         pass
 
+    class Identity(Module):
+        pass
+
     class Linear(Module):
         pass
 
@@ -51,6 +54,8 @@ def _fake_torch_modules():
     fake_nn.ModuleList = ModuleList
     fake_nn.Sequential = Sequential
     fake_nn.Conv2d = Conv2d
+    fake_nn.ConvTranspose2d = Conv2d
+    fake_nn.Identity = Identity
     fake_nn.Linear = Linear
     fake_nn.Embedding = Embedding
     fake_nn.ReLU = ReLU
@@ -117,6 +122,36 @@ class NativeBuildPlanTests(unittest.TestCase):
         self.assertEqual(plan.encoder.params["model_name"], "resnet18.a1_in1k")
         self.assertEqual(plan.encoder.params["in_channels"], 3)
         self.assertEqual(plan.head.params["num_classes"], 2)
+
+    def test_compile_native_detector_plan_for_two_stage_components(self):
+        faster = compile_native_detector_plan(
+            build_detector("faster_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
+        )
+        self.assertEqual(faster.family, "roi")
+        self.assertEqual(faster.rpn_head.type, "RPNHead")
+        self.assertEqual(faster.rpn_head.params["num_anchors"], 1)
+        self.assertEqual(faster.bbox_head.type, "Shared2FCBBoxHead")
+        self.assertIs(faster.head, faster.bbox_head)
+        self.assertIsNone(faster.mask_head)
+        self.assertIsNone(faster.grid_head)
+
+        mask = compile_native_detector_plan(
+            build_detector("mask_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
+        )
+        self.assertEqual(mask.bbox_head.type, "Shared2FCBBoxHead")
+        self.assertTrue(mask.bbox_head.params["with_mask"])
+        self.assertEqual(mask.mask_head.type, "FCNMaskHead")
+
+        grid = compile_native_detector_plan(
+            build_detector("grid_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
+        )
+        self.assertEqual(grid.grid_head.type, "GridHead")
+        self.assertEqual(grid.grid_head.params["grid_size"], 7)
+
+        cascade = compile_native_detector_plan(
+            build_detector("cascade_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
+        )
+        self.assertEqual(cascade.bbox_head.type, "CascadeBBoxHead")
 
 
 class ExtensionRegistryTests(unittest.TestCase):

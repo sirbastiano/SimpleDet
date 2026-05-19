@@ -30,6 +30,8 @@ class TestCli(unittest.TestCase):
         fake_nn.ModuleList = list
         fake_nn.Sequential = lambda *layers: object()
         fake_nn.Conv2d = lambda *args, **kwargs: object()
+        fake_nn.ConvTranspose2d = lambda *args, **kwargs: object()
+        fake_nn.Identity = lambda *args, **kwargs: object()
         fake_nn.ReLU = lambda *args, **kwargs: object()
         fake_torch.nn = fake_nn
         fake_numpy.random = types.SimpleNamespace(seed=lambda *_args, **_kwargs: None)
