@@ -27,7 +27,7 @@
       <section class="hero">
         <p class="hero-kicker">SimpleDet Docs</p>
         <h1>Developer guide</h1>
-        <p class="subtle">Repository structure, module responsibilities, extension points, and documentation workflow for the current suite-based architecture.</p>
+        <p class="subtle">Repository structure, registry contracts, tensor contracts, detector composition, and validation rules for extending the native architecture.</p>
         <div class="btn-row">
           <a class="btn" href="overview.html">Overview</a>
           <a class="btn" href="quickstart.html">Quickstart</a>
@@ -37,18 +37,153 @@
         <p class="hero-context">Use this page when you are modifying the repo itself rather than only consuming the public API.</p>
       </section>
       <section class="content">
-        <article class="section">
+        <div class="toc">
+          <strong>On this page:</strong>
+          <a href="#structure">Structure</a>
+          <a href="#registries">Registries</a>
+          <a href="#tensors">Tensor contracts</a>
+          <a href="#composition">Composition</a>
+          <a href="#heads">Heads</a>
+          <a href="#validation">Validation</a>
+          <a href="#dense-checklist">Dense head checklist</a>
+        </div>
+        <article class="section" id="structure">
           <h2>Repository structure</h2>
           <ul>
             <li><code>simpledet/simpledet/suite/</code> for specs, builders, and compiler</li>
             <li><code>simpledet/simpledet/_model_resolution.py</code> for runtime adaptation</li>
             <li><code>simpledet/simpledet/api.py</code> for the pipeline wrapper</li>
             <li><code>simpledet/simpledet/detectors/</code> for compatibility helpers</li>
+            <li><code>simpledet/simpledet/extensions/registry.py</code> for component metadata and alias resolution</li>
+            <li><code>simpledet/simpledet/native/</code> for registry-backed modules, assemblers, tensor ops, losses, and decoders</li>
             <li><code>tests/</code> for unit tests and repo audit</li>
             <li><code>docs/</code> for this static HTML site</li>
           </ul>
           <p>For the current baseline of modules, APIs, tests, docs, optional extras, and detector alias status, see the <a href="package-surface-audit.html">package surface audit</a>.</p>
         </article>
+
+        <article class="section" id="registries">
+          <h2>Registry contracts</h2>
+          <p class="section-lead">
+            Native support starts with an explicit registry entry, not a loose import side effect. The shared <code>ExtensionRegistry</code> stores the factory plus metadata that is surfaced by builders, CLI discovery, docs, and support tests.
+          </p>
+          <ul>
+            <li>Use the existing registries from <code>simpledet.extensions</code>: <code>ENCODERS</code>, <code>NECKS</code>, <code>HEADS</code>, <code>DETECTORS</code>, <code>LOSSES</code>, <code>ASSIGNERS</code>, and <code>POSTPROCESSORS</code>.</li>
+            <li>Register aliases deliberately. Alias resolution is case-insensitive and punctuation-insensitive, and duplicate normalized aliases are rejected.</li>
+            <li>Set <code>family</code> to the boundary the assembler enforces, such as <code>dense</code>, <code>roi</code>, <code>proposal</code>, <code>transformer</code>, <code>neck</code>, or the loss family.</li>
+            <li>Set <code>validation_status</code> truthfully. Use <code>runtime_validated</code> only after real construction and tensor/runtime tests pass. Use <code>compatibility_alias</code> or <code>unvalidated</code> when the route exists but architecture-faithful support is not proven.</li>
+            <li>Fill <code>tensor_contracts</code>, <code>required_dependencies</code>, and <code>summary</code> because those fields explain what was validated and why a missing extra fails.</li>
+          </ul>
+          <pre><code>@HEADS.register(
+    "MyDenseHead",
+    aliases=("my_dense_head",),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "dense_anchor_free_outputs"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="Native dense head with construction, forward, loss, and decode coverage.",
+)
+class MyDenseHead(nn.Module):
+    ...</code></pre>
+          <p class="notice">A config row, notebook import, or alias-only route is not support. Do not describe a detector family as supported until the registered native modules have CPU tensor validation and the docs identify the exact validation boundary.</p>
+        </article>
+
+        <article class="section" id="tensors">
+          <h2>Tensor contracts</h2>
+          <p class="section-lead">
+            Tensor contracts are the runtime shape and key agreements between modules. They keep detector families extensible without copying fragile assumptions from one head into another.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Boundary</th><th>Expected contract</th><th>Validation location</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Feature pyramid</td><td>A sequence of NCHW tensors, one tensor per level, with consistent batch size and downstream channel expectations.</td><td><code>tests/native_tensor_contracts.py</code></td></tr>
+                <tr><td>Dense head forward</td><td>A mapping whose per-level outputs preserve the feature-map level count and spatial shape. Standard keys include <code>cls_logits</code> and <code>bbox_regression</code>; family-specific heads may add <code>centerness</code>, <code>objectness_logits</code>, heatmaps, embeddings, or offsets.</td><td><code>assert_dense_head_output_contract</code></td></tr>
+                <tr><td>Loss path</td><td>Loss callables consume images, targets, feature pyramids, and head outputs, then return finite scalar losses including <code>loss_total</code> when the family test expects aggregation.</td><td><code>tests/test_native_dense_heads.py</code>, <code>tests/test_native_two_stage.py</code>, <code>tests/test_native_query_detector.py</code></td></tr>
+                <tr><td>Decode path</td><td>Postprocessors return detection payloads with <code>boxes</code>, <code>scores</code>, and <code>labels</code>, where boxes are shaped <code>N x 4</code>.</td><td>Dense, ROI, keypoint, and query detector tests</td></tr>
+                <tr><td>ROI and proposal path</td><td>RPN, ROI bbox, mask, grid, and sparse heads use family-specific contracts such as proposals, ROI features, mask predictions, grid offsets, and learned proposal features.</td><td><code>tests/test_native_roi.py</code>, <code>tests/test_native_two_stage.py</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="section" id="composition">
+          <h2>Detector composition layers</h2>
+          <p class="section-lead">
+            Detector construction is layered so the public suite API, build-plan compiler, component builders, and runtime modules each own one concern.
+          </p>
+          <pre><code>build_detector(...)
+  -&gt; compile_native_detector_plan(...)
+  -&gt; build_native_components(...)
+  -&gt; family-specific assembler
+  -&gt; native torch.nn.Module runtime</code></pre>
+          <ul>
+            <li><code>simpledet.suite</code> owns user-facing specs and plan compilation.</li>
+            <li><code>build_native_components</code> imports requested modules, builds backbone, neck, and heads, and validates family boundaries before assembly.</li>
+            <li>Dense detectors own backbone, neck, dense head, loss, and decoder through the single-stage model path.</li>
+            <li>Proposal and ROI detectors own RPN, bbox, mask, grid, sparse, or cascade pieces through explicit ROI validation.</li>
+            <li>Transformer detectors own query heads, positional settings, set losses, and postprocessing through the query-detector path.</li>
+          </ul>
+          <p>
+            Runtime dependency direction points into the native PyTorch and Lightning stack. New support must not depend on MMDetection, MMEngine, or MMCV as a fallback execution path.
+          </p>
+        </article>
+
+        <article class="section" id="heads">
+          <h2>Head implementation expectations</h2>
+          <ul>
+            <li>Implement heads as real <code>torch.nn.Module</code> objects with trainable parameters owned through normal PyTorch module attributes.</li>
+            <li>Keep constructor validation local and actionable. For example, dense heads must reject non-positive <code>num_classes</code>, and RepPoints must reject missing or mismatched point-generation settings.</li>
+            <li>Keep forward output keys stable for the family. If a new key is required for loss or decode, document it in <code>tensor_contracts</code> and test it explicitly.</li>
+            <li>Use shared geometry, assignment, target-builder, loss, and decoder helpers in <code>simpledet/simpledet/native/</code> before adding another family-specific copy.</li>
+            <li>Make architecture gaps visible. A compatibility route may share a dense seam, but the docs and metadata must say when full family parity is not claimed.</li>
+          </ul>
+        </article>
+
+        <article class="section" id="validation">
+          <h2>Tests required for support claims</h2>
+          <p class="section-lead">
+            A support claim needs tests at the same boundary that users will rely on. Metadata tests prove discovery; tensor tests prove the runtime contract.
+          </p>
+          <ul>
+            <li>Registry and discovery: assert aliases resolve to the expected component, family, dependencies, tensor contracts, and validation status.</li>
+            <li>Construction: instantiate through public builders and native builders, not only by directly calling the class.</li>
+            <li>Forward: run deterministic CPU feature maps and assert output keys, levels, batch dimensions, channels, and spatial shapes.</li>
+            <li>Loss: run finite scalar loss smoke tests with generated boxes, labels, metadata, and targets.</li>
+            <li>Decode or prediction: run the decoder/postprocessor and assert detection payload shapes.</li>
+            <li>Detector assembly: build the detector family through <code>build_native_detector</code> or the relevant assembler and exercise loss and prediction paths when the story claims detector support.</li>
+            <li>Negative cases: assert unsupported combinations fail with actionable messages instead of silently routing to another family.</li>
+            <li>Docs: update <a href="model-coverage.html">Model Coverage</a>, this guide, examples, or changelog entries when public support status changes.</li>
+          </ul>
+          <pre><code>PYTHONPATH=simpledet python3 -m unittest tests.test_native_dense_heads
+PYTHONPATH=simpledet python3 -m unittest tests.test_native_dense_detectors
+make docs-check</code></pre>
+        </article>
+
+        <article class="section">
+          <h2>Optional dependency rules</h2>
+          <ul>
+            <li>Base imports must stay lightweight. Do not make <code>import simpledet</code> require <code>torch</code>, <code>torchvision</code>, <code>timm</code>, geospatial packages, plotting libraries, MMDetection, MMEngine, or MMCV.</li>
+            <li>Register required runtime modules with <code>required_dependencies</code> so <code>require_dependencies</code> can raise an install hint such as <code>python -m pip install 'simpledet[cpu]'</code>.</li>
+            <li>Use <code>simpledet[cpu]</code> for native PyTorch and TorchVision runtime modules, and <code>simpledet[timm]</code> only for TIMM-backed encoders or defaults that need TIMM feature metadata.</li>
+            <li>Guard optional imports inside the module or builder that needs them. Do not import optional runtime stacks from package top-level modules or docs-only discovery paths.</li>
+          </ul>
+        </article>
+
+        <article class="section" id="dense-checklist">
+          <h2>Checklist for adding a dense head</h2>
+          <ol>
+            <li>Construction: add the native <code>nn.Module</code>, constructor validation, registry metadata, aliases, dependency requirements, family, validation status, and tensor contract names.</li>
+            <li>Forward: accept a list of feature-pyramid tensors and return a mapping with stable per-level tensors for class logits, bbox regression, and any family-specific outputs.</li>
+            <li>Loss: wire or add the target builder and loss callable, then test finite <code>loss_total</code> behavior with CPU smoke targets.</li>
+            <li>Decode: wire or add the decoder/postprocessor and test that inference returns <code>boxes</code>, <code>scores</code>, and <code>labels</code> with coherent shapes.</li>
+            <li>Detector route: connect the head to a detector assembler only when the full family boundary is validated; otherwise mark it as a head-level capability or compatibility alias.</li>
+            <li>Docs: update model coverage, examples or changelog if support status changes, and keep any limitation text aligned with the actual tests.</li>
+          </ol>
+        </article>
+
         <article class="section">
           <h2>How to add a new detector family</h2>
           <ol>
