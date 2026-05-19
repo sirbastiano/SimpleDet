@@ -11,12 +11,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from ..errors import CheckpointPathError
 from ._deps import require_dependency
 
 SUPPORTED_CHECKPOINT_FORMATS = (".pth", ".pt", ".ckpt")
 
 
-class CheckpointNotFoundError(FileNotFoundError):
+class CheckpointNotFoundError(CheckpointPathError):
     """Raised when a checkpoint path is missing or uses an unsupported format."""
 
     def __init__(self, checkpoint: str, *, supported_formats: Sequence[str]):

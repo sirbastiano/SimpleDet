@@ -5,9 +5,35 @@ from __future__ import annotations
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 
+from .errors import (
+    CheckpointError,
+    CheckpointPathError,
+    ConfigPathError,
+    ConfigValidationError,
+    DatasetError,
+    DatasetPathError,
+    OptionalDependencyError,
+    RegistryError,
+    RegistryLookupError,
+    SimpleDetError,
+    TensorContractError,
+)
+
 
 __all__ = [
     "__version__",
+    "SimpleDetError",
+    "OptionalDependencyError",
+    "RegistryError",
+    "RegistryLookupError",
+    "ConfigValidationError",
+    "ConfigPathError",
+    "DatasetError",
+    "DatasetPathError",
+    "TensorContractError",
+    "CheckpointError",
+    "CheckpointPathError",
+    "CheckpointNotFoundError",
     "train",
     "detect",
     "evaluate",
@@ -84,6 +110,7 @@ def __getattr__(name: str):
         "predict_batch",
         "load_checkpoint_for_inference",
         "export_predictions",
+        "CheckpointNotFoundError",
     }:
         from .detectors import infer as infer_module
 

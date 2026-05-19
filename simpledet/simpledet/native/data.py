@@ -7,12 +7,13 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from ..detectors.data import load_dataset
+from ..errors import DatasetError
 
 
 TransformFn = Callable[[Any, dict[str, Any]], tuple[Any, dict[str, Any]]]
 
 
-class NativeDataValidationError(ValueError):
+class NativeDataValidationError(DatasetError):
     """Raised when native datamodule inputs are unusable for a stage."""
 
 

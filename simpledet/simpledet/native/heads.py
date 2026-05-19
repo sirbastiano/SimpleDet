@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..detectors._deps import require_dependency
-from ..extensions import HEADS, LOSSES
+from ..extensions import HEADS, LOSSES, RegistryLookupError
 
 require_dependency("torch", "native heads")
 import torch  # noqa: E402
@@ -2042,7 +2042,7 @@ def _resolve_head_name(requested: str) -> str:
 
     try:
         return HEADS.resolve_name(str(requested))
-    except KeyError:
+    except RegistryLookupError:
         pass
 
     if normalized in {"retina", "retinanet", "retinanethead", "retinahead"}:

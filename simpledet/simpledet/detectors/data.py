@@ -13,9 +13,10 @@ from pathlib import Path
 from typing import Any, ClassVar, TypeVar
 
 from .._legacy import legacy_py_config_error
+from ..errors import DatasetError, DatasetPathError
 
 
-class UnsupportedFormatError(ValueError):
+class UnsupportedFormatError(DatasetError):
     """Raised when a requested dataset format is not registered."""
 
     def __init__(self, format_key: str, supported_formats: list[str]):
@@ -27,7 +28,7 @@ class UnsupportedFormatError(ValueError):
         )
 
 
-class AmbiguousFormatError(ValueError):
+class AmbiguousFormatError(DatasetError):
     """Raised when multiple dataset formats match the detected layout."""
 
     def __init__(self, path: Path, candidates: list[str]):
@@ -40,7 +41,7 @@ class AmbiguousFormatError(ValueError):
         )
 
 
-class CocoSchemaError(ValueError):
+class CocoSchemaError(DatasetError):
     """Raised when a COCO annotation file does not satisfy required schema."""
 
     def __init__(self, path: Path, missing: list[str], non_list: list[str] = ()):
@@ -170,7 +171,7 @@ def _detect_dataset_format(dataset_root: Path, *, format_override: str | None = 
         elif dataset_root.suffix.lower() == ".csv":
             candidates.add("csv")
         if not candidates:
-            raise ValueError(f"Unable to auto-detect format for '{dataset_root}'.")
+            raise DatasetError(f"Unable to auto-detect format for '{dataset_root}'.")
     else:
         if dataset_root.is_dir():
             if any(_is_json_file(path) and _looks_like_coco_annotation(path) for path in dataset_root.glob("instances_*.json")):
@@ -198,9 +199,9 @@ def _detect_dataset_format(dataset_root: Path, *, format_override: str | None = 
                 candidates.add("json")
 
             if not candidates:
-                raise ValueError(f"Unable to detect dataset format in '{dataset_root}'.")
+                raise DatasetError(f"Unable to detect dataset format in '{dataset_root}'.")
         else:
-            raise FileNotFoundError(f"Dataset path not found: {dataset_root}")
+            raise DatasetPathError(f"Dataset path not found: {dataset_root}")
 
     if len(candidates) != 1:
         raise AmbiguousFormatError(dataset_root, sorted(candidates))

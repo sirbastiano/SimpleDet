@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import simpledet.detectors._deps as deps
+from simpledet.errors import OptionalDependencyError
 
 
 class TestDeps(unittest.TestCase):
@@ -10,7 +11,7 @@ class TestDeps(unittest.TestCase):
             "simpledet.detectors._deps.import_module",
             side_effect=ModuleNotFoundError("mod", name="torch"),
         ):
-            with self.assertRaises(ImportError) as context:
+            with self.assertRaises(OptionalDependencyError) as context:
                 deps.require_dependency("torch", "training")
             self.assertIn(
                 "simpledet public API 'training' requires the optional dependency 'torch'",
@@ -31,7 +32,7 @@ class TestDeps(unittest.TestCase):
             return None
 
         with patch("simpledet.detectors._deps.import_module", side_effect=fake_import):
-            with self.assertRaises(ImportError) as context:
+            with self.assertRaises(OptionalDependencyError) as context:
                 deps.require_dependency("torch", "train")
             self.assertIn("optional dependency 'torch'", str(context.exception))
 
@@ -40,8 +41,12 @@ class TestDeps(unittest.TestCase):
             "simpledet.detectors._deps.import_module",
             side_effect=ModuleNotFoundError("not found", name="timm"),
         ):
-            with self.assertRaises(ImportError) as context:
+            with self.assertRaises(OptionalDependencyError) as context:
                 deps.require_dependency("timm", "native backbones")
 
         self.assertIn("optional dependency 'timm'", str(context.exception))
+        self.assertEqual(
+            context.exception.install_command,
+            "python -m pip install 'simpledet[timm]'",
+        )
         self.assertIn("python -m pip install 'simpledet[timm]'", str(context.exception))

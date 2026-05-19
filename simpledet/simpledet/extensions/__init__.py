@@ -15,6 +15,8 @@ from .registry import (
     DependencyRequirement,
     ExtensionRegistry,
     MissingComponentDependencyError,
+    OptionalDependencyError,
+    RegistryError,
     RegistryLookupError,
 )
 
@@ -22,7 +24,9 @@ __all__ = [
     "ComponentMetadata",
     "DependencyRequirement",
     "ExtensionRegistry",
+    "RegistryError",
     "RegistryLookupError",
+    "OptionalDependencyError",
     "MissingComponentDependencyError",
     "ENCODERS",
     "NECKS",

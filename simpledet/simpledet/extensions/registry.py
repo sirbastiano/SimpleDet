@@ -8,6 +8,8 @@ from difflib import get_close_matches
 from importlib import import_module
 from typing import Any, Callable
 
+from ..errors import OptionalDependencyError, RegistryError, RegistryLookupError
+
 
 @dataclass(slots=True, frozen=True)
 class DependencyRequirement:
@@ -91,11 +93,7 @@ class ComponentMetadata:
         }
 
 
-class RegistryLookupError(KeyError):
-    """Raised when a registry lookup cannot resolve a component name or alias."""
-
-
-class MissingComponentDependencyError(ImportError):
+class MissingComponentDependencyError(RegistryError, OptionalDependencyError):
     """Raised when a registered component is missing optional dependencies."""
 
 

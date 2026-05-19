@@ -6,6 +6,7 @@ import math
 from typing import Any
 
 from ..detectors._deps import require_dependency
+from ..errors import TensorContractError
 from ..extensions import LOSSES
 
 require_dependency("torch", "native losses")
@@ -14,7 +15,7 @@ import torch.nn as nn  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 
 
-class LossContractError(ValueError):
+class LossContractError(TensorContractError):
     """Raised when a loss receives tensors that violate its shape contract."""
 
 

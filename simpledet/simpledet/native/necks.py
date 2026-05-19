@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..detectors._deps import require_dependency
+from ..errors import TensorContractError
 from ..extensions import NECKS
 
 require_dependency("torch", "native necks")
@@ -19,10 +20,6 @@ class NeckSpec:
     name: str
     out_channels: int
     num_outs: int
-
-
-class TensorContractError(ValueError):
-    """Raised when a neck receives tensors that violate its declared contract."""
 
 
 _TORCH_CPU = (("torch", "cpu"),)

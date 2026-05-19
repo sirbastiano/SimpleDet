@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..errors import CheckpointPathError
 from ..metrics import evaluate_coco_bbox_metrics
 from ..suite import DetectorSpec
 from .data import NativeDataConfig, NativeDetectionDataModule
@@ -53,8 +54,8 @@ def _resolved_checkpoint_path(config: NativeProjectConfig) -> Path:
     if resolved.exists():
         return resolved
     if checkpoint_path:
-        raise FileNotFoundError(f"Missing native checkpoint: {resolved}")
-    raise FileNotFoundError(
+        raise CheckpointPathError(f"Missing native checkpoint: {resolved}")
+    raise CheckpointPathError(
         "Missing native checkpoint. Train first so "
         f"'{resolved}' exists, or pass `checkpoint_path` explicitly."
     )

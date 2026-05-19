@@ -6,6 +6,7 @@ from contextlib import nullcontext
 from typing import Any
 
 from ..detectors._deps import require_dependency
+from ..extensions import RegistryLookupError
 from ..suite.catalog import resolve_architecture_name
 require_dependency("torch", "native")
 import torch  # noqa: E402
@@ -349,7 +350,7 @@ def build_native_model(
 
     try:
         detector_name = DETECTORS.resolve_name(normalized)
-    except KeyError:
+    except RegistryLookupError:
         detector_name = ""
 
     if normalized not in SUPPORTED_NATIVE_ARCHITECTURES and not detector_name:

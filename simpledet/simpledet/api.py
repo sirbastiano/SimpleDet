@@ -15,6 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover
     import tomli as tomllib
 
 from ._legacy import legacy_py_config_error
+from .errors import ConfigPathError, ConfigValidationError
 from .suite.specs import DecoderSpec, DetectorSpec, EncoderSpec, HeadSpec, NeckSpec
 
 DEFAULT_IMAGE_SUBDIR = "imgs"
@@ -413,7 +414,7 @@ class ProjectConfig:
 
 def _default_band_selection(in_channels: int) -> list[int]:
     if int(in_channels) < 1:
-        raise ValueError("`in_channels` must be at least 1.")
+        raise ConfigValidationError("`in_channels` must be at least 1.")
     return list(range(1, int(in_channels) + 1))
 
 
@@ -565,7 +566,7 @@ def validate_project_config(
     }
     report["missing"] = [name for name, exists in report["exists"].items() if not exists]
     if strict and report["missing"]:
-        raise FileNotFoundError(
+        raise ConfigPathError(
             "Project validation failed. Missing required input paths: " + ", ".join(report["missing"])
         )
     return report

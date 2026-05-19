@@ -3,7 +3,15 @@ import sys
 import types
 from unittest.mock import patch
 
-from simpledet.extensions import DECODERS, DETECTORS, ENCODERS, HEADS, NECKS, ExtensionRegistry
+from simpledet.extensions import (
+    DECODERS,
+    DETECTORS,
+    ENCODERS,
+    HEADS,
+    NECKS,
+    ExtensionRegistry,
+    RegistryLookupError,
+)
 from simpledet.suite import (
     ComponentPlan,
     DetectorBuildPlan,
@@ -302,9 +310,10 @@ class ExtensionRegistryTests(unittest.TestCase):
 
         registry.register("vfnet", aliases=("VFNet",))(factory)
 
-        with self.assertRaises(KeyError) as context:
+        with self.assertRaises(RegistryLookupError) as context:
             registry.lookup("unknown_detector")
         message = str(context.exception)
+        self.assertNotIsInstance(context.exception, KeyError)
         self.assertIn("Unknown detector component 'unknown_detector'", message)
         self.assertIn("Registered detector names: vfnet", message)
         self.assertIn("Aliases: VFNet -> vfnet", message)

@@ -376,13 +376,19 @@ class NativeBackboneTests(unittest.TestCase):
                 "simpledet.detectors._deps.import_module",
                 side_effect=ModuleNotFoundError("missing", name="timm"),
             ):
-                with self.assertRaises(ImportError) as context:
+                from simpledet.errors import OptionalDependencyError
+
+                with self.assertRaises(OptionalDependencyError) as context:
                     TimmFeatureBackbone(
                         model_name="resnet18",
                         pretrained=False,
                         out_indices=(1, 2, 3, 4),
                     )
 
+        self.assertEqual(
+            context.exception.install_command,
+            "python -m pip install 'simpledet[timm]'",
+        )
         self.assertIn("python -m pip install 'simpledet[timm]'", str(context.exception))
 
     def test_build_native_model_accepts_non_3_channel_input(self):

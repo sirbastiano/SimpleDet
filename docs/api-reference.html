@@ -104,6 +104,17 @@ run_evaluation(...)</code></pre>
           <p>Use these when you want native execution without creating a config file. They wrap the project-layout helpers and execute the relevant stages directly.</p>
         </article>
         <article class="section">
+          <h2>Public errors</h2>
+          <pre><code>SimpleDetError
+OptionalDependencyError
+RegistryLookupError
+ConfigValidationError
+DatasetError
+TensorContractError
+CheckpointError</code></pre>
+          <p>Public setup, config, registry, dataset, tensor-contract, and checkpoint failures derive from <code>SimpleDetError</code>. Missing optional extras raise <code>OptionalDependencyError</code> with the exact install command, such as <code>python -m pip install 'simpledet[timm]'</code>. Unknown registry names raise <code>RegistryLookupError</code> with the registry kind, registered names, and nearby aliases instead of exposing raw mapping errors.</p>
+        </article>
+        <article class="section">
           <h2>Image prediction helpers</h2>
           <pre><code>load_checkpoint_for_inference(checkpoint, *, device="cpu", model_name=None, num_classes=None, class_names=None, score_threshold=0.05, max_detections=None)
 predict_image(model, image_path, *, class_names=None, device="cpu", score_threshold=None, max_detections=None, metadata=None)
