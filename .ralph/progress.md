@@ -87,6 +87,37 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Existing project configs used `detector_spec` and `optimization`; compatibility should be preserved while docs and templates prefer `detector`, `optimizer`, and `scheduler`.
   - Native runtime config needed explicit annotation and image-directory fields; validating paths without passing them through would make non-default project configs misleading.
 ---
+## [2026-05-19 10:57:38 UTC] - US-041: Add repository quality audit tests
+Thread:
+Run: 20260518-183418-2827287 (iteration 41)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-41.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-41.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: b9575a4 test(repo): add quality audit checks
+- Post-commit status: `clean` after implementation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_repo_audit` -> PASS (7 tests, 9 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (300 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS (run before and after `make build`)
+  - Command: `make build` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - tests/test_repo_audit.py
+- What was implemented
+  - Tightened the repository audit tests to compile maintained package files, import optional-safe public modules, verify exported public symbols, and reject legacy `mmdet`/`mmcv`/`mmengine` runtime references.
+  - Added case-insensitive legacy text detection with explicit allowlisted migration-only references in `_legacy.py`, `suite/compiler.py`, and `suite/native_plan.py`.
+  - Added negative coverage proving archived `MyConfigs` references are outside the maintained-package audit while intentional migration text remains allowed.
+  - Security/performance/regression review: tests only read local repo/package files; scans are bounded to maintained package paths; no runtime behavior, dependencies, network access, or generated artifacts changed; full gates passed.
+- **Learnings for future iterations:**
+  - `tests/test_repo_audit.py` already covered compile/import/import-reference checks; US-041 needed stronger public export discovery and explicit legacy text boundaries.
+  - Maintained package migration messages still mention MMDet/MMDetection; keep these references in a small allowlist so accidental runtime dependency drift still fails.
+  - Archived MMDetection-era configs live under `MyConfigs/` and should remain outside maintained package audits.
+  - `make build` regenerates `dist/`, so rerun `make verify-dist` after build when artifact freshness matters.
+---
 ## [2026-05-19 10:06:25 UTC] - US-037: Document model coverage
 Thread:
 Run: 20260518-183418-2827287 (iteration 37)
