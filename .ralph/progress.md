@@ -515,3 +515,44 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `FOVEA` already resolves lowercase `fovea`; only the new `fovea_head` alias was needed.
   - This environment still has no bare `python` and no torch CPU extra, so runtime tensor tests are present but skip under the base install.
 ---
+## [2026-05-19 01:29:12 UTC] - US-014: Register advanced dense heads
+Thread:
+Run: 20260518-183418-2827287 (iteration 14)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-14.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-14.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 14943a8 feat(heads): register advanced dense heads
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_backend_plan.py'` -> PASS (13 tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_components.py'` -> PASS (27 tests, 3 skipped)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_dense_heads.py'` -> PASS (13 skipped; base install lacks torch)
+  - Command: `uv run --extra cpu python -m unittest discover -s tests -p 'test_native_dense_heads.py'` -> PASS (13 real-tensor tests)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (174 tests, 48 skipped)
+  - Command: `make test` -> PASS (174 tests, 48 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_dense_heads.py
+- What was implemented
+  - Registered GFL, GFLv2, VFNet, PAA, RepPoints, YOLOF, TOOD, DDOD, AutoAssign, and NAS-FCOS dense head aliases with explicit native tensor contracts and dependency metadata.
+  - Added native dense loss/decoder adapter classes for the advanced heads, preserving the current ATSS/FCOS output contracts instead of claiming unsupported family-specific training semantics.
+  - Added VFNet direct native head construction through `build_head(..., in_channels=...)` while preserving legacy `HeadSpec` behavior when no native channels are supplied.
+  - Added RepPoints point-generation validation for missing `point_strides` and feature-level mismatch.
+  - Added advanced dense head construction, forward, finite-loss, decode, registry metadata, VFNet varifocal, and RepPoints negative tests.
+  - Security/performance/regression review: no new file/network/secret handling; added validation is constant-time per feature level; loss/decode paths reuse existing dense ops; focused real-tensor and full regression gates passed.
+- **Learnings for future iterations:**
+  - Registry aliases normalize case and separators, so do not register both `NASFCOS` and `NAS-FCOS` or both `autoassign_head` and `auto_assign_head`.
+  - `suite.build_head()` must remain spec-first; the direct native path is gated by `in_channels`/`out_channels`.
+  - `uv run --extra cpu` executes real tensor tests here, but the PyPI torch wheel set installs large CUDA companion wheels and took several minutes.
+---
