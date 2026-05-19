@@ -605,3 +605,41 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `suite.build_head()` must remain spec-first; the direct native path is gated by `in_channels`/`out_channels`.
   - `uv run --extra cpu` executes real tensor tests here, but the PyPI torch wheel set installs large CUDA companion wheels and took several minutes.
 ---
+## [2026-05-19 02:11:50 UTC] - US-016: Register keypoint transformer heads
+Thread:
+Run: 20260518-183418-2827287 (iteration 16)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-16.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-16.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 37556f8 feat(heads): add keypoint transformer heads
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found before local env setup)
+  - Command: `PATH=.venv/bin:$PATH PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_keypoint_transformer_heads.py'` -> PASS (5 real CPU tensor tests)
+  - Command: `tmpdir=$(mktemp -d); ln -s /usr/bin/python3 "$tmpdir/python"; PATH="$tmpdir:$PATH" PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (187 tests, 61 skipped)
+  - Command: `PATH=.venv/bin:$PATH make docs-check` -> PASS
+  - Command: `PATH=.venv/bin:$PATH make build` -> PASS
+  - Command: `PATH=.venv/bin:$PATH make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/package-surface-audit.html
+  - docs/roadmap-changelog.html
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_keypoint_transformer_heads.py
+- What was implemented
+  - Registered CenterNetHead and CornerNetHead with heatmap tensor contracts, aliases, metadata, and CPU construction/forward coverage.
+  - Registered DETRHead, ConditionalDETRHead, DABDETRHead, DeformableDETRHead, and DINOHead with query class/box outputs and direct `build_head(...)` construction for transformer aliases.
+  - Added constructor-time validation for incompatible transformer `hidden_dim` and `num_heads` settings before forward execution.
+  - Updated docs to expose dense keypoint and transformer head discovery while keeping full detector parity staged.
+  - Security/performance/regression review: no new file/network/secret handling; transformer heads validate numeric attention shape before module execution; batch-first attention avoids the PyTorch nested-tensor warning; CenterNet preserves dense compatibility keys for existing consumers.
+- **Learnings for future iterations:**
+  - Registry aliases normalize case and separators, so aliases like `DETR`, `detr`, and `de_tr` collide; register one display alias plus explicit `_head` aliases.
+  - The repo's lightweight global unittest gate skips optional torch tests; use `.venv` from `uv sync --extra cpu --extra dev` for real CPU tensor coverage.
+  - A broad real-torch native sweep currently exposes unrelated pre-existing ROI/geometry/API failures, so US-016 validation used focused real-torch tests plus the required lightweight global gate.
+---
