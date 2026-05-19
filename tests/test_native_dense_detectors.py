@@ -2,7 +2,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from native_tensor_contracts import require_torch
+from native_tensor_contracts import assert_dense_head_output_contract, require_torch
 
 
 _DENSE_DETECTOR_ALIASES = (
@@ -48,6 +48,56 @@ _FORWARD_SMOKE_ALIASES = (
     ("GFocalV2", "GFLV2Head"),
     ("RepPoints", "RepPointsHead"),
     ("NAS-FCOS", "NASFCOSHead"),
+)
+
+_LIGHTWEIGHT_DETECTOR_ALIASES = (
+    (
+        "yolox",
+        "yolox",
+        "YOLOXPAFPN",
+        "YOLOXHead",
+        ("cls_logits", "bbox_regression", "objectness_logits"),
+        {"cls_logits": 4, "bbox_regression": 4, "objectness_logits": 1},
+    ),
+    (
+        "rtmdet",
+        "rtmdet",
+        "YOLOXPAFPN",
+        "RTMDetHead",
+        ("cls_logits", "bbox_regression"),
+        {"cls_logits": 4, "bbox_regression": 4},
+    ),
+    (
+        "ssd",
+        "ssd",
+        "SSDNeck",
+        "SSDHead",
+        ("cls_logits", "bbox_regression"),
+        {"cls_logits": 36, "bbox_regression": 36},
+    ),
+    (
+        "efficientdet_d0",
+        "efficientdet",
+        "BiFPN",
+        "EfficientDetHead",
+        ("cls_logits", "bbox_regression"),
+        {"cls_logits": 36, "bbox_regression": 36},
+    ),
+    (
+        "centernet",
+        "centernet",
+        "FPN",
+        "CenterNetHead",
+        ("heatmap", "wh", "offset", "cls_logits", "bbox_regression", "centerness"),
+        {
+            "heatmap": 4,
+            "wh": 2,
+            "offset": 2,
+            "cls_logits": 4,
+            "bbox_regression": 4,
+            "centerness": 1,
+        },
+    ),
 )
 
 _TEST_BACKBONE = "US023TinyBackbone"
@@ -149,6 +199,85 @@ class NativeDenseDetectorFamilyTests(unittest.TestCase):
                 self.assertEqual(predictions[0]["scores"].dim(), 1)
                 self.assertEqual(predictions[0]["labels"].dim(), 1)
 
+    def test_lightweight_detector_families_construct_forward_and_decode_on_cpu(self):
+        torch = require_torch()
+        self._ensure_test_components()
+
+        from simpledet.native.modeling import SingleStageDetector, build_detector as build_native_detector
+
+        image = torch.rand((3, 32, 32), dtype=torch.float32)
+        for alias, expected_architecture, expected_neck, expected_head, required_keys, channels in _LIGHTWEIGHT_DETECTOR_ALIASES:
+            with self.subTest(alias=alias):
+                spec = self._lightweight_detector_spec(alias)
+                try:
+                    model = build_native_detector(
+                        name=alias,
+                        num_classes=4,
+                        detector_spec=spec,
+                        pretrained=False,
+                    )
+                except ImportError as exc:
+                    self.skipTest(str(exc))
+                model.eval()
+
+                with torch.no_grad():
+                    feature_pyramid = model.extract_features(image)
+                    head_outputs = model.forward_head(feature_pyramid)
+                    predictions = model.predict([image])
+
+                self.assertIsInstance(model, SingleStageDetector)
+                self.assertEqual(spec.architecture, expected_architecture)
+                self.assertEqual(model.neck_spec.name, expected_neck)
+                self.assertEqual(model.head_spec.name, expected_head)
+                assert_dense_head_output_contract(
+                    head_outputs,
+                    feature_pyramid,
+                    batch_size=1,
+                    required_keys=required_keys,
+                )
+                for key, expected_channels in channels.items():
+                    for level in head_outputs[key]:
+                        self.assertEqual(int(level.shape[1]), expected_channels)
+                self.assertEqual(len(predictions), 1)
+                self.assertEqual(set(predictions[0]), {"boxes", "scores", "labels"})
+                self.assertEqual(predictions[0]["boxes"].shape[-1], 4)
+                self.assertEqual(predictions[0]["scores"].dim(), 1)
+                self.assertEqual(predictions[0]["labels"].dim(), 1)
+
+    def test_yolo_family_native_build_rejects_incompatible_neck(self):
+        require_torch()
+        self._ensure_test_components()
+
+        from simpledet.native.modeling import build_detector as build_native_detector
+
+        from simpledet.suite import build_custom_detector, build_custom_encoder, build_custom_neck
+
+        spec = build_custom_detector(
+            "yolox",
+            family="dense",
+            num_classes=4,
+            encoder=build_custom_encoder(
+                _TEST_BACKBONE,
+                imports=(),
+                feature_channels=(8, 8, 8, 8),
+                in_channels=3,
+            ),
+            neck=build_custom_neck(
+                _TEST_NECK,
+                imports=(),
+                out_channels=8,
+                num_outs=4,
+            ),
+            pretrained=False,
+        )
+        with self.assertRaisesRegex(ValueError, "requires a YOLOXPAFPN neck"):
+            build_native_detector(
+                name="yolox",
+                num_classes=4,
+                detector_spec=spec,
+                pretrained=False,
+            )
+
     def _detector_spec(self, alias):
         from simpledet.suite import (
             build_custom_encoder,
@@ -170,6 +299,21 @@ class NativeDenseDetectorFamilyTests(unittest.TestCase):
                 imports=(),
                 out_channels=8,
                 num_outs=4,
+            ),
+            pretrained=False,
+        )
+
+    def _lightweight_detector_spec(self, alias):
+        from simpledet.suite import build_custom_encoder, build_detector
+
+        return build_detector(
+            alias,
+            num_classes=4,
+            encoder=build_custom_encoder(
+                _TEST_BACKBONE,
+                imports=(),
+                feature_channels=(8, 8, 8, 8),
+                in_channels=3,
             ),
             pretrained=False,
         )

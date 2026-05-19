@@ -333,6 +333,91 @@ class DenseFCOSLoss(nn.Module):
         }
 
 
+class DenseCenterNetDecoder(nn.Module):
+    def __init__(
+        self,
+        *,
+        score_threshold: float = 0.05,
+        nms_threshold: float = 0.5,
+        detections_per_img: int = 100,
+    ) -> None:
+        super().__init__()
+        self.score_threshold = float(score_threshold)
+        self.nms_threshold = float(nms_threshold)
+        self.detections_per_img = int(detections_per_img)
+
+    def forward(self, image, feature_maps, head_outputs):
+        from torchvision.ops import batched_nms
+
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        feature_specs = build_feature_map_specs(feature_maps, image_size=image_size)
+        heatmaps = head_outputs.get("heatmap")
+        if heatmaps is None:
+            heatmaps = [torch.sigmoid(level) for level in head_outputs["heatmap_logits"]]
+        wh_per_level = head_outputs["wh"]
+        offset_per_level = head_outputs["offset"]
+        points_per_level = generate_points(
+            feature_specs,
+            device=feature_maps[0].device,
+            dtype=feature_maps[0].dtype,
+        )
+
+        boxes_per_level = []
+        scores_per_level = []
+        labels_per_level = []
+        for spec, points, heatmap, wh, offset in zip(
+            feature_specs,
+            points_per_level,
+            heatmaps,
+            wh_per_level,
+            offset_per_level,
+        ):
+            scores_flat = heatmap.permute(0, 2, 3, 1).reshape(-1, heatmap.shape[1])
+            scores, labels = scores_flat.max(dim=1)
+            keep = scores >= self.score_threshold
+            if not keep.any():
+                continue
+            wh_flat = wh.permute(0, 2, 3, 1).reshape(-1, 2).abs()
+            offset_flat = offset.permute(0, 2, 3, 1).reshape(-1, 2)
+            stride = image.new_tensor((float(spec.stride_x), float(spec.stride_y)))
+            centers = points + offset_flat * stride
+            half_sizes = wh_flat.clamp_min(1.0) * 0.5
+            boxes = torch.stack(
+                (
+                    centers[:, 0] - half_sizes[:, 0],
+                    centers[:, 1] - half_sizes[:, 1],
+                    centers[:, 0] + half_sizes[:, 0],
+                    centers[:, 1] + half_sizes[:, 1],
+                ),
+                dim=1,
+            )
+            boxes_per_level.append(clip_boxes_to_image(boxes[keep], image_size))
+            scores_per_level.append(scores[keep])
+            labels_per_level.append(labels[keep] + 1)
+
+        if not boxes_per_level:
+            return prediction_payload_to_dict(
+                make_batched_nms_payload(
+                    image.new_zeros((0, 4)),
+                    image.new_zeros((0,)),
+                    image.new_zeros((0,), dtype=torch.long),
+                )
+            )
+
+        boxes = torch.cat(boxes_per_level, dim=0)
+        scores = torch.cat(scores_per_level, dim=0)
+        labels = torch.cat(labels_per_level, dim=0)
+        payload = make_batched_nms_payload(boxes, scores, labels)
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
+        keep_idx = keep_idx[: self.detections_per_img]
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
+
+
+class DenseCenterNetLoss(DenseFCOSLoss):
+    """Finite CenterNet smoke loss using dense compatibility targets."""
+
+
 class DenseFSAFDecoder(DenseFCOSDecoder):
     """FSAF uses the anchor-free point decode contract."""
 

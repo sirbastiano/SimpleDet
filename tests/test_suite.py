@@ -5,6 +5,7 @@ from simpledet.suite import (
     build_custom_detector,
     build_custom_encoder,
     build_detector,
+    build_neck,
     compile_native_detector_plan,
 )
 
@@ -140,6 +141,34 @@ class NativeSuiteTests(unittest.TestCase):
         self.assertEqual(libra.head.name, "Shared2FCBBoxHead")
         self.assertEqual(double_head.head.name, "DoubleConvFCBBoxHead")
         self.assertEqual(dynamic.head.name, "DynamicBBoxHead")
+
+    def test_lightweight_detector_defaults_use_native_deployment_stacks(self):
+        cases = {
+            "yolox": ("yolox", "cspdarknet53", "YOLOXPAFPN", 256, 4, "YOLOXHead"),
+            "rtmdet": ("rtmdet", "cspnext_tiny", "YOLOXPAFPN", 256, 4, "RTMDetHead"),
+            "ssd300": ("ssd", "mobilenetv2_100", "SSDNeck", 256, 6, "SSDHead"),
+            "efficientdet_d0": ("efficientdet", "efficientnet_b0", "BiFPN", 64, 5, "EfficientDetHead"),
+            "centernet": ("centernet", "resnet18", "FPN", 256, 4, "CenterNetHead"),
+        }
+        for name, (architecture, encoder, neck, out_channels, num_outs, head) in cases.items():
+            with self.subTest(name=name):
+                spec = build_detector(name=name, num_classes=3, pretrained=False)
+                plan = compile_native_detector_plan(spec)
+
+                self.assertEqual(spec.family, "dense")
+                self.assertEqual(spec.architecture, architecture)
+                self.assertEqual(spec.encoder.name, encoder)
+                self.assertEqual(spec.neck.name, neck)
+                self.assertEqual(spec.neck.out_channels, out_channels)
+                self.assertEqual(spec.neck.num_outs, num_outs)
+                self.assertEqual(spec.head.name, head)
+                self.assertEqual(plan.encoder.type, encoder)
+                self.assertEqual(plan.neck.type, neck)
+                self.assertEqual(plan.head.type, head)
+
+    def test_yolo_family_rejects_incompatible_neck(self):
+        with self.assertRaisesRegex(ValueError, "YOLO-family detector 'yolox' requires a YOLOXPAFPN neck"):
+            build_detector("yolox", num_classes=3, neck=build_neck("FPN"))
 
     def test_build_detector_unknown_architecture_includes_suggestions(self):
         with self.assertRaisesRegex(ValueError, "Suggestions:.*FoveaBox"):

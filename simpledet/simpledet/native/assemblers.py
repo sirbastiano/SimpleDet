@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ..extensions import DETECTORS, HEADS
+from ..extensions import DETECTORS, HEADS, NECKS
 from ..suite import compile_native_detector_plan
 from .backbones import build_native_backbone
 from .dense_ops import (
@@ -13,6 +13,8 @@ from .dense_ops import (
     DenseATSSLoss,
     DenseAutoAssignDecoder,
     DenseAutoAssignLoss,
+    DenseCenterNetDecoder,
+    DenseCenterNetLoss,
     DenseDDODDecoder,
     DenseDDODLoss,
     DenseEfficientDetDecoder,
@@ -83,11 +85,15 @@ _PROPOSAL_CONTRACTS = ("feature_pyramid", "rpn_head_outputs", "roi_proposals")
 _ROI_CONTRACTS = ("feature_pyramid", "roi_proposals", "postprocessed_boxes")
 _TRANSFORMER_CONTRACTS = ("feature_sequence", "set_predictions", "postprocessed_boxes")
 _POSITIONAL_ENCODING_UNSET = object()
+_YOLO_FAMILY_ARCHITECTURES = {"yolo", "yolox"}
+_YOLO_COMPATIBLE_NECKS = {"YOLOXPAFPN"}
 
 
 def build_native_components(detector_spec) -> NativeModelComponents:
     plan = compile_native_detector_plan(detector_spec)
     DETECTORS.import_modules(*plan.imports)
+    if plan.family == "dense":
+        _validate_dense_neck_plan(plan)
     backbone, backbone_spec = build_native_backbone(plan.encoder)
     neck, neck_spec = build_native_neck(plan.neck, feature_channels=backbone_spec.feature_channels)
     head = None
@@ -203,6 +209,21 @@ def _validate_dense_head_plan(plan) -> None:
         raise ValueError(
             f"Single-stage detector '{plan.architecture}' requires a dense head, "
             f"but head '{metadata.name}' has family '{metadata.family}'."
+        )
+
+
+def _validate_dense_neck_plan(plan) -> None:
+    if plan.architecture not in _YOLO_FAMILY_ARCHITECTURES:
+        return
+    if plan.neck is None:
+        raise ValueError(
+            f"YOLO-family detector '{plan.architecture}' requires a YOLOXPAFPN neck."
+        )
+    metadata = NECKS.lookup(plan.neck.type)
+    if metadata.name not in _YOLO_COMPATIBLE_NECKS:
+        raise ValueError(
+            f"YOLO-family detector '{plan.architecture}' requires a YOLOXPAFPN neck; "
+            f"got '{metadata.name}'."
         )
 
 
@@ -567,7 +588,32 @@ def assemble_vfnet_detector(components: NativeModelComponents, *, num_classes: i
     )
 
 
-@DETECTORS.register("yolox")
+@DETECTORS.register(
+    "yolox",
+    aliases=("YOLOX",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_DENSE_CONTRACTS, "yolox_pafpn_neck", "objectness_logits"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="YOLOX detector with native YOLOXPAFPN neck, objectness head, simOTA-style targets, and decode path.",
+)
+def assemble_yolox_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=_build_default_yolox_loss,
+        decoder=DenseYOLOXDecoder,
+    )
+
+
+@DETECTORS.register(
+    "yolo",
+    aliases=("YOLO",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_DENSE_CONTRACTS, "yolox_pafpn_neck", "objectness_logits"),
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="YOLO-family aliases routed through the native YOLOX-compatible neck, head, target, and decode path.",
+)
 @DETECTORS.register("yolov3")
 @DETECTORS.register("yolov5")
 @DETECTORS.register("yolov6")
@@ -577,7 +623,6 @@ def assemble_vfnet_detector(components: NativeModelComponents, *, num_classes: i
 @DETECTORS.register("yolov9")
 @DETECTORS.register("yolov10")
 @DETECTORS.register("yolo4")
-@DETECTORS.register("yolo")
 @DETECTORS.register("yolo3")
 @DETECTORS.register("yolo_v3")
 def assemble_yolo_like_detector(components: NativeModelComponents, *, num_classes: int):
@@ -588,7 +633,15 @@ def assemble_yolo_like_detector(components: NativeModelComponents, *, num_classe
     )
 
 
-@DETECTORS.register("rtmdet")
+@DETECTORS.register(
+    "rtmdet",
+    aliases=("RTMDet",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_DENSE_CONTRACTS, "yolox_pafpn_neck", "task_aligned_targets"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="RTMDet detector with CSPNeXt defaults, YOLOXPAFPN-compatible neck, native RTMDet head, and decode path.",
+)
 @DETECTORS.register("rtmdet_tiny")
 @DETECTORS.register("rtmdet_l")
 @DETECTORS.register("rtmdet_m")
@@ -649,8 +702,15 @@ def assemble_reppoints_detector(components: NativeModelComponents, *, num_classe
     )
 
 
-@DETECTORS.register("ssd")
-@DETECTORS.register("sabl")
+@DETECTORS.register(
+    "ssd",
+    aliases=("SSD",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_DENSE_CONTRACTS, "ssd_neck", "anchor_box_decoding"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="SSD detector with MobileNet-style defaults, SSDNeck, native SSD head, and anchor decode path.",
+)
 @DETECTORS.register("ssd300")
 @DETECTORS.register("ssd512")
 @DETECTORS.register("ssdlite")
@@ -662,7 +722,32 @@ def assemble_ssd_like_detector(components: NativeModelComponents, *, num_classes
     )
 
 
-@DETECTORS.register("efficientdet")
+@DETECTORS.register(
+    "sabl",
+    aliases=("SABL",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_DENSE_CONTRACTS,
+    validation_status="compatibility_alias",
+    family="dense",
+    summary="SABL compatibility alias routed through the native anchor-based dense assembly path.",
+)
+def assemble_sabl_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseSSDLoss,
+        decoder=DenseSSDDecoder,
+    )
+
+
+@DETECTORS.register(
+    "efficientdet",
+    aliases=("EfficientDet",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_DENSE_CONTRACTS, "efficientnet_backbone", "bifpn_neck", "anchor_box_decoding"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="EfficientDet detector with EfficientNet defaults, BiFPN neck, native EfficientDet head, and anchor decode path.",
+)
 @DETECTORS.register("efficientdet_d0")
 @DETECTORS.register("efficientdet_d1")
 @DETECTORS.register("efficientdet_d2")
@@ -760,15 +845,16 @@ def assemble_nas_fcos_detector(components: NativeModelComponents, *, num_classes
     "centernet",
     aliases=("CenterNet",),
     required_dependencies=_DETECTOR_DEPENDENCIES,
-    tensor_contracts=_DENSE_CONTRACTS,
-    validation_status="compatibility_alias",
+    tensor_contracts=(*_DENSE_CONTRACTS, "keypoint_heatmap_outputs", "centernet_decode"),
+    validation_status="runtime_validated",
     family="dense",
+    summary="CenterNet detector with native heatmap, width-height, offset, and decode path.",
 )
 def assemble_centernet_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseFCOSLoss,
-        decoder=DenseFCOSDecoder,
+        loss_fn=DenseCenterNetLoss,
+        decoder=DenseCenterNetDecoder,
     )
 
 

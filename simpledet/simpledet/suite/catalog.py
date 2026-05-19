@@ -115,6 +115,8 @@ def resolve_architecture_name(name: str) -> str:
     compact = _compact_architecture_name(normalized)
     if compact.startswith("yolof"):
         return "yolof"
+    if compact.startswith("yolox"):
+        return "yolox"
     if compact in {"detr", "detrnext", "detrv2", "detr3d"}:
         return "detr"
     if compact in {"deformabledetr", "deformabledetrnext", "deformabledetrv2"}:
@@ -289,9 +291,103 @@ _ARCHITECTURE_SUGGESTION_ALIASES = (
     "AutoAssign",
     "NAS-FCOS",
     "CenterNet",
+    "YOLOX",
+    "RTMDet",
+    "SSD",
+    "SSD300",
+    "EfficientDet",
+    "EfficientDet-D0",
     "Grid R-CNN",
     "Cascade R-CNN",
 )
+
+_LIGHTWEIGHT_DEFAULT_BACKBONE_BY_ARCHITECTURE = {
+    "yolo": "cspdarknet53",
+    "yolox": "cspdarknet53",
+    "rtmdet": "cspnext_tiny",
+    "ssd": "mobilenetv2_100",
+    "efficientdet": "efficientnet_b0",
+    "centernet": "resnet18",
+}
+
+_LIGHTWEIGHT_DEFAULT_NECK_BY_ARCHITECTURE: dict[str, dict[str, Any]] = {
+    "yolo": {"name": "YOLOXPAFPN", "out_channels": 256, "num_outs": 4},
+    "yolox": {"name": "YOLOXPAFPN", "out_channels": 256, "num_outs": 4},
+    "rtmdet": {"name": "YOLOXPAFPN", "out_channels": 256, "num_outs": 4},
+    "ssd": {"name": "SSDNeck", "out_channels": 256, "num_outs": 6},
+    "efficientdet": {"name": "BiFPN", "out_channels": 64, "num_outs": 5},
+    "centernet": {"name": "FPN", "out_channels": 256, "num_outs": 4},
+}
+
+_YOLO_COMPATIBLE_NECKS = {"yoloxpafpn"}
+
+
+def _resolve_detector_name(architecture: str | None, name: str | None) -> str:
+    if architecture is None:
+        if name is None:
+            raise TypeError("build_detector() missing required architecture name.")
+        return str(name)
+    if name is not None:
+        resolved_architecture = resolve_architecture_name(str(architecture))
+        resolved_name = resolve_architecture_name(str(name))
+        if resolved_architecture != resolved_name:
+            raise ValueError(
+                "build_detector() received conflicting architecture names: "
+                f"{architecture!r} and name={name!r}."
+            )
+    return str(architecture)
+
+
+def _neck_is_auto(neck: NeckSpec | None) -> bool:
+    if neck is None:
+        return True
+    return _compact_component_name(neck.name) in {"", "auto"}
+
+
+def _default_encoder_for_architecture(
+    architecture: str,
+    *,
+    pretrained: bool,
+    in_channels: int,
+) -> EncoderSpec:
+    backbone_name = _LIGHTWEIGHT_DEFAULT_BACKBONE_BY_ARCHITECTURE.get(architecture)
+    if backbone_name is not None:
+        return build_backbone(
+            backbone_name,
+            pretrained=pretrained,
+            in_channels=in_channels,
+        )
+    return build_encoder(
+        "resnet18.a1_in1k",
+        source="timm",
+        pretrained=pretrained,
+        in_channels=in_channels,
+    )
+
+
+def _default_neck_for_architecture(architecture: str) -> NeckSpec | None:
+    defaults = _LIGHTWEIGHT_DEFAULT_NECK_BY_ARCHITECTURE.get(architecture)
+    if defaults is None:
+        return None
+    params = dict(defaults)
+    name = str(params.pop("name"))
+    return build_neck(name, **params)
+
+
+def _validate_detector_neck_choice(architecture: str, neck: NeckSpec | None) -> None:
+    if architecture not in {"yolo", "yolox"} or neck is None:
+        return
+    requested = _compact_component_name(neck.name)
+    configured_type = None
+    if neck.neck_cfg:
+        configured_type = neck.neck_cfg.get("type")
+    if configured_type is not None:
+        requested = _compact_component_name(str(configured_type))
+    if requested not in _YOLO_COMPATIBLE_NECKS:
+        raise ValueError(
+            f"YOLO-family detector '{architecture}' requires a YOLOXPAFPN neck; "
+            f"got '{neck.name}'."
+        )
 
 
 def _default_dense_head_extra(architecture: str, neck: NeckSpec | None) -> dict[str, Any]:
@@ -773,8 +869,9 @@ def build_custom_decoder(
 
 
 def build_detector(
-    architecture: str,
+    architecture: str | None = None,
     *,
+    name: str | None = None,
     num_classes: int = 1,
     encoder: str | EncoderSpec | None = None,
     neck: NeckSpec | None = None,
@@ -786,10 +883,11 @@ def build_detector(
     imports: tuple[str, ...] | list[str] | None = None,
     **overrides: Any,
 ) -> DetectorSpec:
-    normalized_architecture = resolve_architecture_name(architecture)
+    requested_architecture = _resolve_detector_name(architecture, name)
+    normalized_architecture = resolve_architecture_name(requested_architecture)
     family = ARCHITECTURE_FAMILIES.get(normalized_architecture)
     if family is None:
-        raise ValueError(_unknown_architecture_message(architecture, normalized_architecture))
+        raise ValueError(_unknown_architecture_message(requested_architecture, normalized_architecture))
 
     if isinstance(encoder, str):
         encoder = build_encoder(
@@ -799,12 +897,16 @@ def build_detector(
             in_channels=in_channels,
         )
     elif encoder is None:
-        encoder = build_encoder(
-            "resnet18.a1_in1k",
-            source="timm",
+        encoder = _default_encoder_for_architecture(
+            normalized_architecture,
             pretrained=pretrained,
             in_channels=in_channels,
         )
+
+    if _neck_is_auto(neck):
+        neck = _default_neck_for_architecture(normalized_architecture)
+    else:
+        _validate_detector_neck_choice(normalized_architecture, neck)
 
     if head is None:
         if family == "dense":
