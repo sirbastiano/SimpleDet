@@ -428,3 +428,40 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The current environment still has no bare `python` and no torch CPU extra, so exact user-specified `python` gates fail while Makefile/`python3` gates run.
   - Avoid `box_iou(...).diag()` in dense training paths; aligned box metrics preserve the contract without pairwise memory growth.
 ---
+## [2026-05-19 00:29:31 UTC] - US-012: Implement ROI primitives
+Thread:
+Run: 20260518-183418-2827287 (iteration 12)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-12.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-12.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 2a43559 feat(roi): add native ROI primitives
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest tests.test_native_roi tests.test_native_components tests.test_native_runtime` -> PASS (36 tests, 7 skipped)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (159 tests, 35 skipped)
+  - Command: `make test` -> PASS (159 tests, 35 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/roi.py
+  - tests/test_native_components.py
+  - tests/test_native_roi.py
+- What was implemented
+  - Added native ROI proposal batching with `(K, 5)` ROI tensors, per-image proposal lists, image indices, counts, and empty-image preservation.
+  - Added an empty-safe ROI align adapter plus bbox, mask, cascade refinement, and grid target primitives that reuse native geometry and assignment helpers.
+  - Reused bbox target generation in the real-tensor ROI training path, added non-placeholder mask loss when masks are present, and kept empty proposal validation from crashing.
+  - Configured Cascade R-CNN and Grid R-CNN model variants with explicit cascade/grid attributes while Faster R-CNN continues through the shared proposal and bbox target path.
+  - Added focused unit tests for proposal formatting, empty ROI pooling, bbox target edge cases, mask/grid targets, cascade refinement, and Cascade/Grid construction.
+  - Security/performance/regression review: no file/network/secret handling added; helper math is tensor-local with empty fast paths; focused and full regression gates passed through `python3`.
+- **Learnings for future iterations:**
+  - This environment still has no bare `python`; use `python3` or Makefile defaults for executable validation.
+  - Existing ROI tests use lightweight fake torch modules, so production helpers need real-tensor paths without breaking fake construction/runtime tests.
+  - Empty ROI pooling should avoid calling `MultiScaleRoIAlign` and synthesize `(0, C, H, W)` from feature metadata.
+---
