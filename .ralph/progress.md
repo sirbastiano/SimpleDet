@@ -1216,3 +1216,41 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Runtime tests now need real dummy image files because the native datamodule consumes the hardened adapter output, which validates COCO image paths.
   - The base environment still lacks real torch/torchvision, so actual image decode is covered by adapter path tests plus fake-module datamodule tests rather than live runtime decoding.
 ---
+## [2026-05-19 07:51:03 UTC] - US-030: Build Lightning detection module
+Thread:
+Run: 20260518-183418-2827287 (iteration 30)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-30.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-30.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: e9335b2 feat(native): add Lightning detection module
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_native_runtime` -> PASS (11 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_native_runtime tests.test_public_api` -> PASS (25 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (261 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/training.html
+  - simpledet/simpledet/api.py
+  - simpledet/simpledet/native/engine.py
+  - simpledet/simpledet/native/runtime.py
+  - tests/test_native_runtime.py
+  - tests/test_public_api.py
+- What was implemented
+  - Refined the native Lightning wrapper with explicit `forward_loss`, `predict`, training/validation/test steps, scalar and component metric logging, public prediction serialization, and checkpoint metadata save/load hooks.
+  - Added optimizer construction that filters to trainable parameters and raises a clear runtime error when no trainable parameters are available.
+  - Added scheduler configuration for `step`, `exponential`, and `cosine`, and wired scheduler settings from direct kwargs and `ProjectConfig.optimization.scheduler_choice` into native runtime configs.
+  - Added focused unit coverage for a tiny RetinaNet training step with finite loss, validation/test logging and predictions, optimizer parameter coverage, no-trainable-parameter failure, checkpoint metadata round trip, and project scheduler propagation.
+  - Documented supported direct-training scheduler choices in the training guide.
+  - Security/performance/regression review: no new secrets, network calls, subprocesses, or trust-boundary changes; optimizer filtering is linear over registered parameters; validation intentionally computes loss and prediction metrics; full regression gates passed.
+- **Learnings for future iterations:**
+  - The base environment still lacks real torch/lightning, so native Lightning tests should keep using the existing fake-runtime import pattern while validating behavior at the wrapper contract.
+  - `scheduler_choice` already existed in project optimization config, but needed explicit native runtime propagation.
+  - Checkpoint compatibility is easiest to keep stable by storing SimpleDet metadata under a namespaced checkpoint key instead of changing Lightning state dict behavior.
+---
