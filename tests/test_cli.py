@@ -2,6 +2,7 @@ import io
 import json
 import subprocess
 import sys
+import tempfile
 import types
 import unittest
 from contextlib import redirect_stdout
@@ -187,13 +188,50 @@ class TestCli(unittest.TestCase):
         from simpledet.cli import _doctor
 
         output = io.StringIO()
-        with redirect_stdout(output):
-            exit_code = _doctor()
+        with patch(
+            "simpledet.cli._dependency_available",
+            side_effect=lambda module: module not in {"timm", "scienceplots"},
+        ), patch("simpledet.cli._dependency_version", return_value="1.0.0"):
+            with redirect_stdout(output):
+                exit_code = _doctor()
 
         self.assertEqual(exit_code, 0)
         text = output.getvalue()
-        self.assertIn("extra\tstatus\tmissing", text)
-        self.assertIn("timm\t", text)
+        self.assertIn("SimpleDet doctor", text)
+        self.assertIn("python\tsupported\t", text)
+        self.assertIn(f"simpledet\tinstalled\t{__version__}", text)
+        self.assertIn("workdir\twritable\t", text)
+        self.assertIn("extra\tstatus\tmissing\thint", text)
+        self.assertIn("timm\tmissing\ttimm\tpython -m pip install 'simpledet[timm]'", text)
+        self.assertIn("plots\tmissing\tscienceplots\tpython -m pip install 'simpledet[plots]'", text)
+        self.assertIn("dependency\tstatus\tversion\textra\thint", text)
+        self.assertIn("timm\tunavailable\t-\ttimm\tpython -m pip install 'simpledet[timm]'", text)
+        self.assertIn("Doctor result: warnings", text)
+
+    def test_doctor_strict_returns_nonzero_for_missing_optional_extra(self):
+        from simpledet.cli import _doctor
+
+        output = io.StringIO()
+        with tempfile.TemporaryDirectory() as workdir:
+            with patch(
+                "simpledet.cli._dependency_available",
+                side_effect=lambda module: module != "timm",
+            ), patch("simpledet.cli._dependency_version", return_value="1.0.0"):
+                with redirect_stdout(output):
+                    exit_code = _doctor(strict=True, workdir=workdir)
+
+        self.assertEqual(exit_code, 1)
+        text = output.getvalue()
+        self.assertIn("workdir\twritable\t", text)
+        self.assertIn("timm\tmissing\ttimm\tpython -m pip install 'simpledet[timm]'", text)
+        self.assertIn("Doctor result: failed", text)
+
+    def test_main_forwards_doctor_strict_and_workdir(self):
+        with patch("simpledet.cli._doctor", return_value=0) as patched:
+            exit_code = main(["doctor", "--strict", "--workdir", "/tmp/simpledet-runs"])
+
+        self.assertEqual(exit_code, 0)
+        patched.assert_called_once_with(strict=True, workdir="/tmp/simpledet-runs")
 
     def test_python_module_invalid_discovery_option_exits_nonzero(self):
         result = subprocess.run(

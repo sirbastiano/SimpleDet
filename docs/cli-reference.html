@@ -53,7 +53,7 @@
                 <tr><td><code>python -m simpledet list-backbones</code></td><td>List supported backbone aliases</td></tr>
                 <tr><td><code>python -m simpledet list-necks</code></td><td>List supported native necks</td></tr>
                 <tr><td><code>python -m simpledet list-datasets</code></td><td>List supported dataset format adapters</td></tr>
-                <tr><td><code>python -m simpledet doctor</code></td><td>Report optional extra dependency status</td></tr>
+                <tr><td><code>python -m simpledet doctor</code></td><td>Report Python, package, optional extra, dependency, and workdir status</td></tr>
                 <tr><td><code>python -m simpledet --list-encoders</code></td><td>Backward-compatible alias for backbone discovery</td></tr>
                 <tr><td><code>python -m simpledet --show-detector-help retinanet</code></td><td>Explain one detector family and recommended encoders</td></tr>
                 <tr><td><code>python -m simpledet --init-project project.toml</code></td><td>Write a starter project config</td></tr>
@@ -75,10 +75,11 @@ python -m simpledet list-backbones --pattern resnet
 python -m simpledet list-necks
 python -m simpledet list-datasets
 python -m simpledet doctor
+python -m simpledet doctor --strict --workdir /data/project/runs
 python -m simpledet --show-detector-help retinanet</code></pre>
           <p><code>--list-detectors</code> prints <code>name</code>, <code>family</code>, and <code>native_validation</code> columns, so entries such as <code>cascade_rcnn</code> and <code>grid_rcnn</code> show <code>runtime_validated</code> when the native runtime extra is available. <code>simpledet list-detectors</code> is equivalent to the flag form.</p>
           <p><code>list-heads</code>, <code>list-backbones</code>, <code>list-necks</code>, and <code>list-datasets</code> print <code>name</code>, <code>kind</code>, <code>validation_status</code>, and <code>required_extra</code>. These commands are safe in a base install; for example TIMM-backed backbone rows still print and show <code>timm</code> in <code>required_extra</code> instead of importing TIMM.</p>
-          <p><code>doctor</code> prints installed or missing status for optional extras such as <code>cpu</code>, <code>timm</code>, <code>geo</code>, and <code>plots</code>. Use <code>--check-runtime</code> when you specifically want a strict non-zero runtime dependency gate.</p>
+          <p><code>doctor</code> prints the Python version, SimpleDet version, optional extra status, individual dependency availability, install hints, and whether the selected workdir is writable. Missing optional extras are warnings by default; add <code>--strict</code> when setup diagnostics should return non-zero. Use <code>--check-runtime</code> when you specifically want the older CPU runtime-only gate.</p>
           <p><code>--show-detector-help</code> prints the detector family, a short summary, and a few encoder suggestions for the selected architecture.</p>
         </article>
         <article class="section">

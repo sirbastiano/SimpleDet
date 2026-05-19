@@ -4,10 +4,63 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
+from dataclasses import dataclass
+from importlib import metadata as importlib_metadata
+from importlib import util as importlib_util
+from pathlib import Path
 from typing import Iterable
 
 from . import __version__
+
+
+@dataclass(frozen=True, slots=True)
+class _DoctorDependency:
+    module: str
+    extra: str
+    distribution: str | None = None
+
+
+_DOCTOR_EXTRA_REQUIREMENTS: tuple[tuple[str, tuple[_DoctorDependency, ...]], ...] = (
+    (
+        "cpu",
+        (
+            _DoctorDependency("torch", "cpu"),
+            _DoctorDependency("torchvision", "cpu"),
+            _DoctorDependency("pytorch_lightning", "cpu", "pytorch-lightning"),
+            _DoctorDependency("numpy", "cpu"),
+            _DoctorDependency("scipy", "cpu"),
+            _DoctorDependency("pycocotools", "cpu"),
+            _DoctorDependency("terminaltables", "cpu"),
+        ),
+    ),
+    ("timm", (_DoctorDependency("timm", "timm"),)),
+    (
+        "geo",
+        (
+            _DoctorDependency("pandas", "geo"),
+            _DoctorDependency("rasterio", "geo"),
+            _DoctorDependency("geopandas", "geo"),
+            _DoctorDependency("shapely", "geo"),
+        ),
+    ),
+    (
+        "plots",
+        (
+            _DoctorDependency("scienceplots", "plots", "SciencePlots"),
+            _DoctorDependency("matplotlib", "plots"),
+        ),
+    ),
+    ("docs", ()),
+)
+
+_DOCTOR_DEPENDENCIES: tuple[_DoctorDependency, ...] = tuple(
+    dependency
+    for _extra, dependencies in _DOCTOR_EXTRA_REQUIREMENTS
+    for dependency in dependencies
+)
 
 _DETECTOR_HELP = {
     "detr": {
@@ -292,6 +345,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Print optional extra dependency status and exit.",
     )
     parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Make doctor return non-zero when any setup check fails.",
+    )
+    parser.add_argument(
+        "--workdir",
+        help="Work directory path for doctor writability checks. Default: current directory.",
+    )
+    parser.add_argument(
         "--family",
         help="Filter list-detectors by family: dense, proposal, roi, or transformer.",
     )
@@ -495,13 +557,121 @@ def _list_encoders(pattern: str | None = None) -> int:
     return _list_backbones(pattern=pattern)
 
 
-def _doctor() -> int:
-    from .discovery import extra_rows
+def _doctor(strict: bool = False, workdir: str | None = None) -> int:
+    python_status = _python_status()
+    workdir_status, workdir_path, workdir_detail = _check_workdir(workdir)
+    extra_rows = _doctor_extra_rows()
+    dependency_rows = _doctor_dependency_rows()
 
-    print("extra\tstatus\tmissing")
-    for row in extra_rows():
-        print(f"{row.name}\t{row.validation_status}\t{row.required_dependency_text}")
-    return 0
+    print("SimpleDet doctor")
+    print(f"python\t{python_status}\t{sys.version.split()[0]}")
+    print(f"simpledet\tinstalled\t{__version__}")
+    print(f"workdir\t{workdir_status}\t{workdir_path}\t{workdir_detail}")
+    print("")
+
+    print("extras")
+    print("extra\tstatus\tmissing\thint")
+    for row in extra_rows:
+        print("\t".join(row))
+    print("")
+
+    print("dependencies")
+    print("dependency\tstatus\tversion\textra\thint")
+    for row in dependency_rows:
+        print("\t".join(row))
+
+    failed = (
+        python_status != "supported"
+        or workdir_status != "writable"
+        or any(row[1] != "installed" for row in extra_rows)
+    )
+    if failed:
+        print("")
+        print("Doctor result: failed" if strict else "Doctor result: warnings")
+    else:
+        print("")
+        print("Doctor result: ok")
+    return 1 if strict and failed else 0
+
+
+def _python_status() -> str:
+    return "supported" if (3, 10) <= sys.version_info[:2] < (3, 13) else "unsupported"
+
+
+def _doctor_extra_rows() -> list[tuple[str, str, str, str]]:
+    rows: list[tuple[str, str, str, str]] = []
+    for extra, dependencies in _DOCTOR_EXTRA_REQUIREMENTS:
+        missing = tuple(
+            dependency.module
+            for dependency in dependencies
+            if not _dependency_available(dependency.module)
+        )
+        status = "installed" if not missing else "missing"
+        rows.append(
+            (
+                extra,
+                status,
+                ",".join(missing) if missing else "-",
+                "-" if not missing else _install_hint(extra),
+            )
+        )
+    return rows
+
+
+def _doctor_dependency_rows() -> list[tuple[str, str, str, str, str]]:
+    rows: list[tuple[str, str, str, str, str]] = []
+    seen: set[str] = set()
+    for dependency in _DOCTOR_DEPENDENCIES:
+        if dependency.module in seen:
+            continue
+        seen.add(dependency.module)
+        available = _dependency_available(dependency.module)
+        rows.append(
+            (
+                dependency.module,
+                "available" if available else "unavailable",
+                _dependency_version(dependency) if available else "-",
+                dependency.extra,
+                "-" if available else _install_hint(dependency.extra),
+            )
+        )
+    return rows
+
+
+def _dependency_available(module: str) -> bool:
+    try:
+        return importlib_util.find_spec(module) is not None
+    except (ImportError, AttributeError, ValueError):
+        return False
+
+
+def _dependency_version(dependency: _DoctorDependency) -> str:
+    distribution = dependency.distribution or dependency.module
+    try:
+        return importlib_metadata.version(distribution)
+    except importlib_metadata.PackageNotFoundError:
+        return "-"
+
+
+def _check_workdir(workdir: str | None) -> tuple[str, str, str]:
+    raw_path = workdir or os.getcwd()
+    path = Path(raw_path).expanduser()
+    display_path = str(path.resolve(strict=False))
+    if not path.exists():
+        return "missing", display_path, "path does not exist"
+    if not path.is_dir():
+        return "unwritable", display_path, "not a directory"
+    try:
+        with tempfile.NamedTemporaryFile(prefix=".simpledet-doctor-", dir=path):
+            pass
+    except OSError as exc:
+        detail = exc.strerror or exc.__class__.__name__
+        return "unwritable", display_path, detail
+    return "writable", display_path, "-"
+
+
+def _install_hint(extra: str) -> str:
+    return f"python -m pip install 'simpledet[{extra}]'"
 
 
 def _active_discovery_command(args: argparse.Namespace) -> str | None:
@@ -539,6 +709,10 @@ def _validate_discovery_options(
         valid_kinds = {"dense", "roi", "transformer"}
         if args.kind.strip().lower() not in valid_kinds:
             parser.error("--kind must be one of: dense, roi, transformer")
+    if args.strict and command != "doctor":
+        parser.error("--strict is only supported by doctor")
+    if args.workdir and command != "doctor":
+        parser.error("--workdir is only supported by doctor")
 
 
 def _run_discovery_command(command: str, args: argparse.Namespace) -> int:
@@ -555,7 +729,7 @@ def _run_discovery_command(command: str, args: argparse.Namespace) -> int:
     if command == "list-datasets":
         return _list_datasets(pattern=args.pattern)
     if command == "doctor":
-        return _doctor()
+        return _doctor(strict=args.strict, workdir=args.workdir)
     raise ValueError(f"Unsupported discovery command '{command}'.")
 
 
@@ -700,6 +874,11 @@ def main(argv: Iterable[str] | None = None) -> int:
     if discovery_command:
         _validate_discovery_options(parser, args, discovery_command)
         return _run_discovery_command(discovery_command, args)
+
+    if args.strict:
+        parser.error("--strict is only supported by doctor")
+    if args.workdir:
+        parser.error("--workdir is only supported by doctor")
 
     if args.show_detector_help:
         return _show_detector_help(args.show_detector_help)
