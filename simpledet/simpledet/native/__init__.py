@@ -109,7 +109,12 @@ from .losses import (
     VarifocalLoss,
     build_loss,
 )
-from .modeling import NativeFeatureExtractorBackbone, NativeRetinaNetModel
+from .modeling import (
+    NativeFeatureExtractorBackbone,
+    NativeRetinaNetModel,
+    SingleStageDetector,
+    build_detector,
+)
 from .necks import (
     FPNLiteNeck,
     NASFPNNeck,
@@ -275,6 +280,7 @@ __all__ = [
     "MaskLoss",
     "build_loss",
     "NativeFeatureExtractorBackbone",
+    "SingleStageDetector",
     "BatchedRoIProposals",
     "NativeRoIBackbone",
     "RoIBBoxTargets",
@@ -294,6 +300,7 @@ __all__ = [
     "roi_align_features",
     "select_class_specific_bbox_deltas",
     "NativeRetinaNetModel",
+    "build_detector",
     "NativeDataConfig",
     "NativeDetectionDataModule",
     "NativeDetectionLightningModule",

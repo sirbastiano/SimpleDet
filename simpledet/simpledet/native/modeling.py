@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from typing import Any
 
 from ..detectors._deps import require_dependency
@@ -49,18 +50,20 @@ SUPPORTED_NATIVE_ARCHITECTURES = {
 }
 
 
-class NativeRetinaNetModel(nn.Module):
+class SingleStageDetector(nn.Module):
+    """Native single-stage detector composition for dense detector families."""
+
     def __init__(
         self,
         *,
         backbone: nn.Module,
-        neck: nn.Module,
+        neck: nn.Module | None,
         head: nn.Module,
         backbone_spec: Any,
         neck_spec: Any,
         head_spec: Any,
         loss_fn: nn.Module,
-        decoder: nn.Module,
+        postprocessor: nn.Module,
     ) -> None:
         super().__init__()
         self.backbone = backbone
@@ -70,44 +73,79 @@ class NativeRetinaNetModel(nn.Module):
         self.neck_spec = neck_spec
         self.head_spec = head_spec
         self.loss_fn = loss_fn
-        self.decoder = decoder
+        self.postprocessor = postprocessor
+        self.decoder = postprocessor
 
     def __call__(self, images, targets=None):
         return self.forward(images, targets=targets)
 
     def forward(self, images, targets=None):
+        if targets is not None:
+            return self.forward_loss(images, targets)
+        return self.predict(images)
+
+    def forward_loss(self, images, targets):
+        """Return dense detector losses with gradient tracking enabled."""
+
         self._validate_inputs(images, targets=targets)
-        return self._forward_tensor_batch(images, targets=targets)
+        feature_pyramids, head_outputs_per_image = self._head_outputs(images)
+        return self.loss_fn(images, targets, feature_pyramids, head_outputs_per_image)
+
+    def predict(self, images):
+        """Return postprocessed per-image predictions without tracking gradients."""
+
+        self._validate_inputs(images)
+        no_grad = torch.no_grad() if hasattr(torch, "no_grad") else nullcontext()
+        with no_grad:
+            feature_pyramids, head_outputs_per_image = self._head_outputs(images)
+            return [
+                self.postprocess(image, pyramid, head_outputs)
+                for image, pyramid, head_outputs in zip(images, feature_pyramids, head_outputs_per_image)
+            ]
+
+    def extract_features(self, image):
+        """Run backbone and optional neck for one CHW image tensor."""
+
+        batched = image.unsqueeze(0)
+        features = self.backbone(batched)
+        if self.neck is None:
+            return features
+        return self.neck(features)
+
+    def forward_head(self, feature_pyramid):
+        """Run the dense prediction head for one feature pyramid."""
+
+        return self.head(feature_pyramid)
+
+    def postprocess(self, image, feature_pyramid, head_outputs):
+        """Run the dense postprocess path for one image."""
+
+        return self.postprocessor(image, feature_pyramid, head_outputs)
 
     def _validate_inputs(self, images, *, targets=None):
         if not images:
-            raise ValueError("NativeRetinaNetModel requires at least one image.")
+            raise ValueError("SingleStageDetector requires at least one image.")
         for image in images:
             if not hasattr(image, "shape") or not hasattr(image, "unsqueeze"):
                 raise TypeError(
-                    "NativeRetinaNetModel expects tensor-like images with 'shape' and 'unsqueeze'."
+                    "SingleStageDetector expects tensor-like images with 'shape' and 'unsqueeze'."
                 )
         if targets is not None and len(targets) != len(images):
             raise ValueError("Number of targets must match number of images.")
 
-    def _forward_tensor_batch(self, images, *, targets=None):
+    def _head_outputs(self, images):
         feature_pyramids = []
         head_outputs_per_image = []
         for image in images:
-            batched = image.unsqueeze(0)
-            features = self.backbone(batched)
-            pyramid = self.neck(features)
-            head_outputs = self.head(pyramid)
+            pyramid = self.extract_features(image)
+            head_outputs = self.forward_head(pyramid)
             feature_pyramids.append(pyramid)
             head_outputs_per_image.append(head_outputs)
+        return feature_pyramids, head_outputs_per_image
 
-        if targets is not None:
-            return self.loss_fn(images, targets, feature_pyramids, head_outputs_per_image)
 
-        return [
-            self.decoder(image, pyramid, head_outputs)
-            for image, pyramid, head_outputs in zip(images, feature_pyramids, head_outputs_per_image)
-        ]
+class NativeRetinaNetModel(SingleStageDetector):
+    """Backward-compatible RetinaNet model name for dense native detectors."""
 
 
 NativeFeatureExtractorBackbone = NativeRoIBackbone
@@ -188,6 +226,41 @@ def build_native_model(
     components = build_native_components(detector_spec)
     assembler = DETECTORS.get(detector_name or normalized)
     return assembler(components, num_classes=int(num_classes))
+
+
+def build_detector(
+    name: str,
+    *,
+    num_classes: int = 1,
+    detector_spec=None,
+    in_channels: int = 3,
+    pretrained: bool = True,
+    **overrides: Any,
+) -> SingleStageDetector:
+    """Build a native detector module from the public suite defaults."""
+
+    if detector_spec is None:
+        from ..suite import build_detector as build_detector_spec
+
+        detector_spec = build_detector_spec(
+            name,
+            num_classes=num_classes,
+            in_channels=in_channels,
+            pretrained=pretrained,
+            **overrides,
+        )
+    model = build_native_model(
+        name,
+        num_classes=int(num_classes),
+        in_channels=int(in_channels),
+        detector_spec=detector_spec,
+    )
+    if not isinstance(model, SingleStageDetector):
+        raise ValueError(
+            f"build_detector(name={name!r}) expected a single-stage detector, "
+            f"got {type(model).__name__}."
+        )
+    return model
 
 
 def _merge_detr_predictions(predictions):

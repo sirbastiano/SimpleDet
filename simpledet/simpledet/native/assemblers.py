@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ..extensions import DETECTORS
+from ..extensions import DETECTORS, HEADS
 from ..suite import compile_native_detector_plan
 from .backbones import build_native_backbone
 from .dense_ops import (
@@ -66,6 +66,7 @@ def build_native_components(detector_spec) -> NativeModelComponents:
     head = None
     head_spec = None
     if plan.family == "dense" and plan.head is not None:
+        _validate_dense_head_plan(plan)
         head, head_spec = build_native_head(
             plan.head,
             out_channels=neck_spec.out_channels,
@@ -108,6 +109,13 @@ def _assemble_dense_detector(
     loss_fn,
     decoder: object,
 ):
+    if components.plan.family != "dense":
+        raise ValueError(
+            f"Single-stage assembly requires a dense detector plan, got "
+            f"{components.plan.family!r} for '{components.plan.architecture}'."
+        )
+    if components.plan.head is not None:
+        _validate_dense_head_plan(components.plan)
     if components.head is None or components.head_spec is None:
         raise ValueError(f"{components.plan.architecture} assembly requires a native head.")
     return NativeRetinaNetModel(
@@ -118,8 +126,18 @@ def _assemble_dense_detector(
         neck_spec=components.neck_spec,
         head_spec=components.head_spec,
         loss_fn=loss_fn(),
-        decoder=decoder(),
+        postprocessor=decoder(),
     )
+
+
+def _validate_dense_head_plan(plan) -> None:
+    metadata = HEADS.lookup(plan.head.type)
+    head_family = None if metadata.family is None else str(metadata.family).strip().lower()
+    if head_family is not None and head_family != "dense":
+        raise ValueError(
+            f"Single-stage detector '{plan.architecture}' requires a dense head, "
+            f"but head '{metadata.name}' has family '{metadata.family}'."
+        )
 
 
 def _build_default_yolox_loss():
