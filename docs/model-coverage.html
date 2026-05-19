@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleDet Docs - Model Coverage</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="theme-aurora">
+    <header class="topbar">
+      <nav class="nav">
+        <a class="brand" href="index.html">SimpleDet <span>Docs</span></a>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="overview.html">Overview</a>
+          <a class="nav-link" href="quickstart.html">Quickstart</a>
+          <a class="nav-link" href="model-coverage.html">Model Coverage</a>
+          <a class="nav-link" href="cli-reference.html">CLI</a>
+          <a class="nav-link" href="api-reference.html">API</a>
+          <a class="nav-link" href="developer-guide.html">Developer</a>
+        </div>
+        <div class="theme-switcher" aria-label="Theme switcher">
+          <button class="theme-btn" data-theme="theme-aurora">Aurora</button>
+          <button class="theme-btn" data-theme="theme-midnight">Midnight</button>
+          <button class="theme-btn" data-theme="theme-volcano">Volcano</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main main-wide">
+      <section class="hero">
+        <p class="hero-kicker">Coverage Reference</p>
+        <h1>Model coverage</h1>
+        <p class="subtle">
+          This page documents the detector, head, backbone, and neck names exposed by the current SimpleDet registries.
+          Coverage here means registry-backed construction metadata and the validation status shown in source and CLI discovery,
+          not benchmark parity with any external implementation.
+        </p>
+        <div class="btn-row">
+          <a class="btn" href="cli-reference.html">CLI Discovery</a>
+          <a class="btn" href="api-reference.html">API Reference</a>
+          <a class="btn" href="developer-guide.html">Developer Guide</a>
+        </div>
+        <p class="hero-context">Use this page before selecting a detector alias or deciding whether a family is runtime validated or only compatibility routed.</p>
+      </section>
+
+      <section class="content">
+        <article class="section">
+          <h2>Status meanings</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Status</th><th>Meaning</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>runtime_validated</code></td><td>The registry entry has native construction or tensor/runtime tests for the stated SimpleDet contract.</td></tr>
+                <tr><td><code>metadata_validated</code></td><td>The alias carries structured metadata for planning and discovery, but the row itself is not a full runtime parity claim.</td></tr>
+                <tr><td><code>compatibility_alias</code></td><td>The alias routes through native components, but it is not yet architecture-faithful enough to list as fully supported.</td></tr>
+                <tr><td><code>unvalidated</code></td><td>The name is registered for compatibility or migration only and should not be selected as fully supported.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="notice">Planned transformer variants, historical MMDetection configs, and notebook-only references are not supported model coverage until they have a registry entry plus tensor validation.</p>
+        </article>
+
+        <article class="section">
+          <h2>Detector coverage</h2>
+          <p class="section-lead">Detector rows are sourced from the native detector registry and public discovery aliases. Default detector assembly usually also needs a supported backbone; TIMM-backed defaults require <code>simpledet[timm]</code>.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Detector</th>
+                  <th>Family</th>
+                  <th>Aliases</th>
+                  <th>Validation status</th>
+                  <th>Required extra</th>
+                  <th>Known limitation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>RetinaNet</td><td>dense</td><td><code>retinanet</code>, <code>retina</code>, <code>RetinaNet</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for the native Retina-style dense contract, not external benchmark parity.</td></tr>
+                <tr><td>FCOS</td><td>dense</td><td><code>fcos</code>, <code>FCOS</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for the native anchor-free dense contract.</td></tr>
+                <tr><td>ATSS</td><td>dense</td><td><code>atss</code>, <code>ATSS</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for the native anchor-based dense contract.</td></tr>
+                <tr><td>FSAF</td><td>dense</td><td><code>fsaf</code>, <code>FSAF</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Routed through native dense components; not listed as architecture-faithful support.</td></tr>
+                <tr><td>FreeAnchor</td><td>dense</td><td><code>free_anchor</code>, <code>FreeAnchor</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Retina-style compatibility path only.</td></tr>
+                <tr><td>GFL</td><td>dense</td><td><code>gfl</code>, <code>GFL</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for the native GFL-style dense contract.</td></tr>
+                <tr><td>GFocalV2</td><td>dense</td><td><code>gfocalv2</code>, <code>GFocalV2</code>, <code>GFLV2</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>GFLv2 naming is routed through native dense components, but detector-level parity is not claimed.</td></tr>
+                <tr><td>VFNet</td><td>dense</td><td><code>vfnet</code>, <code>VFNet</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Uses native ATSS-compatible components with varifocal head/loss support; not fully VFNet-faithful.</td></tr>
+                <tr><td>FOVEA / FoveaBox</td><td>dense</td><td><code>fovea</code>, <code>foveabox</code>, <code>FOVEA</code>, <code>FoveaBox</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Native Fovea-style head is available, but detector-level architecture parity is not claimed.</td></tr>
+                <tr><td>PAA</td><td>dense</td><td><code>paa</code>, <code>PAA</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Probabilistic assignment naming is exposed through a native dense route only.</td></tr>
+                <tr><td>RepPoints</td><td>dense</td><td><code>reppoints</code>, <code>RepPoints</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Requires explicit point generation settings; detector path reuses native anchor-free contracts.</td></tr>
+                <tr><td>YOLOF</td><td>dense</td><td><code>yolof</code>, <code>YOLOF</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>YOLOF-style head and DilatedEncoder neck exist; detector-level parity is not claimed.</td></tr>
+                <tr><td>TOOD</td><td>dense</td><td><code>tood</code>, <code>TOOD</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Task-aligned dense naming route only.</td></tr>
+                <tr><td>DDOD</td><td>dense</td><td><code>ddod</code>, <code>DDOD</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Decoupled dense naming route only.</td></tr>
+                <tr><td>AutoAssign</td><td>dense</td><td><code>auto_assign</code>, <code>AutoAssign</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Auto-assignment naming route only.</td></tr>
+                <tr><td>NAS-FCOS</td><td>dense</td><td><code>nas_fcos</code>, <code>NAS-FCOS</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>NAS-FCOS naming route only.</td></tr>
+                <tr><td>CenterNet</td><td>dense</td><td><code>centernet</code>, <code>CenterNet</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for native heatmap, width-height, offset, and decode paths.</td></tr>
+                <tr><td>CornerNet</td><td>dense</td><td><code>cornernet</code>, <code>CornerNet</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for paired corner heatmaps, embeddings, offsets, and native decode.</td></tr>
+                <tr><td>YOLO family</td><td>dense</td><td><code>yolo</code>, <code>YOLO</code>, <code>yolo3</code>, <code>yolo4</code>, <code>yolo_v3</code>, <code>yolov3</code>, <code>yolov4</code>, <code>yolov5</code>, <code>yolov6</code>, <code>yolov7</code>, <code>yolov8</code>, <code>yolov9</code>, <code>yolov10</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Routes through the YOLOX-compatible neck, head, target, and decode path; version-specific YOLO parity is not claimed.</td></tr>
+                <tr><td>YOLOX</td><td>dense</td><td><code>yolox</code>, <code>YOLOX</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated with YOLOXPAFPN, objectness outputs, simOTA-style targets, and decode.</td></tr>
+                <tr><td>RTMDet</td><td>dense</td><td><code>rtmdet</code>, <code>rtmdet_tiny</code>, <code>rtmdet_s</code>, <code>rtmdet_m</code>, <code>rtmdet_l</code>, <code>RTMDet</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for the native RTMDet head and YOLOXPAFPN-compatible path.</td></tr>
+                <tr><td>SSD</td><td>dense</td><td><code>ssd</code>, <code>ssd300</code>, <code>ssd512</code>, <code>ssdlite</code>, <code>SSD</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated for SSDNeck, native SSD head, and anchor decode.</td></tr>
+                <tr><td>EfficientDet</td><td>dense</td><td><code>efficientdet</code>, <code>efficientdet_d0</code>, <code>efficientdet_d1</code>, <code>efficientdet_d2</code>, <code>EfficientDet</code></td><td><code>runtime_validated</code></td><td><code>cpu</code>; default backbone uses <code>timm</code></td><td>Validated for EfficientNet/BiFPN/native head assembly; install <code>simpledet[timm]</code> for default native module construction.</td></tr>
+                <tr><td>SOLOv2</td><td>dense</td><td><code>solov2</code>, <code>solov2_light</code></td><td><code>compatibility_alias</code></td><td><code>cpu</code></td><td>Historical dense route only; instance segmentation parity is not claimed.</td></tr>
+                <tr><td>DETR</td><td>transformer</td><td><code>detr</code>, <code>DETR</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>2D query detector scaffold with native logits, boxes, and decode.</td></tr>
+                <tr><td>Conditional DETR</td><td>transformer</td><td><code>conditional_detr</code>, <code>conditionaldetr</code>, <code>ConditionalDETR</code>, <code>Conditional DETR</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>2D query detector scaffold; unsupported v2 names are rejected.</td></tr>
+                <tr><td>DAB-DETR</td><td>transformer</td><td><code>dab_detr</code>, <code>dabdetr</code>, <code>DAB-DETR</code>, <code>DABDETR</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>2D query detector scaffold; unsupported v2 names are rejected.</td></tr>
+                <tr><td>Deformable DETR</td><td>transformer</td><td><code>deformable_detr</code>, <code>deformabledetr</code>, <code>DeformableDETR</code>, <code>Deformable DETR</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>2D query detector scaffold; Deformable DETR v2 names are planned, unsupported.</td></tr>
+                <tr><td>DINO</td><td>transformer</td><td><code>dino</code>, <code>DINO</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>2D query detector scaffold; DINOv2 is planned, unsupported.</td></tr>
+                <tr><td>RPN</td><td>proposal</td><td><code>rpn</code>, <code>RPN</code>, <code>RPN detector</code>, <code>Region Proposal Network</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Proposal-only detector path.</td></tr>
+                <tr><td>Fast R-CNN</td><td>roi</td><td><code>fast_rcnn</code>, <code>fast-rcnn</code>, <code>Fast R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>ROI bbox path without an RPN stage.</td></tr>
+                <tr><td>Faster R-CNN</td><td>roi</td><td><code>faster_rcnn</code>, <code>faster-rcnn</code>, <code>Faster R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native RPN plus ROI bbox path.</td></tr>
+                <tr><td>Mask R-CNN</td><td>roi</td><td><code>mask_rcnn</code>, <code>mask-rcnn</code>, <code>Mask R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native mask head contract is validated; full dataset benchmark parity is not claimed.</td></tr>
+                <tr><td>Grid R-CNN</td><td>roi</td><td><code>grid_rcnn</code>, <code>gridrcnn</code>, <code>Grid R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native grid ROI head contract is validated.</td></tr>
+                <tr><td>Cascade R-CNN</td><td>roi</td><td><code>cascade_rcnn</code>, <code>cascadercnn</code>, <code>Cascade R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native cascade bbox refinement path is validated.</td></tr>
+                <tr><td>Cascade Mask R-CNN</td><td>roi</td><td><code>cascade_mask_rcnn</code>, <code>cascademaskrcnn</code>, <code>Cascade Mask R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native cascade bbox plus mask contracts are validated.</td></tr>
+                <tr><td>Libra R-CNN</td><td>roi</td><td><code>libra_rcnn</code>, <code>librarcnn</code>, <code>Libra R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Balanced ROI sampling contract is represented; external parity is not claimed.</td></tr>
+                <tr><td>Double-Head R-CNN</td><td>roi</td><td><code>double_head_rcnn</code>, <code>doubleheadrcnn</code>, <code>Double-Head R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native double-head ROI feature contract is validated.</td></tr>
+                <tr><td>Dynamic R-CNN</td><td>roi</td><td><code>dynamic_rcnn</code>, <code>dynamicrcnn</code>, <code>Dynamic R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native dynamic ROI feature path is validated.</td></tr>
+                <tr><td>Sparse R-CNN</td><td>roi</td><td><code>sparse_rcnn</code>, <code>sparsercnn</code>, <code>Sparse R-CNN</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Validated with learned proposal boxes/features and sparse ROI refinement.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="section">
+          <h2>Head coverage</h2>
+          <p class="section-lead">Head rows are registry entries. Rows marked <code>unvalidated</code> are compatibility names and must not be treated as fully supported heads.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Head</th><th>Kind</th><th>Aliases</th><th>Validation status</th><th>Required extra</th><th>Known limitation</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>RetinaHead</td><td>dense</td><td><code>retina</code>, <code>retina_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Wraps the native Retina-style dense output contract.</td></tr>
+                <tr><td>RetinaNetHead</td><td>head</td><td>-</td><td><code>unvalidated</code></td><td>-</td><td>Compatibility name only; use <code>RetinaHead</code> for validated support.</td></tr>
+                <tr><td>FCOSHead</td><td>dense</td><td><code>fcos</code>, <code>fcos_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native anchor-free dense contract.</td></tr>
+                <tr><td>FCOSV2Head</td><td>head</td><td>-</td><td><code>unvalidated</code></td><td>-</td><td>Registered naming variant only.</td></tr>
+                <tr><td>FCOSHeadV2</td><td>head</td><td>-</td><td><code>unvalidated</code></td><td>-</td><td>Registered naming variant only.</td></tr>
+                <tr><td>FSAFHead</td><td>dense</td><td><code>fsaf</code>, <code>fsaf_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>FSAF-style head contract, separate from detector-level architecture parity.</td></tr>
+                <tr><td>FreeAnchorRetinaHead</td><td>dense</td><td><code>free_anchor</code>, <code>free_anchor_head</code>, <code>free_anchor_retina_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Retina-style dense head variant.</td></tr>
+                <tr><td>GFLHead</td><td>dense</td><td><code>gfl</code>, <code>gfl_head</code>, <code>gfocal</code>, <code>gfocal_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Uses the native ATSS-style dense output contract.</td></tr>
+                <tr><td>GFLV2Head</td><td>dense</td><td><code>GFLV2</code>, <code>gflv2_head</code>, <code>gfocalv2</code>, <code>gfocalv2_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Head contract is validated; detector-level GFocalV2 remains a compatibility alias.</td></tr>
+                <tr><td>ATSSHead</td><td>dense</td><td><code>atss</code>, <code>atss_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native anchor-based dense contract.</td></tr>
+                <tr><td>ATSSV2Head</td><td>head</td><td>-</td><td><code>unvalidated</code></td><td>-</td><td>Registered naming variant only.</td></tr>
+                <tr><td>RPNHead</td><td>dense</td><td><code>rpn</code>, <code>rpn_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Class-agnostic proposal head.</td></tr>
+                <tr><td>VFNetHead</td><td>dense</td><td><code>VFNet</code>, <code>vfnet_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Head contract is validated; detector-level VFNet remains a compatibility alias.</td></tr>
+                <tr><td>RepPointsHead</td><td>dense</td><td><code>RepPoints</code>, <code>reppoints_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Requires point stride metadata at construction.</td></tr>
+                <tr><td>FoveaHead</td><td>dense</td><td><code>FOVEA</code>, <code>fovea_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Head contract is validated; detector-level FoveaBox remains a compatibility alias.</td></tr>
+                <tr><td>PAAHead</td><td>dense</td><td><code>PAA</code>, <code>paa_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Uses the native ATSS-style dense output contract.</td></tr>
+                <tr><td>TOODHead</td><td>dense</td><td><code>TOOD</code>, <code>tood_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Uses the native FCOS-style dense output contract.</td></tr>
+                <tr><td>DDODHead</td><td>dense</td><td><code>DDOD</code>, <code>ddod_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Uses the native ATSS-style dense output contract.</td></tr>
+                <tr><td>AutoAssignHead</td><td>dense</td><td><code>AutoAssign</code>, <code>auto_assign_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Uses the native FCOS-style dense output contract.</td></tr>
+                <tr><td>NASFCOSHead</td><td>dense</td><td><code>NAS-FCOS</code>, <code>nas_fcos_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Uses the native FCOS-style dense output contract.</td></tr>
+                <tr><td>YOLOFHead</td><td>dense</td><td><code>YOLOF</code>, <code>yolof_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Head contract is validated; detector-level YOLOF remains a compatibility alias.</td></tr>
+                <tr><td>YOLOXHead</td><td>dense</td><td><code>yolox</code>, <code>yolox_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Includes explicit objectness, class, and bbox branches.</td></tr>
+                <tr><td>YOLOHead</td><td>head</td><td>-</td><td><code>unvalidated</code></td><td>-</td><td>Generic YOLO name only; use validated family-specific rows.</td></tr>
+                <tr><td>RTMDetHead</td><td>dense</td><td><code>rtmdet</code>, <code>rtmdet_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Native RTMDet class and bbox branches.</td></tr>
+                <tr><td>SSDHead</td><td>dense</td><td><code>ssd</code>, <code>ssd_head</code>, <code>ssd300</code>, <code>ssd512</code>, <code>ssdlite</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Anchor-based SSD dense contract.</td></tr>
+                <tr><td>EfficientDetHead</td><td>dense</td><td><code>efficientdet</code>, <code>efficientdet_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Anchor-based EfficientDet head contract.</td></tr>
+                <tr><td>CenterNetHead</td><td>dense</td><td><code>CenterNet</code>, <code>centernet_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Keypoint heatmap head with dense compatibility outputs.</td></tr>
+                <tr><td>CornerNetHead</td><td>dense</td><td><code>CornerNet</code>, <code>cornernet_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Paired-corner heatmap head with embeddings and offsets.</td></tr>
+                <tr><td>SOLOV2Head</td><td>head</td><td>-</td><td><code>unvalidated</code></td><td>-</td><td>Registered name only; no supported instance segmentation claim.</td></tr>
+                <tr><td>Shared2FCBBoxHead</td><td>roi</td><td><code>shared_2fc_bbox_head</code>, <code>shared2fc</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Common two-FC ROI bbox head.</td></tr>
+                <tr><td>ConvFCBBoxHead</td><td>roi</td><td><code>convfc_bbox_head</code>, <code>convfc</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Configurable conv plus FC ROI bbox head.</td></tr>
+                <tr><td>DoubleConvFCBBoxHead</td><td>roi</td><td><code>double_convfc_bbox_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Double-head ROI bbox contract.</td></tr>
+                <tr><td>DynamicBBoxHead</td><td>roi</td><td><code>dynamic_bbox_head</code>, <code>dynamic_bbox</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Dynamic proposal feature mixing contract.</td></tr>
+                <tr><td>CascadeBBoxHead</td><td>roi</td><td><code>cascade_bbox_head</code>, <code>cascade_bbox</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Cascade stage refinement contract.</td></tr>
+                <tr><td>SABLHead</td><td>roi</td><td><code>sabl_head</code>, <code>sabl_bbox_head</code>, <code>side_aware_bbox_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Side-aware boundary localization ROI head.</td></tr>
+                <tr><td>SparseRoIHead</td><td>roi</td><td><code>sparse_roi_head</code>, <code>sparse_bbox_head</code>, <code>sparse_rcnn_roi_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Sparse R-CNN style learned proposal feature head.</td></tr>
+                <tr><td>FCNMaskHead</td><td>roi</td><td><code>fcn_mask_head</code>, <code>fcn_mask</code>, <code>mask_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>FCN-style ROI mask head.</td></tr>
+                <tr><td>CascadeMaskHead</td><td>roi</td><td><code>cascade_mask_head</code>, <code>cascade_mask</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Cascade mask head contract.</td></tr>
+                <tr><td>GridHead</td><td>roi</td><td><code>grid_head</code>, <code>grid_roi_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Grid R-CNN ROI grid contract.</td></tr>
+                <tr><td>DETRHead</td><td>transformer</td><td><code>DETR</code>, <code>detr_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Query class and box predictions.</td></tr>
+                <tr><td>ConditionalDETRHead</td><td>transformer</td><td><code>ConditionalDETR</code>, <code>conditional_detr_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Conditional query content variant.</td></tr>
+                <tr><td>DABDETRHead</td><td>transformer</td><td><code>DAB-DETR</code>, <code>dab_detr_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Dynamic anchor box query variant.</td></tr>
+                <tr><td>DeformableDETRHead</td><td>transformer</td><td><code>DeformableDETR</code>, <code>deformable_detr_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Multi-scale transformer head with level embeddings.</td></tr>
+                <tr><td>DINOHead</td><td>transformer</td><td><code>DINO</code>, <code>dino_head</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Anchor and denoising query embeddings.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="section">
+          <h2>Backbone coverage</h2>
+          <p class="section-lead">Native backbone aliases are planning metadata for TIMM-backed feature extraction. Install <code>simpledet[cpu,timm]</code> for runtime construction.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Backbone</th><th>Family</th><th>Aliases</th><th>Validation status</th><th>Required extra</th><th>Known limitation</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>timm</td><td>backbone</td><td><code>TimmEncoder</code>, <code>timm:&lt;model&gt;</code></td><td><code>runtime_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Requires TIMM feature metadata at runtime.</td></tr>
+                <tr><td>resnet18</td><td>ResNet</td><td><code>ResNet-18</code>, <code>r18</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>resnet50</td><td>ResNet</td><td><code>ResNet</code>, <code>ResNet-50</code>, <code>r50</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>resnet101</td><td>ResNet</td><td><code>ResNet-101</code>, <code>r101</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>resnext50_32x4d</td><td>ResNeXt</td><td><code>ResNeXt</code>, <code>ResNeXt-50</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>res2net50_26w_4s</td><td>Res2Net</td><td><code>Res2Net</code>, <code>Res2Net-50</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>hrnet_w18</td><td>HRNet</td><td><code>HRNet</code>, <code>HRNet-W18</code>, <code>hrnet18</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries multi-resolution stage metadata.</td></tr>
+                <tr><td>cspdarknet53</td><td>CSPDarkNet</td><td><code>CSPDarkNet</code>, <code>CSPDarkNet-53</code>, <code>darknet53</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>cspnext_tiny</td><td>CSPNeXt</td><td><code>CSPNeXt</code>, <code>CSPNeXt-Tiny</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>mobilenetv2_100</td><td>MobileNetV2</td><td><code>MobileNetV2</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>mobilenetv3_large_100</td><td>MobileNetV3</td><td><code>MobileNetV3</code>, <code>MobileNetV3-Large</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>efficientnet_b0</td><td>EfficientNet</td><td><code>EfficientNet</code>, <code>EfficientNet-B0</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Default EfficientDet backbone alias.</td></tr>
+                <tr><td>convnext_tiny</td><td>ConvNeXt</td><td><code>ConvNeXt</code>, <code>ConvNeXt-Tiny</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>swin_tiny_patch4_window7_224</td><td>Swin Transformer</td><td><code>Swin</code>, <code>Swin Transformer</code>, <code>Swin-T</code>, <code>swin_tiny</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>Alias carries four-stage channel metadata.</td></tr>
+                <tr><td>vit_base_patch16_224</td><td>Vision Transformer</td><td><code>ViT</code>, <code>Vision Transformer</code>, <code>ViT-B/16</code>, <code>vit_base</code></td><td><code>metadata_validated</code></td><td><code>cpu</code>, <code>timm</code></td><td>ViT stages share the configured channel width in current metadata.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="section">
+          <h2>Neck coverage</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Neck</th><th>Kind</th><th>Aliases</th><th>Validation status</th><th>Required extra</th><th>Known limitation</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>FPN</td><td>neck</td><td><code>fpn</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Requires feature sequence channels to match the compiled plan.</td></tr>
+                <tr><td>ChannelMapper</td><td>neck</td><td><code>channel_mapper</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Projection-only neck for multiscale features.</td></tr>
+                <tr><td>PAN</td><td>neck</td><td>-</td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Path aggregation FPN variant.</td></tr>
+                <tr><td>PANET</td><td>neck</td><td><code>panet_neck</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>PANet naming variant.</td></tr>
+                <tr><td>BiFPN</td><td>neck</td><td><code>bi_fpn</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Bidirectional feature pyramid variant.</td></tr>
+                <tr><td>BiFPNV2</td><td>neck</td><td><code>bi_fpn_v2</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>BiFPNv2 naming variant.</td></tr>
+                <tr><td>PAFPN</td><td>neck</td><td><code>pa_fpn</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Path aggregation FPN naming used by dense detectors.</td></tr>
+                <tr><td>NASFPN</td><td>neck</td><td><code>nas_fpn</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Repeated adjacent-level fusion; not a NAS search implementation.</td></tr>
+                <tr><td>FPNLite</td><td>neck</td><td>-</td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Lightweight FPN naming variant.</td></tr>
+                <tr><td>FPNLiteNeck</td><td>neck</td><td>-</td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>Camel-case alias for lightweight FPN callers.</td></tr>
+                <tr><td>DilatedEncoder</td><td>neck</td><td><code>dilated_encoder</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>YOLOF-style single-feature-level contract.</td></tr>
+                <tr><td>HRFPN</td><td>neck</td><td><code>hr_fpn</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>HRNet-style multi-resolution feature fusion.</td></tr>
+                <tr><td>SSDNeck</td><td>neck</td><td><code>ssd_neck</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>SSD projection and extra-level neck.</td></tr>
+                <tr><td>YOLOXPAFPN</td><td>neck</td><td><code>yolox_pafpn</code></td><td><code>runtime_validated</code></td><td><code>cpu</code></td><td>YOLOX path aggregation feature pyramid contract.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="section">
+          <h2>Not supported yet</h2>
+          <ul>
+            <li><code>DETR3D</code>, <code>DETRv2</code>, <code>Deformable DETR v2</code>, <code>Conditional DETR v2</code>, <code>DAB-DETR v2</code>, and <code>DINOv2</code> are planned, unsupported transformer variants. The builders reject them instead of silently routing them to another detector.</li>
+            <li>Legacy MMDetection config files under <code>MyConfigs/</code>, old notebooks, and historical study scripts are config-only references. They are not SimpleDet support evidence.</li>
+            <li>Rows marked <code>compatibility_alias</code> or <code>unvalidated</code> must not be presented as fully supported architecture-faithful implementations.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <footer>SimpleDet documentation - Model coverage</footer>
+  </body>
+</html>

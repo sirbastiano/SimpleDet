@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 09:48:17 | run=20260518-183418-2827287 | iter=36 | mode=build | story=US-036 | duration=726s | status=success
 - 2026-05-19 09:36:06 | run=20260518-183418-2827287 | iter=35 | mode=build | story=US-035 | duration=1285s | status=success
 - 2026-05-19 09:14:35 | run=20260518-183418-2827287 | iter=34 | mode=build | story=US-034 | duration=884s | status=success
 - 2026-05-19 08:59:38 | run=20260518-183418-2827287 | iter=33 | mode=build | story=US-033 | duration=1588s | status=success
@@ -310,3 +311,11 @@
 [2026-05-19 09:41:34] US-036 updated README, installation docs, and install troubleshooting guidance
 [2026-05-19 09:44:56] US-036 verification passed: docs-check, unit tests, build, and verify-dist
 [2026-05-19 09:47:33] US-036 updated progress log with commit and verification details
+[2026-05-19 09:48:16] ITERATION 36 end (duration=726s)
+[2026-05-19 09:48:22] ITERATION 37 start (mode=build story=US-037)
+[2026-05-19 09:50:42] Start US-037 Document model coverage; required guardrails, errors, PRD, AGENTS, and command surface reviewed
+[2026-05-19 09:58:22] US-037 docs and verification changes applied: model coverage page, docs links, docs verification tokens, and snapshot tests
+[2026-05-19 10:00:16] US-037 unit test gate passed: PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'
+[2026-05-19 10:02:03] US-037 manifest updated so static docs accompany docs snapshot tests in the sdist
+[2026-05-19 10:04:06] US-037 verification completed: focused docs/CLI tests, full unit suite, docs-check, build, verify-dist, and sdist docs presence passed
+[2026-05-19 10:04:49] US-037 pre-commit security performance regression review completed: static docs only, bounded token checks, full tests/docs/build/dist passed

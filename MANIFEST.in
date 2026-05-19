@@ -3,4 +3,5 @@ include README.md
 include assets/simpledet-logo.svg
 include notebooks/Tools/simpledet_showcase.ipynb
 include tests/native_tensor_contracts.py
+recursive-include docs *.html *.css *.js *.svg
 recursive-include examples *.py

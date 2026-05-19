@@ -25,6 +25,7 @@ def main() -> None:
         "index",
         "installation",
         "inference",
+        "model-coverage",
         "overview",
         "quickstart",
         "roadmap-changelog",
@@ -69,6 +70,28 @@ def main() -> None:
                 target_path = (docs_dir / target / "index.html").resolve()
             if not target_path.exists():
                 raise SystemExit(f"{file}: broken internal link -> {target}")
+
+    coverage_text = (docs_dir / "model-coverage.html").read_text(encoding="utf-8")
+    required_coverage_tokens = {
+        "VFNet",
+        "FOVEA",
+        "FoveaBox",
+        "RepPoints",
+        "YOLOF",
+        "CenterNet",
+        "Grid R-CNN",
+        "Cascade R-CNN",
+        "compatibility_alias",
+        "planned, unsupported",
+    }
+    missing_tokens = sorted(
+        token for token in required_coverage_tokens if token not in coverage_text
+    )
+    if missing_tokens:
+        raise SystemExit(
+            "Model coverage docs missing required alias/status tokens: "
+            + ", ".join(missing_tokens)
+        )
 
     print("Docs verification passed.")
 

@@ -73,6 +73,7 @@ def _collect_issues(docs_dir: Path) -> list[str]:
         "index",
         "installation",
         "inference",
+        "model-coverage",
         "overview",
         "quickstart",
         "roadmap-changelog",
@@ -114,6 +115,24 @@ def _collect_issues(docs_dir: Path) -> list[str]:
             issues.append(
                 f"{file.name}:{line}: <img> missing non-empty alt attribute"
             )
+
+    coverage_file = docs_dir / "model-coverage.html"
+    if coverage_file.exists():
+        coverage_text = coverage_file.read_text(encoding="utf-8")
+        for token in (
+            "VFNet",
+            "FOVEA",
+            "FoveaBox",
+            "RepPoints",
+            "YOLOF",
+            "CenterNet",
+            "Grid R-CNN",
+            "Cascade R-CNN",
+            "compatibility_alias",
+            "planned, unsupported",
+        ):
+            if token not in coverage_text:
+                issues.append(f"model-coverage.html: missing required coverage token {token}")
 
     return issues
 
