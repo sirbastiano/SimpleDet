@@ -1563,3 +1563,31 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `run_project` test and infer stages can be separate commands when the config workdir and checkpoint path point at the `save_last=True` checkpoint produced by training.
   - The `ralph` logger is available on `PATH`; `./ralph` is not present in this checkout.
 ---
+## [2026-05-19 10:30:40 UTC] - US-039: Document developer architecture
+Thread:
+Run: 20260518-183418-2827287 (iteration 39)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-39.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-39.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 1ec7fa5 docs(architecture): add developer contracts
+- Post-commit status: `clean` after documentation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `make docs-check` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (294 tests, 90 skipped)
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/developer-guide.html
+- What was implemented
+  - Expanded the developer guide with registry metadata contracts, tensor contracts, detector composition layers, native head implementation expectations, support-claim validation rules, and optional dependency rules.
+  - Added a dense-head checklist covering construction, forward outputs, loss, decode, detector routing, and docs updates.
+  - Added explicit contributor warnings that config rows, notebook references, and alias-only routes are not support claims without native CPU tensor/runtime validation.
+  - Security/performance/regression review: docs only; no executable code, dependency changes, network calls, runtime imports, or build-path changes were introduced; docs, tests, build, and dist gates passed.
+- **Learnings for future iterations:**
+  - Architecture docs should anchor support claims to `ExtensionRegistry` metadata plus `tests/native_tensor_contracts.py` tensor checks.
+  - Dense-head support is split across registry metadata, native construction, forward shape checks, finite loss smoke tests, and decode payload checks in `tests/test_native_dense_heads.py`.
+  - The repo-local `/shared/home/rdelprete/PythonProjects/MMDET/ralph` executable is absent, but the `ralph` helper is available on `PATH` and writes activity entries.
+---
