@@ -1176,3 +1176,43 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Auto-detected CSV file paths need to be accepted directly, not only through `annotations.csv`.
   - Simple JSON support should remain dependency-free and distinct from COCO JSON detection.
 ---
+## [2026-05-19 07:34:45 UTC] - US-029: Build native datamodule pipeline
+Thread:
+Run: 20260518-183418-2827287 (iteration 29)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-29.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-29.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: fe6b26b feat(data): add native detection datamodule
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `python3 -m py_compile simpledet/simpledet/native/data.py simpledet/simpledet/native/runtime.py simpledet/simpledet/native/__init__.py tests/test_native_data.py tests/test_native_runtime.py` -> PASS
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_native_data tests.test_native_runtime` -> PASS (9 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (256 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/datasets.html
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/data.py
+  - simpledet/simpledet/native/runtime.py
+  - tests/test_native_data.py
+  - tests/test_native_runtime.py
+- What was implemented
+  - Reworked the native Lightning datamodule to load normalized COCO adapter payloads for train, val, and test stages instead of parsing raw JSON locally.
+  - Added deterministic split annotation resolution for `Annotations/*_annotations.json` and `annotations/instances_*.json`, plus explicit annotation overrides through `NativeDataConfig`.
+  - Added metadata-preserving detection targets with `boxes`, `labels`, `image_id`, `area`, `iscrowd`, and `metadata`, paired shared/split-specific transforms, seeded train dataloader shuffling, and the public `NativeDataValidationError`.
+  - Made native training/evaluation call datamodule setup before trainer/model entry so empty requested splits fail fast with a clear data validation error.
+  - Added datamodule tests for COCO batch structure, stage-specific split selection, transforms, seeded loader behavior, and empty split validation before trainer entry.
+  - Updated API and dataset docs with the native datamodule contract and split layout expectations.
+  - Security/performance/regression review: adapter path confinement is preserved before image decode; optional torch/torchvision imports remain lazy; split filtering avoids an extra full-list copy; full regression gates passed.
+- **Learnings for future iterations:**
+  - Native datamodule tests need fake `torch`, `torch.nn`, `torch.utils.data`, and `torchvision.io` modules because importing `simpledet.native.data` goes through the package initializer in the base environment.
+  - Runtime tests now need real dummy image files because the native datamodule consumes the hardened adapter output, which validates COCO image paths.
+  - The base environment still lacks real torch/torchvision, so actual image decode is covered by adapter path tests plus fake-module datamodule tests rather than live runtime decoding.
+---
