@@ -390,3 +390,41 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Retina-style anchor heads need nine anchors per location to match native head specs; the new default prior scales produce that count.
   - This environment still has no bare `python` and no installed torch CPU extra; use `python3`/Makefile gates, and tensor-heavy tests run when the CPU extra is available.
 ---
+## [2026-05-19 00:07:33 UTC] - US-011: Implement common detection losses
+Thread:
+Run: 20260518-183418-2827287 (iteration 11)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-11.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-11.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: b4cf52b feat(losses): add native detection losses
+- Post-commit status: `clean`
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> FAIL (`python`: command not found)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test_native_losses.py'` -> PASS (4 skipped; torch CPU extra unavailable)
+  - Command: `PYTHONPATH=simpledet python3 -m unittest discover -s tests -p 'test*.py'` -> PASS (154 tests, 31 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/native/losses.py
+  - tests/test_native_components.py
+  - tests/test_native_losses.py
+- What was implemented
+  - Added registry-backed native focal, quality focal, varifocal, distribution focal, smooth L1, L1, IoU, GIoU, DIoU, CIoU, cross-entropy, dice, and mask losses with explicit `LossContractError` shape checks.
+  - Exported native loss classes and `build_loss`, and registered aliases such as `varifocal`, `dfl`, `giou`, `cross_entropy`, `dice`, and `mask`.
+  - Wired `VFNetHead` and the VFNet dense training path to resolve varifocal and IoU losses through the shared `LOSSES` registry.
+  - Added loss registry, scalar/gradient, negative contract, and VFNet registry wiring tests; tensor-heavy assertions skip cleanly when the optional torch CPU runtime is absent.
+  - Security/performance/regression review: no new file/network/secret handling; loss math is tensor-local; VFNet quality targets use aligned IoU instead of quadratic pairwise scoring; full regression and packaging gates passed through `python3`.
+- **Learnings for future iterations:**
+  - Native loss registration should be included in registry snapshots for tests that clear and re-import native modules.
+  - The current environment still has no bare `python` and no torch CPU extra, so exact user-specified `python` gates fail while Makefile/`python3` gates run.
+  - Avoid `box_iou(...).diag()` in dense training paths; aligned box metrics preserve the contract without pairwise memory growth.
+---
