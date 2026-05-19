@@ -1188,6 +1188,51 @@ class NativeComponentTests(unittest.TestCase):
         self.assertEqual(model.num_classes, 2)
         self.assertIsNotNone(model.box_roi_pool)
 
+    def test_build_native_model_configures_cascade_and_grid_roi_variants(self):
+        fake_timm = types.ModuleType("timm")
+        fake_timm.create_model = lambda *args, **kwargs: _FakeEncoder([64, 128, 256, 512])
+
+        class _FakeFPN:
+            def __init__(self, in_channels_list, out_channels):
+                self.in_channels_list = list(in_channels_list)
+                self.out_channels = out_channels
+
+            def __call__(self, features):
+                return {key: f"p-{key}" for key in features}
+
+        class _FakeRoIAlign:
+            def __init__(self, featmap_names, output_size, sampling_ratio):
+                self.featmap_names = list(featmap_names)
+                self.output_size = output_size
+                self.sampling_ratio = sampling_ratio
+
+        fake_ops = types.ModuleType("torchvision.ops")
+        fake_ops.FeaturePyramidNetwork = _FakeFPN
+        fake_ops.MultiScaleRoIAlign = _FakeRoIAlign
+        fake_torchvision = types.ModuleType("torchvision")
+
+        fake_modules = _fake_torch_modules()
+        fake_modules.update(
+            {
+                "timm": fake_timm,
+                "torchvision": fake_torchvision,
+                "torchvision.ops": fake_ops,
+            }
+        )
+        with patch.dict(sys.modules, fake_modules):
+            from simpledet.native.modeling import build_native_model
+
+            cascade_spec = build_detector("cascade_rcnn", num_classes=2, encoder="resnet18.a1_in1k")
+            cascade = build_native_model("cascade_rcnn", num_classes=2, detector_spec=cascade_spec)
+            grid_spec = build_detector("grid_rcnn", num_classes=2, encoder="resnet18.a1_in1k")
+            grid = build_native_model("grid_rcnn", num_classes=2, detector_spec=grid_spec)
+
+        self.assertEqual(cascade.roi_variant, "cascade_rcnn")
+        self.assertEqual(cascade.cascade_num_stages, 3)
+        self.assertIsNone(cascade.grid_size)
+        self.assertEqual(grid.roi_variant, "grid_rcnn")
+        self.assertEqual(grid.grid_size, 7)
+
     def test_native_model_rejects_non_tensor_like_inputs(self):
         fake_timm = types.ModuleType("timm")
         fake_timm.create_model = lambda *args, **kwargs: _FakeEncoder([64, 128, 256, 512])

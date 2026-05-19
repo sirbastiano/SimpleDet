@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 00:10:01 | run=20260518-183418-2827287 | iter=11 | mode=build | story=US-011 | duration=1076s | status=success
 - 2026-05-18 23:51:55 | run=20260518-183418-2827287 | iter=10 | mode=build | story=US-010 | duration=1746s | status=success
 - 2026-05-18 23:22:39 | run=20260518-183418-2827287 | iter=9 | mode=build | story=US-009 | duration=983s | status=success
 - 2026-05-18 23:06:10 | run=20260518-183418-2827287 | iter=8 | mode=build | story=US-008 | duration=1096s | status=success
@@ -101,3 +102,9 @@
 [2026-05-19 00:06:01] US-011 verification completed: exact python gate failed because python is unavailable; python3 full unittest, docs-check, build, and verify-dist passed after review fix
 [2026-05-19 00:06:31] US-011 pre-commit security performance regression review completed: tensor-only losses, no file/network/secret handling, aligned VFNet IoU avoids quadratic target scoring, and registry import regressions passed
 [2026-05-19 00:08:59] US-011 progress log updated with implementation commit b4cf52b and verification outcomes
+[2026-05-19 00:09:55] ITERATION 11 end (duration=1076s)
+[2026-05-19 00:10:04] ITERATION 12 start (mode=build story=US-012)
+[2026-05-19 00:11:54] Start US-012 ROI primitives implementation
+[2026-05-19 00:24:16] Implemented US-012 ROI primitive helpers and focused tests
+[2026-05-19 00:28:17] US-012 verification completed: focused ROI tests, make test, docs-check, build, and verify-dist passed with python3; bare python unavailable
+[2026-05-19 00:28:39] US-012 pre-commit security performance regression review completed: no file/network/exec handling added, ROI helpers preserve tensor device/dtype and empty shapes, focused and full regression gates passed

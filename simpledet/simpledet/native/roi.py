@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from collections import OrderedDict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,6 +14,13 @@ require_dependency("torch", "native roi")
 import torch  # noqa: E402
 import torch.nn as nn  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
+
+from .assignment import max_iou_assign, sample_assignment  # noqa: E402
+from .geometry import (  # noqa: E402
+    clip_boxes_to_image,
+    decode_boxes as decode_bbox_deltas,
+    encode_boxes as encode_bbox_deltas,
+)
 
 
 @dataclass(slots=True, frozen=True)
@@ -26,6 +34,392 @@ class RoICoreSpec:
     def from_num_levels(cls, num_levels: int) -> "RoICoreSpec":
         featmap_names = tuple(str(index) for index in range(int(num_levels)))
         return cls(featmap_names=featmap_names)
+
+
+@dataclass(slots=True, frozen=True)
+class BatchedRoIProposals:
+    """Proposal tensors formatted for torchvision ROI pooling and ROI ops."""
+
+    proposals: tuple[Any, ...]
+    rois: Any
+    image_indices: Any
+    counts: tuple[int, ...]
+
+    @property
+    def num_images(self) -> int:
+        return len(self.proposals)
+
+    @property
+    def num_proposals(self) -> int:
+        return int(sum(self.counts))
+
+
+@dataclass(slots=True, frozen=True)
+class RoIEncodedBBoxTargets:
+    bbox_targets: Any
+    bbox_weights: Any
+
+
+@dataclass(slots=True, frozen=True)
+class RoIBBoxTargets:
+    proposals: Any
+    labels: Any
+    label_weights: Any
+    bbox_targets: Any
+    bbox_weights: Any
+    matched_gt_indices: Any
+    positive_indices: Any
+    negative_indices: Any
+    sampled_indices: Any
+
+
+@dataclass(slots=True, frozen=True)
+class RoIMaskTargets:
+    mask_targets: Any
+    positive_indices: Any
+    matched_gt_indices: Any
+
+
+@dataclass(slots=True, frozen=True)
+class RoICascadeStage:
+    proposals: Any
+    labels: Any
+
+
+@dataclass(slots=True, frozen=True)
+class RoIGridTargets:
+    points: Any
+    normalized_offsets: Any
+    weights: Any
+
+
+def batch_roi_proposals(
+    proposals,
+    *,
+    batch_size: int | None = None,
+    reference=None,
+    dtype=None,
+    device=None,
+) -> BatchedRoIProposals:
+    """Normalize per-image xyxy proposals and build a batched ``(K, 5)`` ROI tensor."""
+
+    proposal_items = _normalize_proposal_items(proposals, batch_size=batch_size)
+    proposal_tensors = tuple(
+        _as_roi_boxes(item, name=f"proposals[{index}]", reference=reference, dtype=dtype, device=device)
+        for index, item in enumerate(proposal_items)
+    )
+    counts = tuple(_row_count(tensor) for tensor in proposal_tensors)
+    tensor_reference = proposal_tensors[0] if proposal_tensors else reference
+    rois_by_image = []
+    image_indices_by_image = []
+    for image_index, boxes in enumerate(proposal_tensors):
+        count = counts[image_index]
+        if count == 0:
+            continue
+        image_column = _full_tensor(
+            (count, 1),
+            float(image_index),
+            reference=boxes,
+            dtype=getattr(boxes, "dtype", None),
+            device=getattr(boxes, "device", None),
+        )
+        rois_by_image.append(_cat_tensors((image_column, boxes), dim=1))
+        image_indices_by_image.append(
+            _full_tensor(
+                (count,),
+                int(image_index),
+                reference=boxes,
+                dtype=getattr(torch, "long", None),
+                device=getattr(boxes, "device", None),
+            )
+        )
+    rois = (
+        _cat_tensors(tuple(rois_by_image), dim=0)
+        if rois_by_image
+        else _empty_tensor((0, 5), reference=tensor_reference, dtype=dtype or getattr(torch, "float32", None), device=device)
+    )
+    image_indices = (
+        _cat_tensors(tuple(image_indices_by_image), dim=0)
+        if image_indices_by_image
+        else _empty_tensor((0,), reference=tensor_reference, dtype=getattr(torch, "long", None), device=device)
+    )
+    return BatchedRoIProposals(
+        proposals=proposal_tensors,
+        rois=rois,
+        image_indices=image_indices,
+        counts=counts,
+    )
+
+
+def roi_align_features(pool, features, proposals, image_shapes):
+    """Run a torchvision-style ROI pool with empty-proposal handling."""
+
+    reference = _first_feature_tensor(features)
+    batched = batch_roi_proposals(
+        proposals,
+        batch_size=len(image_shapes) if image_shapes is not None else None,
+        reference=reference,
+    )
+    if batched.num_proposals == 0:
+        return _empty_roi_pool_output(features, pool)
+    return pool(features, list(batched.proposals), list(image_shapes))
+
+
+def encode_roi_bbox_targets(
+    proposals,
+    matched_boxes,
+    *,
+    positive_mask=None,
+    weights: Sequence[float] = (1.0, 1.0, 1.0, 1.0),
+) -> RoIEncodedBBoxTargets:
+    """Encode matched GT boxes as bbox deltas and weights for positive ROIs."""
+
+    proposal_tensor = _as_roi_boxes(proposals, name="proposals")
+    matched_tensor = _as_roi_boxes(
+        matched_boxes,
+        name="matched_boxes",
+        reference=proposal_tensor,
+        dtype=getattr(proposal_tensor, "dtype", None),
+        device=getattr(proposal_tensor, "device", None),
+    )
+    if proposal_tensor.shape[0] != matched_tensor.shape[0]:
+        raise ValueError("proposals and matched_boxes must have the same count.")
+    bbox_targets = proposal_tensor.new_zeros((proposal_tensor.shape[0], 4))
+    bbox_weights = proposal_tensor.new_zeros((proposal_tensor.shape[0], 4))
+    if proposal_tensor.shape[0] == 0:
+        return RoIEncodedBBoxTargets(bbox_targets=bbox_targets, bbox_weights=bbox_weights)
+    if positive_mask is None:
+        positive_mask = torch.ones((proposal_tensor.shape[0],), dtype=torch.bool, device=proposal_tensor.device)
+    else:
+        positive_mask = torch.as_tensor(positive_mask, dtype=torch.bool, device=proposal_tensor.device)
+    if bool(positive_mask.any()):
+        bbox_targets[positive_mask] = encode_bbox_deltas(
+            proposal_tensor[positive_mask],
+            matched_tensor[positive_mask],
+            weights=weights,
+        )
+        bbox_weights[positive_mask] = 1.0
+    return RoIEncodedBBoxTargets(bbox_targets=bbox_targets, bbox_weights=bbox_weights)
+
+
+def build_roi_bbox_targets(
+    proposals,
+    gt_boxes,
+    gt_labels,
+    *,
+    num_samples: int | None = None,
+    positive_fraction: float = 0.25,
+    pos_iou_thr: float = 0.5,
+    neg_iou_thr: float = 0.5,
+    weights: Sequence[float] = (1.0, 1.0, 1.0, 1.0),
+) -> RoIBBoxTargets:
+    """Assign, optionally sample, and encode bbox targets for ROI box heads."""
+
+    proposal_tensor = _as_roi_boxes(proposals, name="proposals")
+    gt_box_tensor = _as_roi_boxes(
+        gt_boxes,
+        name="gt_boxes",
+        reference=proposal_tensor,
+        dtype=getattr(proposal_tensor, "dtype", None),
+        device=getattr(proposal_tensor, "device", None),
+    )
+    gt_label_tensor = _as_roi_labels(gt_labels, device=proposal_tensor.device)
+    assignment = max_iou_assign(
+        proposal_tensor,
+        gt_box_tensor,
+        gt_label_tensor,
+        pos_iou_thr=pos_iou_thr,
+        neg_iou_thr=neg_iou_thr,
+    )
+    if num_samples is None:
+        sampled_indices = torch.arange(proposal_tensor.shape[0], dtype=torch.long, device=proposal_tensor.device)
+    else:
+        sample = sample_assignment(
+            assignment,
+            num_samples=int(num_samples),
+            positive_fraction=float(positive_fraction),
+        )
+        sampled_parts = [sample.positive_indices, sample.negative_indices]
+        sampled_indices = (
+            torch.cat(sampled_parts, dim=0)
+            if any(part.numel() > 0 for part in sampled_parts)
+            else torch.empty((0,), dtype=torch.long, device=proposal_tensor.device)
+        )
+
+    sampled_proposals = proposal_tensor[sampled_indices]
+    sampled_labels = assignment.labels[sampled_indices]
+    sampled_matched = assignment.matched_boxes[sampled_indices]
+    matched_gt_indices = assignment.assigned_gt_indices[sampled_indices]
+    positive_mask = sampled_labels > 0
+    encoded = encode_roi_bbox_targets(
+        sampled_proposals,
+        sampled_matched,
+        positive_mask=positive_mask,
+        weights=weights,
+    )
+    label_weights = (sampled_labels >= 0).to(dtype=proposal_tensor.dtype)
+    positive_indices = torch.nonzero(positive_mask, as_tuple=False).reshape(-1)
+    negative_indices = torch.nonzero(sampled_labels == 0, as_tuple=False).reshape(-1)
+    return RoIBBoxTargets(
+        proposals=sampled_proposals,
+        labels=sampled_labels,
+        label_weights=label_weights,
+        bbox_targets=encoded.bbox_targets,
+        bbox_weights=encoded.bbox_weights,
+        matched_gt_indices=matched_gt_indices,
+        positive_indices=positive_indices,
+        negative_indices=negative_indices,
+        sampled_indices=sampled_indices,
+    )
+
+
+def build_roi_mask_targets(
+    proposals,
+    gt_masks,
+    matched_gt_indices,
+    *,
+    output_size: int | Sequence[int] = 28,
+) -> RoIMaskTargets:
+    """Crop and resize positive ROI mask targets from one-based GT assignments."""
+
+    proposal_tensor = _as_roi_boxes(proposals, name="proposals")
+    out_h, out_w = _normalize_output_size(output_size)
+    assigned = _matched_indices_tensor(matched_gt_indices, device=proposal_tensor.device)
+    if assigned.shape[0] != proposal_tensor.shape[0]:
+        raise ValueError("matched_gt_indices must match the number of proposals.")
+    positive_indices = torch.nonzero(assigned > 0, as_tuple=False).reshape(-1)
+    if positive_indices.numel() == 0:
+        return RoIMaskTargets(
+            mask_targets=proposal_tensor.new_zeros((0, out_h, out_w)),
+            positive_indices=positive_indices,
+            matched_gt_indices=assigned,
+        )
+
+    masks = _as_mask_tensor(gt_masks, device=proposal_tensor.device, dtype=proposal_tensor.dtype)
+    if masks.shape[0] == 0:
+        return RoIMaskTargets(
+            mask_targets=proposal_tensor.new_zeros((0, out_h, out_w)),
+            positive_indices=positive_indices.new_zeros((0,)),
+            matched_gt_indices=assigned,
+        )
+
+    resized_masks = []
+    for proposal_index in positive_indices.tolist():
+        gt_index = int(assigned[proposal_index].item()) - 1
+        if gt_index < 0 or gt_index >= masks.shape[0]:
+            resized_masks.append(proposal_tensor.new_zeros((out_h, out_w)))
+            continue
+        resized_masks.append(
+            _crop_and_resize_mask(
+                masks[gt_index],
+                proposal_tensor[proposal_index],
+                output_size=(out_h, out_w),
+            )
+        )
+    return RoIMaskTargets(
+        mask_targets=torch.stack(resized_masks, dim=0),
+        positive_indices=positive_indices,
+        matched_gt_indices=assigned,
+    )
+
+
+def select_class_specific_bbox_deltas(box_deltas, labels, *, num_classes: int | None = None):
+    """Select per-ROI bbox deltas for one-based foreground labels."""
+
+    deltas = torch.as_tensor(box_deltas)
+    label_tensor = torch.as_tensor(labels, dtype=torch.long, device=deltas.device).reshape(-1)
+    if deltas.numel() == 0:
+        return deltas.reshape(0, 4)
+    if deltas.dim() == 2 and deltas.shape[1] == 4:
+        return deltas.to(device=deltas.device)
+    if deltas.dim() == 2:
+        if deltas.shape[1] % 4 != 0:
+            raise ValueError("box_deltas second dimension must be 4 or a multiple of 4.")
+        inferred_classes = deltas.shape[1] // 4 - 1
+        if num_classes is None:
+            num_classes = inferred_classes
+        deltas = deltas.reshape(-1, int(num_classes) + 1, 4)
+    elif deltas.dim() != 3 or deltas.shape[2] != 4:
+        raise ValueError("box_deltas must have shape (N, 4), (N, C*4), or (N, C, 4).")
+    if deltas.shape[0] != label_tensor.shape[0]:
+        raise ValueError("labels must match the number of box_deltas rows.")
+    max_label = deltas.shape[1] - 1
+    label_tensor = label_tensor.clamp(min=0, max=max_label)
+    row_indices = torch.arange(deltas.shape[0], dtype=torch.long, device=deltas.device)
+    return deltas[row_indices, label_tensor]
+
+
+def refine_cascade_stage_proposals(
+    proposals,
+    bbox_deltas,
+    labels,
+    *,
+    image_shape: Sequence[int] | None = None,
+    weights: Sequence[float] = (1.0, 1.0, 1.0, 1.0),
+    detach: bool = True,
+) -> RoICascadeStage:
+    """Decode stage-specific bbox deltas into proposals for the next cascade stage."""
+
+    proposal_tensor = _as_roi_boxes(proposals, name="proposals")
+    label_tensor = _as_roi_labels(labels, device=proposal_tensor.device)
+    selected_deltas = select_class_specific_bbox_deltas(bbox_deltas, label_tensor)
+    if proposal_tensor.shape[0] == 0:
+        refined = proposal_tensor.new_zeros((0, 4))
+    else:
+        refined = decode_bbox_deltas(proposal_tensor, selected_deltas.to(device=proposal_tensor.device, dtype=proposal_tensor.dtype), weights=weights)
+        if image_shape is not None:
+            refined = clip_boxes_to_image(refined, image_shape)
+    if detach and hasattr(refined, "detach"):
+        refined = refined.detach()
+    return RoICascadeStage(proposals=refined, labels=label_tensor)
+
+
+def build_roi_grid_targets(
+    proposals,
+    matched_boxes,
+    *,
+    grid_size: int = 7,
+) -> RoIGridTargets:
+    """Generate Grid R-CNN style target points and normalized offsets."""
+
+    grid_size = _positive_int(grid_size, "grid_size")
+    proposal_tensor = _as_roi_boxes(proposals, name="proposals")
+    matched_tensor = _as_roi_boxes(
+        matched_boxes,
+        name="matched_boxes",
+        reference=proposal_tensor,
+        dtype=getattr(proposal_tensor, "dtype", None),
+        device=getattr(proposal_tensor, "device", None),
+    )
+    if proposal_tensor.shape[0] != matched_tensor.shape[0]:
+        raise ValueError("proposals and matched_boxes must have the same count.")
+    if proposal_tensor.shape[0] == 0:
+        return RoIGridTargets(
+            points=proposal_tensor.new_zeros((0, grid_size, grid_size, 2)),
+            normalized_offsets=proposal_tensor.new_zeros((0, grid_size, grid_size, 2)),
+            weights=proposal_tensor.new_zeros((0, grid_size, grid_size)),
+        )
+    steps = torch.linspace(0.0, 1.0, grid_size, dtype=proposal_tensor.dtype, device=proposal_tensor.device)
+    gt_widths = matched_tensor[:, 2] - matched_tensor[:, 0]
+    gt_heights = matched_tensor[:, 3] - matched_tensor[:, 1]
+    xs = matched_tensor[:, 0:1] + steps.reshape(1, -1) * gt_widths.reshape(-1, 1)
+    ys = matched_tensor[:, 1:2] + steps.reshape(1, -1) * gt_heights.reshape(-1, 1)
+    x_grid = xs[:, None, :].expand(-1, grid_size, -1)
+    y_grid = ys[:, :, None].expand(-1, -1, grid_size)
+    points = torch.stack((x_grid, y_grid), dim=-1)
+    eps = torch.finfo(proposal_tensor.dtype).eps
+    proposal_widths = (proposal_tensor[:, 2] - proposal_tensor[:, 0]).clamp(min=eps)
+    proposal_heights = (proposal_tensor[:, 3] - proposal_tensor[:, 1]).clamp(min=eps)
+    normalized_offsets = torch.stack(
+        (
+            (points[..., 0] - proposal_tensor[:, None, None, 0]) / proposal_widths[:, None, None],
+            (points[..., 1] - proposal_tensor[:, None, None, 1]) / proposal_heights[:, None, None],
+        ),
+        dim=-1,
+    ).clamp(min=0.0, max=1.0)
+    valid = ((proposal_widths > eps) & (proposal_heights > eps)).to(dtype=proposal_tensor.dtype)
+    weights = valid[:, None, None].expand(-1, grid_size, grid_size)
+    return RoIGridTargets(points=points, normalized_offsets=normalized_offsets, weights=weights)
 
 
 class NativeRoIBackbone(nn.Module):
@@ -61,6 +455,9 @@ class NativeRoIModel(nn.Module):
         in_channels: int,
         core_spec: RoICoreSpec,
         mask_roi_pool: nn.Module | None = None,
+        roi_variant: str = "faster_rcnn",
+        cascade_num_stages: int = 1,
+        grid_size: int | None = None,
     ) -> None:
         super().__init__()
         self.backbone = backbone
@@ -69,6 +466,9 @@ class NativeRoIModel(nn.Module):
         self.num_classes = int(num_classes)
         self.core_spec = core_spec
         self.with_mask = mask_roi_pool is not None
+        self.roi_variant = str(roi_variant)
+        self.cascade_num_stages = max(1, int(cascade_num_stages))
+        self.grid_size = grid_size
         self.proposal_iou_threshold = 0.5
         self.roi_sample_size = 2
         self.postprocess_topk = 4
@@ -122,6 +522,15 @@ class NativeRoIModel(nn.Module):
                     [sampled_proposals],
                     image_shapes,
                 )
+                mask_loss = None
+                if self.with_mask and self.mask_roi_pool is not None and self.mask_head is not None:
+                    mask_loss = self._mask_loss(
+                        features,
+                        sampled_proposals,
+                        sampled_labels,
+                        image_shapes,
+                        targets[image_index],
+                    )
                 losses.append(
                     self._loss_from_targets(
                         proposal_logits,
@@ -131,6 +540,7 @@ class NativeRoIModel(nn.Module):
                         sampled_proposals,
                         sampled_labels,
                         targets[image_index],
+                        mask_loss=mask_loss,
                     )
                 )
                 continue
@@ -190,8 +600,11 @@ class NativeRoIModel(nn.Module):
         sampled_proposals,
         sampled_labels,
         target,
+        *,
+        mask_loss=None,
     ):
-        target_box = self._coerce_box(self._first_target_box(target, anchors[0]), reference=class_logits)
+        proposal_reference = anchors[0] if len(anchors) > 0 else sampled_proposals
+        target_box = self._coerce_box(self._first_target_box(target, proposal_reference), reference=class_logits)
         rpn_losses = self._rpn_losses(proposal_logits, anchors, target_box)
         roi_losses = self._roi_losses(
             sampled_proposals=sampled_proposals,
@@ -202,13 +615,15 @@ class NativeRoIModel(nn.Module):
         )
         losses = {**rpn_losses, **roi_losses}
         if self.with_mask:
-            losses["loss_mask"] = self._zero_loss_like(roi_losses["loss_roi_classifier"])
+            losses["loss_mask"] = mask_loss if mask_loss is not None else self._zero_loss_like(roi_losses["loss_roi_classifier"])
         losses["loss_total"] = sum(losses.values())
         return losses
 
     def _first_target_box(self, target, proposal):
         if target is not None and "boxes" in target and len(target["boxes"]) > 0:
             return target["boxes"][0]
+        if _row_count(proposal) == 0:
+            return self._zero_box(reference=proposal)
         return proposal[0]
 
     def _first_target_label(self, target, *, device):
@@ -320,6 +735,21 @@ class NativeRoIModel(nn.Module):
         return unique
 
     def _sample_training_proposals(self, proposals, anchors, proposal_scores, target):
+        if _row_count(proposals) == 0:
+            return [], []
+        if _has_real_tensor_ops() and hasattr(proposals, "shape"):
+            gt_boxes = target.get("boxes", []) if target is not None else []
+            gt_labels = target.get("labels", []) if target is not None else []
+            targets = build_roi_bbox_targets(
+                proposals,
+                gt_boxes,
+                gt_labels,
+                num_samples=self.roi_sample_size,
+                positive_fraction=0.5,
+                pos_iou_thr=self.proposal_iou_threshold,
+                neg_iou_thr=self.proposal_iou_threshold,
+            )
+            return targets.sampled_indices.tolist(), targets.labels.tolist()
         target_box = self._coerce_box(self._first_target_box(target, anchors[0]), reference=proposal_scores)
         target_label = self._first_target_label(target, device=getattr(proposal_scores, "device", None))
         positive_index = self._assign_proposal_index(proposals, target_box)
@@ -408,6 +838,12 @@ class NativeRoIModel(nn.Module):
         return self._tensor_from_data(labels, **kwargs)
 
     def _rpn_losses(self, proposal_logits, anchors, target_box):
+        if len(anchors) == 0 or _tensor_numel(proposal_logits) == 0:
+            zero = self._zero_loss_like(proposal_logits)
+            return {
+                "loss_rpn_objectness": zero,
+                "loss_rpn_box_reg": zero,
+            }
         objectness_targets = self._proposal_objectness_targets(anchors, target_box, reference=proposal_logits)
         objectness_loss = self._binary_cross_entropy_with_logits(proposal_logits, objectness_targets)
         selected_index = self._assign_proposal_index(anchors, target_box)
@@ -427,6 +863,20 @@ class NativeRoIModel(nn.Module):
         box_deltas,
         target_box,
     ):
+        if _row_count(sampled_labels) == 0 or _tensor_numel(class_logits) == 0:
+            zero = self._zero_loss_like(class_logits)
+            return {
+                "loss_roi_classifier": zero,
+                "loss_roi_box_reg": zero,
+            }
+        if _has_real_tensor_ops() and hasattr(class_logits, "shape") and hasattr(box_deltas, "shape"):
+            return self._tensor_roi_losses(
+                sampled_proposals=sampled_proposals,
+                sampled_labels=sampled_labels,
+                class_logits=class_logits,
+                box_deltas=box_deltas,
+                target_box=target_box,
+            )
         roi_targets = self._roi_classification_targets(sampled_labels, reference=class_logits)
         classifier_loss = self._cross_entropy_loss(class_logits, roi_targets)
         positive_indices = self._positive_sample_indices(sampled_labels)
@@ -449,11 +899,72 @@ class NativeRoIModel(nn.Module):
             "loss_roi_box_reg": box_loss,
         }
 
+    def _tensor_roi_losses(
+        self,
+        *,
+        sampled_proposals,
+        sampled_labels,
+        class_logits,
+        box_deltas,
+        target_box,
+    ):
+        roi_targets = self._roi_classification_targets(sampled_labels, reference=class_logits)
+        classifier_loss = self._cross_entropy_loss(class_logits, roi_targets)
+        positive_indices = torch.nonzero(roi_targets > 0, as_tuple=False).reshape(-1)
+        if positive_indices.numel() == 0:
+            box_loss = self._zero_loss_like(class_logits)
+        else:
+            positive_proposals = sampled_proposals.index_select(0, positive_indices)
+            positive_labels = roi_targets.index_select(0, positive_indices)
+            positive_box_deltas = select_class_specific_bbox_deltas(
+                box_deltas.index_select(0, positive_indices),
+                positive_labels,
+                num_classes=self.num_classes,
+            )
+            target_boxes = self._expand_target_box(target_box, int(positive_indices.numel()), reference=positive_proposals)
+            encoded = encode_roi_bbox_targets(positive_proposals, target_boxes)
+            box_loss = self._smooth_l1_loss(positive_box_deltas, encoded.bbox_targets)
+        return {
+            "loss_roi_classifier": classifier_loss,
+            "loss_roi_box_reg": box_loss,
+        }
+
+    def _mask_loss(self, features, sampled_proposals, sampled_labels, image_shapes, target):
+        if target is None or "masks" not in target or _row_count(sampled_proposals) == 0:
+            return None
+        if not (_has_real_tensor_ops() and hasattr(sampled_proposals, "shape")):
+            return None
+        gt_boxes = target.get("boxes", [])
+        gt_labels = target.get("labels", [])
+        bbox_targets = build_roi_bbox_targets(
+            sampled_proposals,
+            gt_boxes,
+            gt_labels,
+            num_samples=None,
+            pos_iou_thr=self.proposal_iou_threshold,
+            neg_iou_thr=self.proposal_iou_threshold,
+        )
+        mask_targets = build_roi_mask_targets(
+            sampled_proposals,
+            target["masks"],
+            bbox_targets.matched_gt_indices,
+            output_size=1,
+        )
+        if mask_targets.mask_targets.shape[0] == 0:
+            return self._zero_loss_like(sampled_proposals)
+        positive_proposals = sampled_proposals.index_select(0, mask_targets.positive_indices)
+        mask_features = self._roi_pool(self.mask_roi_pool, features, [positive_proposals], image_shapes)
+        mask_features = mask_features.mean(dim=(-1, -2))
+        mask_representation = self.mask_head(mask_features)
+        mask_logits = self.mask_predictor(mask_representation).reshape(-1, 1)
+        targets = mask_targets.mask_targets.reshape(mask_targets.mask_targets.shape[0], -1).mean(dim=1, keepdim=True)
+        return F.binary_cross_entropy_with_logits(mask_logits, targets)
+
     def _image_shape(self, image):
         return int(image.shape[-2]), int(image.shape[-1])
 
     def _roi_pool(self, pool, features, proposals, image_shapes):
-        return pool(features, proposals, image_shapes)
+        return roi_align_features(pool, features, proposals, image_shapes)
 
     def _decode_boxes(self, proposal, box_deltas):
         if not hasattr(proposal, "to") or not hasattr(box_deltas, "reshape"):
@@ -526,14 +1037,26 @@ class NativeRoIModel(nn.Module):
         return boxes, scores, labels_tensor, top_indices
 
     def _boxes_to_tensor(self, proposals, *, reference):
-        kwargs = {}
-        dtype = getattr(reference, "dtype", None) or self._float_dtype()
-        if dtype is not None:
-            kwargs["dtype"] = dtype
-        device = getattr(reference, "device", None)
-        if device is not None:
-            kwargs["device"] = device
-        return self._tensor_from_data(proposals, **kwargs)
+        if not hasattr(torch, "as_tensor"):
+            kwargs = {}
+            dtype = getattr(reference, "dtype", None) or self._float_dtype()
+            if dtype is not None:
+                kwargs["dtype"] = dtype
+            device = getattr(reference, "device", None)
+            if device is not None:
+                kwargs["device"] = device
+            tensor = self._tensor_from_data(proposals, **kwargs)
+            shape = getattr(tensor, "shape", None)
+            if shape is not None and len(shape) == 1 and int(shape[0]) == 0 and hasattr(tensor, "reshape"):
+                return tensor.reshape(0, 4)
+            return tensor
+        return _as_roi_boxes(
+            proposals,
+            name="proposals",
+            reference=reference,
+            dtype=getattr(reference, "dtype", None) or self._float_dtype(),
+            device=getattr(reference, "device", None),
+        )
 
     def _coerce_box(self, value, *, reference):
         if hasattr(value, "to"):
@@ -656,6 +1179,12 @@ class NativeRoIModel(nn.Module):
 
     def _select_class_specific_box_deltas(self, box_deltas, labels, *, reference):
         label_values = self._label_values(labels)
+        if _has_real_tensor_ops() and hasattr(box_deltas, "reshape") and hasattr(box_deltas, "shape"):
+            return select_class_specific_bbox_deltas(
+                box_deltas,
+                label_values,
+                num_classes=self.num_classes,
+            )
         if hasattr(box_deltas, "reshape") and hasattr(box_deltas, "shape"):
             reshaped = box_deltas.reshape(-1, self.num_classes + 1, 4)
             row_indices = self._tensor_from_data(
@@ -811,6 +1340,272 @@ class NativeRoIModel(nn.Module):
             return torch.tensor(value, **kwargs)
         return value
 
+    def _zero_box(self, *, reference):
+        return self._tensor_from_data(
+            [0.0, 0.0, 1.0, 1.0],
+            dtype=getattr(reference, "dtype", None) or self._float_dtype(),
+            device=getattr(reference, "device", None),
+        )
+
+
+def _normalize_proposal_items(proposals, *, batch_size: int | None) -> tuple[Any, ...]:
+    if batch_size is not None and int(batch_size) < 0:
+        raise ValueError("batch_size must be non-negative.")
+    if _is_single_image_proposals(proposals):
+        items = (proposals,)
+    else:
+        items = tuple(proposals)
+    if batch_size is None:
+        if not items:
+            return ([],)
+        return items
+    batch_size = int(batch_size)
+    if len(items) > batch_size:
+        raise ValueError(f"received {len(items)} proposal groups for batch_size={batch_size}.")
+    if len(items) < batch_size:
+        items = items + tuple([] for _ in range(batch_size - len(items)))
+    return items
+
+
+def _is_single_image_proposals(value) -> bool:
+    if _is_tensor_box_matrix(value):
+        return True
+    if isinstance(value, (str, bytes)):
+        return False
+    try:
+        rows = list(value)
+    except TypeError:
+        return False
+    if not rows:
+        return True
+    first = rows[0]
+    if _is_tensor_box_matrix(first):
+        return False
+    if isinstance(first, (str, bytes)):
+        return False
+    try:
+        first_values = list(first)
+    except TypeError:
+        return False
+    return len(first_values) == 4 and all(_is_number_like(component) for component in first_values)
+
+
+def _is_tensor_box_matrix(value) -> bool:
+    shape = getattr(value, "shape", None)
+    return shape is not None and len(shape) == 2 and int(shape[1]) == 4
+
+
+def _is_number_like(value) -> bool:
+    try:
+        float(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _as_roi_boxes(value, *, name: str, reference=None, dtype=None, device=None):
+    dtype = dtype or getattr(reference, "dtype", None) or getattr(torch, "float32", None)
+    device = device if device is not None else getattr(reference, "device", None)
+    if _is_tensor_box_matrix(value):
+        tensor = value
+        if hasattr(tensor, "to"):
+            kwargs = {}
+            if dtype is not None:
+                kwargs["dtype"] = dtype
+            if device is not None:
+                kwargs["device"] = device
+            tensor = tensor.to(**kwargs)
+    else:
+        tensor = _tensor_from_any(value, dtype=dtype, device=device)
+    shape = getattr(tensor, "shape", None)
+    if shape is not None and len(shape) == 1 and int(shape[0]) == 0 and hasattr(tensor, "reshape"):
+        tensor = tensor.reshape(0, 4)
+        shape = getattr(tensor, "shape", None)
+    if shape is None or len(shape) != 2 or int(shape[1]) != 4:
+        raise ValueError(f"{name} must have shape (N, 4).")
+    if hasattr(torch, "is_floating_point") and not bool(torch.is_floating_point(tensor)):
+        tensor = tensor.to(dtype=getattr(torch, "float32", None), device=device)
+    return tensor
+
+
+def _as_roi_labels(value, *, device=None):
+    labels = _tensor_from_any(value, dtype=getattr(torch, "long", None), device=device)
+    shape = getattr(labels, "shape", None)
+    if shape is not None and len(shape) == 0 and hasattr(labels, "reshape"):
+        labels = labels.reshape(1)
+        shape = getattr(labels, "shape", None)
+    if shape is not None and len(shape) == 1:
+        return labels
+    if _tensor_numel(labels) == 0 and hasattr(labels, "reshape"):
+        return labels.reshape(0)
+    raise ValueError("gt_labels must have shape (N,).")
+
+
+def _tensor_from_any(value, *, dtype=None, device=None):
+    kwargs = {}
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    if device is not None:
+        kwargs["device"] = device
+    tensor_ctor = getattr(torch, "as_tensor", None) or getattr(torch, "tensor")
+    return tensor_ctor(value, **kwargs)
+
+
+def _empty_tensor(shape, *, reference=None, dtype=None, device=None):
+    dtype = dtype or getattr(reference, "dtype", None) or getattr(torch, "float32", None)
+    device = device if device is not None else getattr(reference, "device", None)
+    kwargs = {}
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    if device is not None:
+        kwargs["device"] = device
+    if hasattr(torch, "empty"):
+        return torch.empty(shape, **kwargs)
+    tensor = torch.tensor([], **kwargs)
+    return tensor.reshape(*shape) if hasattr(tensor, "reshape") else tensor
+
+
+def _full_tensor(shape, fill_value, *, reference=None, dtype=None, device=None):
+    dtype = dtype or getattr(reference, "dtype", None)
+    device = device if device is not None else getattr(reference, "device", None)
+    kwargs = {}
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    if device is not None:
+        kwargs["device"] = device
+    if hasattr(torch, "full"):
+        return torch.full(shape, fill_value, **kwargs)
+    return torch.tensor(_filled_list(shape, fill_value), **kwargs)
+
+
+def _filled_list(shape, fill_value):
+    if len(shape) == 1:
+        return [fill_value for _ in range(int(shape[0]))]
+    return [_filled_list(shape[1:], fill_value) for _ in range(int(shape[0]))]
+
+
+def _cat_tensors(tensors: tuple[Any, ...], *, dim: int):
+    if hasattr(torch, "cat"):
+        return torch.cat(tensors, dim=dim)
+    if dim == 0:
+        rows = []
+        for tensor in tensors:
+            rows.extend(tensor.tolist() if hasattr(tensor, "tolist") else list(tensor))
+        dtype = getattr(tensors[0], "dtype", None) if tensors else None
+        return torch.tensor(rows, dtype=dtype)
+    if dim == 1:
+        left, right = tensors
+        left_rows = left.tolist() if hasattr(left, "tolist") else list(left)
+        right_rows = right.tolist() if hasattr(right, "tolist") else list(right)
+        return torch.tensor(
+            [list(left_row) + list(right_row) for left_row, right_row in zip(left_rows, right_rows)],
+            dtype=getattr(right, "dtype", None),
+        )
+    raise ValueError("Only dim=0 and dim=1 concatenation are supported without torch.cat.")
+
+
+def _first_feature_tensor(features):
+    if hasattr(features, "values"):
+        values = list(features.values())
+    else:
+        values = list(features)
+    return values[0] if values else None
+
+
+def _empty_roi_pool_output(features, pool):
+    feature = _first_feature_tensor(features)
+    output_h, output_w = _normalize_output_size(getattr(pool, "output_size", 1))
+    channels = 0
+    shape = getattr(feature, "shape", None)
+    if shape is not None and len(shape) >= 2:
+        channels = int(shape[1])
+    if feature is not None and hasattr(feature, "new_zeros"):
+        return feature.new_zeros((0, channels, output_h, output_w))
+    return _empty_tensor((0, channels, output_h, output_w), reference=feature)
+
+
+def _normalize_output_size(output_size: int | Sequence[int]) -> tuple[int, int]:
+    if isinstance(output_size, Sequence) and not isinstance(output_size, (str, bytes)):
+        values = tuple(int(value) for value in output_size)
+        if len(values) != 2:
+            raise ValueError("output_size must be an int or a (height, width) pair.")
+        return _positive_int(values[0], "output_size height"), _positive_int(values[1], "output_size width")
+    size = _positive_int(output_size, "output_size")
+    return size, size
+
+
+def _matched_indices_tensor(value, *, device):
+    if hasattr(value, "assigned_gt_indices"):
+        value = value.assigned_gt_indices
+    return _tensor_from_any(value, dtype=getattr(torch, "long", None), device=device).reshape(-1)
+
+
+def _as_mask_tensor(value, *, device, dtype):
+    masks = _tensor_from_any(value, dtype=dtype, device=device)
+    if masks.numel() == 0:
+        return masks.reshape(0, 0, 0)
+    if masks.dim() == 4 and int(masks.shape[1]) == 1:
+        masks = masks[:, 0]
+    if masks.dim() != 3:
+        raise ValueError("gt_masks must have shape (N, H, W) or (N, 1, H, W).")
+    return masks
+
+
+def _crop_and_resize_mask(mask, box, *, output_size: tuple[int, int]):
+    height, width = int(mask.shape[-2]), int(mask.shape[-1])
+    x1, y1, x2, y2 = [float(value) for value in box.tolist()]
+    left = max(0, min(width, int(math.floor(x1))))
+    top = max(0, min(height, int(math.floor(y1))))
+    right = max(left + 1, min(width, int(math.ceil(x2))))
+    bottom = max(top + 1, min(height, int(math.ceil(y2))))
+    crop = mask[top:bottom, left:right]
+    if crop.numel() == 0:
+        return mask.new_zeros(output_size)
+    return F.interpolate(
+        crop.reshape(1, 1, crop.shape[-2], crop.shape[-1]),
+        size=output_size,
+        mode="bilinear",
+        align_corners=False,
+    ).reshape(output_size)
+
+
+def _row_count(value) -> int:
+    shape = getattr(value, "shape", None)
+    if shape is not None:
+        if len(shape) == 0:
+            return 0
+        return int(shape[0])
+    try:
+        return len(value)
+    except TypeError:
+        return 0
+
+
+def _tensor_numel(value) -> int:
+    if hasattr(value, "numel"):
+        return int(value.numel())
+    shape = getattr(value, "shape", None)
+    if shape is None:
+        try:
+            return len(value)
+        except TypeError:
+            return 1
+    total = 1
+    for dimension in shape:
+        total *= int(dimension)
+    return total
+
+
+def _has_real_tensor_ops() -> bool:
+    return all(hasattr(torch, name) for name in ("as_tensor", "arange", "cat", "nonzero"))
+
+
+def _positive_int(value: Any, name: str) -> int:
+    integer = int(value)
+    if integer <= 0:
+        raise ValueError(f"{name} must be positive.")
+    return integer
+
 
 def build_native_roi_backbone(
     backbone: nn.Module,
@@ -842,12 +1637,17 @@ def build_native_roi_detector(factory_name: str, components, *, num_classes: int
         "num_classes": int(num_classes),
         "in_channels": int(components.neck_spec.out_channels),
         "core_spec": core_spec,
+        "roi_variant": normalized_factory,
         "box_roi_pool": MultiScaleRoIAlign(
             featmap_names=featmap_names,
             output_size=core_spec.box_output_size,
             sampling_ratio=core_spec.sampling_ratio,
         ),
     }
+    if normalized_factory == "cascade_rcnn":
+        kwargs["cascade_num_stages"] = 3
+    if normalized_factory == "grid_rcnn":
+        kwargs["grid_size"] = 7
     if normalized_factory == "mask_rcnn":
         kwargs["mask_roi_pool"] = MultiScaleRoIAlign(
             featmap_names=featmap_names,
