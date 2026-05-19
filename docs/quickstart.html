@@ -159,8 +159,8 @@ metrics = run_evaluation(
         <article class="section">
           <h2>6. Evaluate</h2>
           <p class="section-lead">
-            Evaluation is not a standalone subsystem in this repo. It reuses the native runtime test path so the evaluator,
-            output files, and dataset metadata remain consistent with training.
+            Evaluation reuses the native runtime test path and computes bbox metrics from the serialized predictions and test annotations.
+            Output files and dataset metadata remain consistent with training.
           </p>
           <pre><code>from simpledet import run_evaluation
 
@@ -174,8 +174,9 @@ print(metrics["backend"])</code></pre>
           <p>Expected artifacts:</p>
           <ul>
             <li><code>native-manifest.json</code></li>
+            <li><code>native-metrics.json</code></li>
             <li><code>checkpoints/</code></li>
-            <li>prediction records returned by the runtime</li>
+            <li>prediction records and metric summaries returned by the runtime</li>
           </ul>
         </article>
         <article class="section">

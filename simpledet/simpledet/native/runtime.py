@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..metrics import evaluate_coco_bbox_metrics
 from ..suite import DetectorSpec
 from .data import NativeDataConfig, NativeDetectionDataModule
 from .engine import NativeDetectionLightningModule, NativeEngineConfig, build_native_trainer
@@ -147,11 +148,15 @@ def run_native_evaluation(config: NativeProjectConfig) -> dict[str, Any]:
     trainer = build_native_trainer(payload.config)
     checkpoint_path = _resolved_checkpoint_path(config)
     _call_trainer_test(trainer, module, datamodule=data, checkpoint_path=checkpoint_path)
+    metrics = _evaluate_native_metrics(data, payload.latest_predictions)
+    metrics_path = _write_native_metrics(config.output_dir, metrics)
     result = {
         "backend": "native_lightning",
         "stages": ["test"],
         "architecture": config.detector_spec.architecture,
         "predictions": payload.latest_predictions,
+        "metrics": metrics,
+        "metrics_path": str(metrics_path),
         "output_dir": str(Path(config.output_dir).expanduser()),
         "checkpoint_path": str(checkpoint_path),
     }
@@ -170,3 +175,21 @@ def _write_native_manifest(output_dir: str, payload: dict[str, Any]) -> None:
         json.dumps(payload, indent=2, default=str),
         encoding="utf-8",
     )
+
+
+def _write_native_metrics(output_dir: str, metrics: dict[str, Any]) -> Path:
+    root = Path(output_dir).expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+    metrics_path = root / "native-metrics.json"
+    metrics_path.write_text(json.dumps(metrics, indent=2, default=str), encoding="utf-8")
+    return metrics_path
+
+
+def _evaluate_native_metrics(
+    data: NativeDetectionDataModule,
+    predictions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    dataset = data.test_dataset
+    if dataset is None:
+        raise RuntimeError("Native evaluation metrics require an initialized test dataset.")
+    return evaluate_coco_bbox_metrics(dataset.annotation_path, predictions)

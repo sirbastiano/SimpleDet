@@ -91,19 +91,20 @@ metrics = evaluate(
           <h2>Outputs</h2>
           <ul>
             <li><code>native-manifest.json</code></li>
+            <li><code>native-metrics.json</code> with mAP-style bbox summaries, per-class AP, recall, and COCO-style prediction export records</li>
             <li><code>checkpoints/</code> for the retained checkpoint files</li>
             <li>prediction records returned by the runtime</li>
           </ul>
           <p>
-            The native evaluation path returns prediction records directly and writes a JSON manifest for the run summary.
+            The native evaluation path returns prediction records and metrics directly, writes the metrics payload as a separate artifact, and writes a JSON manifest for the run summary.
           </p>
         </article>
         <article class="section">
           <h2>Conceptually, what evaluation means here</h2>
           <ul>
-            <li>It is not an independent evaluator API.</li>
+            <li>It computes native bbox metrics from the test annotations and serialized predictions.</li>
             <li>It reuses <code>pipeline.test()</code>.</li>
-            <li>It depends on the evaluator configuration loaded by the runtime config.</li>
+            <li>It converts SimpleDet <code>xyxy</code> boxes into COCO-style <code>xywh</code> export records.</li>
             <li>It exists so testing stays coupled to the same pipeline assumptions used during training.</li>
           </ul>
         </article>

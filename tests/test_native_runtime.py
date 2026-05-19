@@ -616,6 +616,12 @@ class NativeRuntimeTests(unittest.TestCase):
             self.assertEqual(result["backend"], "native_lightning")
             self.assertEqual(result["checkpoint_path"], str(checkpoint_path))
             self.assertTrue((output / "native-manifest.json").exists())
+            self.assertTrue((output / "native-metrics.json").exists())
+            self.assertEqual(result["metrics_path"], str(output / "native-metrics.json"))
+            self.assertIn("summary", result["metrics"])
+            self.assertIn("per_class", result["metrics"])
+            self.assertIn("recall", result["metrics"])
+            self.assertIn("prediction_export", result["metrics"])
             prediction = result["predictions"][0]
             self.assertEqual(prediction["image_id"], 1)
             self.assertIn("boxes", prediction)
@@ -624,6 +630,8 @@ class NativeRuntimeTests(unittest.TestCase):
             self.assertEqual(len(prediction["boxes"]), 4)
             self.assertEqual(len(prediction["scores"]), 4)
             self.assertEqual(len(prediction["labels"]), 4)
+            manifest = json.loads((output / "native-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["metrics_path"], str(output / "native-metrics.json"))
 
     def test_native_evaluation_requires_existing_checkpoint(self):
         with tempfile.TemporaryDirectory() as tmpdir:
