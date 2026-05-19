@@ -44,38 +44,91 @@
       </section>
       <section class="content">
         <article class="section">
-          <h2>1. Install and verify</h2>
+          <h2>1. Install and run doctor</h2>
           <p class="section-lead">
-            Install the package, CPU runtime, and TIMM encoder extra first, then verify the command-line surface before working through the examples.
+            Install the CPU runtime extra first. It gives the quickstart the native PyTorch, Lightning, COCO metric, and image-loading dependencies used by training, testing, and inference.
           </p>
-          <pre><code>python -m pip install simpledet
-python -m pip install 'simpledet[cpu]'
-python -m pip install 'simpledet[timm]'
-python -m simpledet --check-runtime</code></pre>
+          <pre><code>python -m pip install 'simpledet[cpu]'
+python -m simpledet doctor --workdir ./runs/quickstart</code></pre>
+          <p>
+            When working from a checkout, use <code>python -m pip install -e '.[cpu]'</code> instead. <code>doctor</code> reports missing optional extras as warnings unless you add <code>--strict</code>, so it is useful before deciding whether you need extras such as <code>timm</code>, <code>geo</code>, or <code>plots</code>.
+          </p>
         </article>
         <article class="section">
-          <h2>2. Bootstrap a project config</h2>
+          <h2>2. Create a tiny local COCO fixture</h2>
           <p class="section-lead">
-            If you want a repeatable operational workflow, start by creating a project file and validating it before launching training.
+            This fixture exists only to verify the wiring. It creates two small RGB PNG files and three COCO-style annotation files under <code>data/quickstart-coco</code>, so the commands do not depend on private machine paths or external datasets.
           </p>
-          <pre><code>python -m simpledet --init-project project.toml
-python -m simpledet --project-validate project.toml</code></pre>
+          <pre><code>python - &lt;&lt;'PY'
+import json
+import struct
+import zlib
+from pathlib import Path
+
+root = Path("data/quickstart-coco")
+(root / "imgs").mkdir(parents=True, exist_ok=True)
+(root / "Annotations").mkdir(parents=True, exist_ok=True)
+
+def chunk(kind, payload):
+    return (
+        struct.pack("&gt;I", len(payload))
+        + kind
+        + payload
+        + struct.pack("&gt;I", zlib.crc32(kind + payload) &amp; 0xFFFFFFFF)
+    )
+
+def write_png(path, width=64, height=64):
+    row = b"\x00" + (b"\x40\x90\xe0" * width)
+    raw = row * height
+    path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack("&gt;IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+for name in ("sample_0001.png", "sample_0002.png"):
+    write_png(root / "imgs" / name)
+
+def payload(image_id, file_name):
+    return {
+        "images": [{"id": image_id, "file_name": file_name, "width": 64, "height": 64}],
+        "annotations": [{
+            "id": image_id,
+            "image_id": image_id,
+            "category_id": 1,
+            "bbox": [12, 10, 28, 30],
+            "area": 840,
+            "iscrowd": 0,
+        }],
+        "categories": [{"id": 1, "name": "wake"}],
+    }
+
+splits = {
+    "train_annotations.json": payload(1, "sample_0001.png"),
+    "val_annotations.json": payload(2, "sample_0002.png"),
+    "test_annotations.json": payload(2, "sample_0002.png"),
+}
+for filename, split_payload in splits.items():
+    (root / "Annotations" / filename).write_text(json.dumps(split_payload, indent=2))
+PY</code></pre>
         </article>
         <article class="section">
-          <h2>3. Build a detector</h2>
+          <h2>3. Define a RetinaNet detector</h2>
           <p class="section-lead">
-            A <code>DetectorSpec</code> is the repo’s high-level model description. It says which detector family you want, which backbone it should use,
-            and how many classes it must predict. The planner then turns that high-level description into a native build plan.
+            A <code>DetectorSpec</code> is the high-level model description. The suite registry resolves the RetinaNet alias, the ResNet backbone, and the native head and neck wiring before training starts.
           </p>
           <pre><code>python - &lt;&lt;'PY'
 from pprint import pprint
-from simpledet.suite import build_detector, compile_native_detector_plan
+from simpledet.suite import build_detector, build_neck, compile_native_detector_plan
 
 spec = build_detector(
     "retinanet",
-    encoder="resnet18.a1_in1k",
-    num_classes=2,
+    backbone="resnet18",
+    neck=build_neck("FPN", out_channels=128, num_outs=4),
+    num_classes=1,
     in_channels=3,
+    pretrained=False,
 )
 plan = compile_native_detector_plan(spec)
 
@@ -86,151 +139,105 @@ pprint(plan.head)
 PY</code></pre>
           <p>Expected output shape:</p>
           <pre><code>dense
-NativeEncoderPlan(type='TimmEncoder', ...)
-NativeNeckPlan(type='FPN', ...)
-NativeHeadPlan(type='RetinaHead', ...)</code></pre>
+ComponentPlan(kind='encoder', type='resnet18', ...)
+ComponentPlan(kind='neck', type='FPN', ...)
+ComponentPlan(kind='head', type='RetinaHead', ...)</code></pre>
           <p>
-            The key concept is that you are not writing the full <code>model</code> dictionary by hand.
-            SimpleDet inspects the backbone, infers feature channels, and patches the neck and head interfaces for you.
+            The quickstart disables pretrained weights so the first run does not download external checkpoints. For real experiments, keep the same shape and change the detector, backbone, class count, and dataset paths.
           </p>
         </article>
         <article class="section">
-          <h2>4. Train through the native runtime</h2>
+          <h2>4. Write the dataset and runtime config</h2>
           <p class="section-lead">
-            The runtime owns everything that is not intrinsic to the detector itself: dataset locations, annotation files,
-            image resize, logging, checkpointing, evaluator outputs, and operational validation.
+            The config keeps the detector definition, dataset paths, runtime knobs, optimizer, checkpoint path, and export intent in one repeatable file.
           </p>
-          <pre><code>from simpledet import run_training
-from simpledet.suite import build_detector
+          <pre><code>cat &gt; quickstart.toml &lt;&lt;'TOML'
+stages = ["build", "train", "test"]
+workdir = "runs/quickstart"
+seed = 71
 
-detector_spec = build_detector(
-    "retinanet",
-    encoder="resnet18.a1_in1k",
-    num_classes=2,
-    in_channels=3,
-)
+[detector]
+name = "retinanet"
+num_classes = 1
+backbone = "resnet18"
+pretrained = false
 
-result = run_training(
-    dataset_root="/path/to/dataset_root",
-    detector_spec=detector_spec,
-    categories=("object_a", "object_b"),
-    in_channels=3,
-    tif_channels_to_load=[1, 2, 3],
-    resize=768,
-    batch_size=2,
-    learning_rate=0.001,
-    max_epochs=10,
-    validate=True,
-)
-print(result["backend"])</code></pre>
-          <p>
-            The runtime helper assumes the conventional <code>imgs/</code> and <code>Annotations/*_annotations.json</code> layout.
-            It validates dataset wiring, assembles the model from the detector spec, and executes the requested native training stages.
-          </p>
+[detector.neck]
+name = "FPN"
+out_channels = 128
+num_outs = 4
+
+[dataset]
+format = "coco"
+root = "data/quickstart-coco"
+train = "Annotations/train_annotations.json"
+val = "Annotations/val_annotations.json"
+test = "Annotations/test_annotations.json"
+data_prefix = "imgs/"
+classes = ["wake"]
+in_channels = 3
+tif_channels_to_load = [1, 2, 3]
+
+[runtime]
+resize = 128
+batch_size = 1
+max_epochs = 1
+num_workers = 0
+accelerator = "cpu"
+devices = 1
+
+[optimizer]
+name = "AdamW"
+learning_rate = 0.001
+
+[scheduler]
+name = "step"
+step_size = 1
+gamma = 0.5
+
+[checkpoint]
+path = "runs/quickstart/checkpoints/last.ckpt"
+resume = false
+
+[export]
+formats = ["json"]
+TOML
+
+python -m simpledet --project-validate quickstart.toml</code></pre>
         </article>
         <article class="section">
-          <h2>5. Run without a config file or explicit pipeline object</h2>
+          <h2>5. Train, test, and infer</h2>
           <p class="section-lead">
-            If you want the operational pipeline behavior but do not want to create a project config or hold a pipeline instance yourself,
-            use the direct execution helpers.
+            These are the three operational commands for the quickstart. Run them in order: the test and inference stages load <code>runs/quickstart/checkpoints/last.ckpt</code>, which the train command writes.
           </p>
-          <pre><code>from simpledet import run_training, run_evaluation
-
-train_result = run_training(
-    dataset_root="/path/to/dataset_root",
-    detector_spec=detector_spec,
-    categories=("object_a", "object_b"),
-    in_channels=3,
-    batch_size=2,
-    max_epochs=10,
-)
-
-metrics = run_evaluation(
-    dataset_root="/path/to/dataset_root",
-    detector_spec=detector_spec,
-    categories=("object_a", "object_b"),
-    in_channels=3,
-)</code></pre>
-          <p>
-            These helpers still use the same project-layout conventions and native runtime internals.
-            They just remove the config-file step and the explicit project execution call.
-          </p>
-        </article>
-        <article class="section">
-          <h2>6. Evaluate</h2>
-          <p class="section-lead">
-            Evaluation reuses the native runtime test path and computes bbox metrics from the serialized predictions and test annotations.
-            Output files and dataset metadata remain consistent with training.
-          </p>
-          <pre><code>from simpledet import run_evaluation
-
-metrics = run_evaluation(
-    dataset_root="/path/to/dataset_root",
-    detector_spec=detector_spec,
-    categories=("object_a", "object_b"),
-    in_channels=3,
-)
-print(metrics["backend"])</code></pre>
+          <pre><code>python -m simpledet --project-run quickstart.toml --stages build train
+python -m simpledet --project-run quickstart.toml --stages test
+python -m simpledet --project-run quickstart.toml --stages infer</code></pre>
           <p>Expected artifacts:</p>
           <ul>
+            <li><code>runs/quickstart/checkpoints/last.ckpt</code></li>
             <li><code>native-manifest.json</code></li>
             <li><code>native-metrics.json</code></li>
-            <li><code>checkpoints/</code></li>
-            <li>prediction records and metric summaries returned by the runtime</li>
+            <li><code>run-manifest.json</code></li>
+            <li>prediction records and metric summaries printed by the CLI</li>
           </ul>
         </article>
         <article class="section">
-          <h2>7. Run the same workflow from a config file</h2>
+          <h2>6. Swap in your dataset</h2>
           <p class="section-lead">
-            Once the experiment shape stabilizes, move the same settings into a project config and execute the package through the CLI.
+            Use the same config shape for a real dataset. The important contract is local and explicit: SimpleDet validates the root, image directory, and train, validation, and test annotation files before it creates the workdir or enters the native runtime.
           </p>
-          <pre><code>python -m simpledet --project-run project.toml
-python -m simpledet --project-run project.toml --stages build train test</code></pre>
-          <p>The project runner uses the stage list from <code>project.toml</code> when <code>--stages</code> is omitted. It validates dataset paths before entering the native runtime and records the normalized run in <code>run-manifest.json</code> under the configured workdir.</p>
-        </article>
-        <article class="section">
-          <h2>What to remember</h2>
-          <div class="callout-grid">
-            <article class="callout">
-              <h3>DetectorSpec</h3>
-              <p>Describes the detector architecture you want to run.</p>
-            </article>
-            <article class="callout">
-              <h3>Compiled build plan</h3>
-              <p>Is the native runtime plan generated from that high-level spec.</p>
-            </article>
-            <article class="callout">
-              <h3>Runtime</h3>
-              <p>Attaches runtime concerns such as datasets, workdir layout, hooks, and evaluators.</p>
-            </article>
-          </div>
-        </article>
-        <article class="section">
-          <h2>8. Use structured configs when the project grows</h2>
-          <p class="section-lead">
-            The project helpers are the fastest way to start. When experiments become more complex, move to structured config objects so dataset wiring, runtime knobs, and optimization settings are kept separate.
+          <pre><code>dataset_root/
+  imgs/
+    image_0001.png
+    image_0002.png
+  Annotations/
+    train_annotations.json
+    val_annotations.json
+    test_annotations.json</code></pre>
+          <p>
+            Replace <code>data/quickstart-coco</code>, <code>classes</code>, and <code>num_classes</code> together. Keep <code>pretrained = false</code> for fully offline smoke runs; choose a pretrained backbone only when the environment can download or already has the weights.
           </p>
-          <pre><code>from simpledet import ProjectConfig, run_project
-
-project = ProjectConfig.from_mapping({
-    "stages": ["build", "train", "test"],
-    "workdir": "/path/to/results",
-    "detector": {"name": "retinanet", "num_classes": 2, "backbone": "resnet18"},
-    "dataset": {
-        "root": "/path/to/dataset_root",
-        "train": "Annotations/train_annotations.json",
-        "val": "Annotations/val_annotations.json",
-        "test": "Annotations/test_annotations.json",
-        "classes": ["object_a", "object_b"],
-        "in_channels": 3,
-    },
-    "runtime": {"resize": 768, "batch_size": 2},
-    "optimizer": {"name": "AdamW", "learning_rate": 0.001},
-    "scheduler": {"name": "step", "step_size": 2, "gamma": 0.5},
-    "checkpoint": {"resume": False},
-    "export": {"formats": ["json"]},
-})
-run_project(project)</code></pre>
         </article>
       </section>
     </main>
