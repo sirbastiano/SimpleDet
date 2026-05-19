@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 09:36:06 | run=20260518-183418-2827287 | iter=35 | mode=build | story=US-035 | duration=1285s | status=success
 - 2026-05-19 09:14:35 | run=20260518-183418-2827287 | iter=34 | mode=build | story=US-034 | duration=884s | status=success
 - 2026-05-19 08:59:38 | run=20260518-183418-2827287 | iter=33 | mode=build | story=US-033 | duration=1588s | status=success
 - 2026-05-19 08:33:07 | run=20260518-183418-2827287 | iter=32 | mode=build | story=US-032 | duration=1389s | status=success
@@ -303,3 +304,8 @@
 [2026-05-19 09:31:50] US-035 final verification passed after ckpt example rename: full unit suite, docs-check, build, verify-dist
 [2026-05-19 09:33:14] US-035 exact global unit gate passed with python: 292 tests, 90 skipped
 [2026-05-19 09:35:02] Updated US-035 progress log with commit and verification details
+[2026-05-19 09:36:04] ITERATION 35 end (duration=1285s)
+[2026-05-19 09:36:10] ITERATION 36 start (mode=build story=US-036)
+[2026-05-19 09:39:33] US-036 read guardrails, errors log, PRD, commands, and installation docs before editing
+[2026-05-19 09:41:34] US-036 updated README, installation docs, and install troubleshooting guidance
+[2026-05-19 09:44:56] US-036 verification passed: docs-check, unit tests, build, and verify-dist

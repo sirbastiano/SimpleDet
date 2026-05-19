@@ -56,6 +56,20 @@ SimpleDet is designed to make detector development predictable and production-fr
 
 ## Quick installation
 
+Choose the smallest install path that matches the workflow you want to run. The base package is lightweight; runtime and tooling dependencies live behind extras so imports stay fast and environments stay focused.
+
+| Workflow | Command |
+| --- | --- |
+| Base package and CLI metadata | `python -m pip install simpledet` |
+| CPU training, inference, and evaluation runtime | `python -m pip install 'simpledet[cpu]'` |
+| TIMM encoder catalog support | `python -m pip install 'simpledet[timm]'` |
+| Documentation workflow setup | `python -m pip install 'simpledet[docs]'` |
+| Geospatial dataset helpers | `python -m pip install 'simpledet[geo]'` |
+| Plotting utilities | `python -m pip install 'simpledet[plots]'` |
+| Geospatial plus plotting workflows | `python -m pip install 'simpledet[geo,plots]'` |
+| Development tooling for build, lint, and release checks | `python -m pip install 'simpledet[dev]'` |
+| Local development with CPU runtime, TIMM validation, and release tooling | `python -m pip install -e '.[cpu,timm,dev]'` |
+
 ```bash
 python -m pip install simpledet
 ```
@@ -69,7 +83,15 @@ python -m pip install 'simpledet[timm]'
 ```
 
 ```bash
+python -m pip install 'simpledet[docs]'
+```
+
+```bash
 python -m pip install 'simpledet[geo,plots]'
+```
+
+```bash
+python -m pip install 'simpledet[dev]'
 ```
 
 ```bash
@@ -83,11 +105,13 @@ python -m simpledet --version
 python -m simpledet --check-runtime
 ```
 
+Troubleshooting starts with the installed extra set: use `simpledet[cpu]` before runtime imports, combine `cpu,timm` when validating TIMM-backed detector construction, and prefer a fresh virtual environment if wheel resolution leaves incompatible PyTorch or TorchVision builds. SimpleDet does not require MMDetection, MMEngine, or MMCV as runtime dependencies.
+
 ## Supported environments
 
 - Platforms: Linux, macOS, Windows
 - Python: 3.10, 3.11, 3.12
-- Runtime support: CPU stack via `simpledet[cpu]`, TIMM encoders via `simpledet[timm]` (wheel-compatible dependencies are required for supported OS/Python pairs)
+- Runtime support: CPU stack via `simpledet[cpu]`, TIMM encoders via `simpledet[timm]`, geospatial helpers via `simpledet[geo]`, plotting via `simpledet[plots]`, docs workflow setup via `simpledet[docs]`, and development tooling via `simpledet[dev]` (wheel-compatible dependencies are required for supported OS/Python pairs)
 
 ## Core workflow
 

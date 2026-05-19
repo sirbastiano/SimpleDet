@@ -52,36 +52,88 @@
         <div class="toc">
           <strong>On this page:</strong>
           <a href="#requirements">Requirements</a>
-          <a href="#source-install">Install from source</a>
+          <a href="#install-paths">Install paths</a>
+          <a href="#source-install">Editable development install</a>
           <a href="#verify">Verify</a>
-          <a href="#notes">Notes</a>
+          <a href="#troubleshooting">Troubleshooting</a>
         </div>
 
         <article class="section" id="requirements">
           <h2>Requirements</h2>
           <ul>
             <li>Python <code>&gt;=3.10</code></li>
-            <li>PyTorch runtime compatible with your CPU or CUDA environment when using <code>simpledet[cpu]</code></li>
+            <li>Base installs do not pull in PyTorch, TorchVision, TIMM, geospatial, or plotting libraries.</li>
+            <li>PyTorch runtime compatible with your CPU or CUDA environment when using <code>simpledet[cpu]</code>.</li>
             <li><code>simpledet[timm]</code> if you want suite-driven TIMM backbone swapping</li>
           </ul>
         </article>
 
-        <article class="section" id="source-install">
-          <h2>Install commands</h2>
+        <article class="section" id="install-paths">
+          <h2>Install paths</h2>
+          <p class="section-lead">Install the base package first for lightweight imports, then add extras for the workflows that need heavier dependencies.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Workflow</th>
+                  <th>Command</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Base package</td>
+                  <td><code>python -m pip install simpledet</code></td>
+                  <td>Package metadata, CLI discovery, and lightweight imports without runtime libraries.</td>
+                </tr>
+                <tr>
+                  <td>CPU runtime</td>
+                  <td><code>python -m pip install 'simpledet[cpu]'</code></td>
+                  <td>Native PyTorch and Lightning runtime validation for training, inference, and evaluation.</td>
+                </tr>
+                <tr>
+                  <td>TIMM encoders</td>
+                  <td><code>python -m pip install 'simpledet[timm]'</code></td>
+                  <td>TIMM-backed backbone discovery and feature metadata. Combine with <code>cpu</code> for runtime smoke tests.</td>
+                </tr>
+                <tr>
+                  <td>Documentation checks</td>
+                  <td><code>python -m pip install 'simpledet[docs]'</code></td>
+                  <td>Documentation workflow setup. The current docs checks are lightweight static audits.</td>
+                </tr>
+                <tr>
+                  <td>Geospatial helpers</td>
+                  <td><code>python -m pip install 'simpledet[geo]'</code></td>
+                  <td>Geospatial data dependencies such as raster and vector IO libraries.</td>
+                </tr>
+                <tr>
+                  <td>Plotting utilities</td>
+                  <td><code>python -m pip install 'simpledet[plots]'</code></td>
+                  <td>Matplotlib and SciencePlots support for visualization workflows.</td>
+                </tr>
+                <tr>
+                  <td>Development tooling</td>
+                  <td><code>python -m pip install 'simpledet[dev]'</code></td>
+                  <td>Build, release, coverage, and lint tooling for maintainers.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <pre><code>python -m pip install simpledet
 python -m pip install 'simpledet[cpu]'
-python -m pip install 'simpledet[timm]'</code></pre>
-
-          <p>The base install is intentionally metadata-only for lightweight imports. Add <code>cpu</code> for the native PyTorch runtime, <code>timm</code> for TIMM-backed encoders, <code>geo</code> for geospatial helpers, <code>plots</code> for plotting utilities, <code>docs</code> for documentation workflows, and <code>dev</code> for release tooling.</p>
+python -m pip install 'simpledet[cpu,timm]'
+python -m pip install 'simpledet[docs]'
+python -m pip install 'simpledet[geo,plots]'</code></pre>
         </article>
 
-        <article class="section">
-          <h2>Install from source</h2>
+        <article class="section" id="source-install">
+          <h2>Editable development install</h2>
           <pre><code>git clone https://github.com/sirbastiano/SimpleDet.git
 cd SimpleDet
 python -m pip install -e '.[cpu,timm,dev]'</code></pre>
 
-          <p>This editable development install includes the CPU runtime, TIMM encoders, and development dependencies without requiring MMDetection, MMEngine, or MMCV.</p>
+          <p>This editable development install includes the CPU runtime, TIMM encoders, and development dependencies for local TIMM validation without requiring MMDetection, MMEngine, or MMCV.</p>
         </article>
 
         <article class="section" id="verify">
@@ -112,7 +164,17 @@ TimmEncoder</code></pre>
             <li>Use <code>simpledet[timm]</code> before building TIMM-backed encoders.</li>
             <li><code>device="auto"</code> in the lightweight inference helper currently resolves to CPU.</li>
           </ul>
-          <p class="notice">If <code>python -m simpledet --check-runtime</code> fails, fix the environment before debugging runtime code.</p>
+        </article>
+
+        <article class="section" id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <ul>
+            <li>If <code>python -m simpledet --check-runtime</code> fails, reinstall with <code>python -m pip install 'simpledet[cpu]'</code> and verify that PyTorch and TorchVision wheels match your Python version.</li>
+            <li>If a TIMM-backed detector build cannot find TIMM, install <code>python -m pip install 'simpledet[cpu,timm]'</code> or use the local editable command above.</li>
+            <li>If geospatial or plotting imports fail, install those stacks separately with <code>simpledet[geo]</code>, <code>simpledet[plots]</code>, or <code>simpledet[geo,plots]</code>.</li>
+            <li>If dependency resolution mixes incompatible wheels, create a fresh virtual environment and install one combined extras set instead of layering many partial installs.</li>
+          </ul>
+          <p class="notice">SimpleDet uses the native PyTorch and Lightning runtime path. MMDetection, MMEngine, and MMCV are not required runtime dependencies.</p>
         </article>
       </section>
     </main>

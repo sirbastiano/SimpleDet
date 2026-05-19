@@ -57,7 +57,17 @@
               <tr>
                 <td><code>python -m simpledet --check-runtime</code> fails</td>
                 <td>Missing or incompatible optional runtime packages</td>
-                <td>Reinstall with <code>python -m pip install 'simpledet[cpu]'</code> and verify the runtime stack together.</td>
+                <td>Reinstall with <code>python -m pip install 'simpledet[cpu]'</code> and verify that the PyTorch and TorchVision wheels match your Python version.</td>
+              </tr>
+              <tr>
+                <td>TIMM-backed detector construction fails with a missing <code>timm</code> import</td>
+                <td>The TIMM extra was not installed in the active environment</td>
+                <td>Install <code>python -m pip install 'simpledet[cpu,timm]'</code>, or use <code>python -m pip install -e '.[cpu,timm,dev]'</code> from a local checkout for development validation.</td>
+              </tr>
+              <tr>
+                <td>Docs, geospatial, or plotting imports fail</td>
+                <td>The optional workflow extra is not part of the base or CPU runtime install</td>
+                <td>Install <code>simpledet[docs]</code> for docs setup, <code>simpledet[geo]</code> for geospatial helpers, <code>simpledet[plots]</code> for plotting, or combine them as needed.</td>
               </tr>
               <tr>
                 <td>Backbone swap raises <code>ModelPatchError</code></td>
