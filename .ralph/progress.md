@@ -1803,3 +1803,41 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Registry fallback paths that used `except KeyError` must catch `RegistryLookupError` once public lookup misses stop subclassing `KeyError`.
   - Optional dependency errors can preserve backward compatibility by subclassing `ImportError` while still carrying structured install-command metadata.
 ---
+## [2026-05-19 12:28:32 UTC] - US-046: Add release readiness gate
+Thread:
+Run: 20260518-183418-2827287 (iteration 46)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-46.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-46.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 31df1d0 feat(release): add readiness gate
+- Post-commit status: `clean` after implementation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_release_readiness` -> PASS (6 tests)
+  - Command: `PYTHONPATH=simpledet python scripts/release_readiness.py` -> PASS (40 detector claims, 38 head claims, 54 public detector aliases, 124 public head aliases)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (321 tests, 92 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS (wheel contents OK and 13 packaging tests)
+  - Command: `make build` -> PASS
+  - Command: `make release-ready` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - .ralph/runs/run-20260518-183418-2827287-iter-45.md
+  - .ralph/runs/run-20260518-183418-2827287-iter-46.md
+  - Makefile
+  - README.md
+  - docs/developer-guide.html
+  - scripts/release_readiness.py
+  - tests/test_release_readiness.py
+- What was implemented
+  - Added `scripts/release_readiness.py`, a local release audit that fails handoff when detector or head claims fall below 31, when required release aliases are missing, or when docs install commands drift from `pyproject.toml` extras.
+  - Added `make release-readiness` and aggregate `make release-ready` targets, with README and developer-guide notes explaining the final handoff gate.
+  - Added focused release-readiness tests, including negative coverage for below-minimum detector and head counts and omitted optional extras.
+  - Security/performance/regression review: local-only file reads, bounded HTML/metadata parsing, no network or secret handling, and no production runtime path changes.
+- **Learnings for future iterations:**
+  - `make verify-dist` audits existing artifacts, so build before verification when source or docs changed and then still run the required command sequence.
+  - Release claims should be gated from both docs and public discovery surfaces so handoff cannot rely only on prose updates.
+  - The base environment can validate release metadata and public discovery without installing optional `[cpu]` runtime dependencies; real CPU smoke remains an explicit separate gate.
+---
