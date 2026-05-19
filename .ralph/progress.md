@@ -1751,3 +1751,55 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - SimpleDet's lazy `simpledet.native` import can recurse if cleanup uses `hasattr(simpledet, "native")`; use module dictionaries when cleaning fake native imports in tests.
   - `run_project` can exercise manifest and prediction orchestration with a fast fake trainer, while the real runtime path should stay opt-in to keep the default unittest target practical.
 ---
+## [2026-05-19 12:10:59 UTC] - US-045: Add public error taxonomy
+Thread:
+Run: 20260518-183418-2827287 (iteration 45)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-45.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-45.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: c0556f7 feat(errors): add public error taxonomy
+- Post-commit status: `clean` after implementation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_public_errors tests.test_deps tests.test_native_backend_plan tests.test_native_backbones` -> PASS (43 tests, 1 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (315 tests, 92 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - .ralph/runs/run-20260518-183418-2827287-iter-45.md
+  - docs/api-reference.html
+  - simpledet/simpledet/__init__.py
+  - simpledet/simpledet/api.py
+  - simpledet/simpledet/detectors/_deps.py
+  - simpledet/simpledet/detectors/data.py
+  - simpledet/simpledet/detectors/infer.py
+  - simpledet/simpledet/errors.py
+  - simpledet/simpledet/extensions/__init__.py
+  - simpledet/simpledet/extensions/registry.py
+  - simpledet/simpledet/native/data.py
+  - simpledet/simpledet/native/heads.py
+  - simpledet/simpledet/native/losses.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/native/necks.py
+  - simpledet/simpledet/native/runtime.py
+  - tests/test_deps.py
+  - tests/test_native_backbones.py
+  - tests/test_native_backend_plan.py
+  - tests/test_public_errors.py
+- What was implemented
+  - Added `simpledet.errors` with public exception classes for optional dependencies, registry lookup, config validation, dataset failures, tensor contracts, and checkpoints.
+  - Re-exported the taxonomy from the root package and preserved existing public names by subclassing or importing the shared classes from their current modules.
+  - Routed missing optional dependencies through `OptionalDependencyError`, including exact TIMM command metadata and message text.
+  - Converted unknown component lookup to `RegistryLookupError` and updated internal fallback catches so user-facing registry misses do not expose raw `KeyError`.
+  - Connected representative config, dataset, tensor-contract, and checkpoint paths to the taxonomy without broad internal numeric validation rewrites.
+  - Added focused tests for taxonomy exports, TIMM hints, non-`KeyError` registry misses, config path failures, dataset failures, tensor contracts, and checkpoint failures.
+  - Security/performance/regression review: no new external input execution, network access, secrets handling, or hot-path loops; the diff changes exception typing/messages and targeted tests only.
+- **Learnings for future iterations:**
+  - Keep taxonomy definitions in a dependency-light core module so optional native imports stay lazy.
+  - Registry fallback paths that used `except KeyError` must catch `RegistryLookupError` once public lookup misses stop subclassing `KeyError`.
+  - Optional dependency errors can preserve backward compatibility by subclassing `ImportError` while still carrying structured install-command metadata.
+---
