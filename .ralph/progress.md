@@ -864,3 +864,56 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The base interpreter lacks torch, so real tensor smoke tests skip there; use the repo's CPU-extra environment for deeper tensor validation when available.
   - Gatekeeper blocks untracked test files even when tests passed, so stage new tests before final publish checks.
 ---
+## [2026-05-19 04:39:13 UTC] - US-022: Register first ten detector families
+Thread:
+Run: 20260518-183418-2827287 (iteration 22)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-22.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-22.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 2ab521e feat(detectors): register roi detector families
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `python3 -m py_compile simpledet/simpledet/suite/specs.py simpledet/simpledet/suite/catalog.py simpledet/simpledet/suite/native_plan.py simpledet/simpledet/native/assemblers.py simpledet/simpledet/native/roi.py simpledet/simpledet/native/modeling.py simpledet/simpledet/cli.py tests/test_native_backend_plan.py tests/test_native_two_stage.py tests/test_suite.py tests/test_cli.py` -> PASS
+  - Command: `PYTHONPATH=simpledet:tests python -m unittest tests.test_native_backend_plan tests.test_suite tests.test_cli tests.test_native_two_stage` -> PASS (47 tests, 3 skipped)
+  - Command: `uv run --extra cpu env PYTHONPATH=simpledet:tests python -m unittest tests.test_native_two_stage` -> PASS (4 real CPU tensor tests)
+  - Command: `uv run --extra cpu env PYTHONPATH=simpledet python -m simpledet list-detectors` -> PASS (`cascade_rcnn` and `grid_rcnn` show `runtime_validated`)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (216 tests, 82 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build refreshed dist artifacts
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - README.md
+  - docs/api-reference.html
+  - docs/cli-reference.html
+  - docs/overview.html
+  - docs/package-surface-audit.html
+  - docs/roadmap-changelog.html
+  - simpledet/simpledet/cli.py
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/modeling.py
+  - simpledet/simpledet/native/roi.py
+  - simpledet/simpledet/suite/catalog.py
+  - simpledet/simpledet/suite/native_plan.py
+  - simpledet/simpledet/suite/specs.py
+  - tests/test_cli.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_two_stage.py
+  - tests/test_suite.py
+- What was implemented
+  - Registered native aliases and defaults for Faster R-CNN, Fast R-CNN, RPN, Mask R-CNN, Cascade R-CNN, Cascade Mask R-CNN, Grid R-CNN, Libra R-CNN, Double-Head R-CNN, and Dynamic R-CNN.
+  - Added proposal-family planning for standalone RPN, Fast R-CNN external-proposal routing, cascade-mask defaults, and explicit Double/Dynamic ROI bbox-head defaults.
+  - Updated detector registry metadata so first-ten families resolve through native aliases with runtime validation status; `simpledet list-detectors` now prints validation-status columns.
+  - Added construction, alias, negative-validation, CLI, and CPU tensor smoke coverage for the first-ten family registrations.
+  - Updated docs and package surface notes for the new detector discovery and support matrix.
+  - Security/performance/regression review: no file/network/secret handling added; proposal decoding is bounded to top-k smoke outputs; ROI sample sizes stay explicit and bounded; legacy manual `TwoStageDetector` learned-proposal fallback remains for existing tests while registered detectors validate required native heads.
+- **Learnings for future iterations:**
+  - `DetectorSpec.family` needed `proposal` support before RPN could be a real detector family instead of only a head alias.
+  - Registry alias normalization collapses separators, so display aliases like `Double-Head R-CNN` and `Double Head R-CNN` collide.
+  - `simpledet list-detectors` can show runtime validation only when native optional dependencies are importable; without CPU extras it still lists catalog names but reports `unregistered`.
+  - Use `uv run --extra cpu` for real tensor smoke and CLI validation-status checks because the base interpreter may skip torch-backed tests.
+---
