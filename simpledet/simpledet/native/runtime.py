@@ -24,6 +24,9 @@ class NativeProjectConfig:
     num_workers: int = 0
     learning_rate: float = 1e-3
     optimizer: str = "sgd"
+    scheduler: str | None = None
+    scheduler_step_size: int = 1
+    scheduler_gamma: float = 0.1
     max_epochs: int = 1
     accelerator: str = "cpu"
     devices: int = 1
@@ -88,6 +91,9 @@ def run_native_training(config: NativeProjectConfig) -> dict[str, Any]:
             in_channels=config.in_channels,
             learning_rate=config.learning_rate,
             optimizer=config.optimizer,
+            scheduler=config.scheduler,
+            scheduler_step_size=config.scheduler_step_size,
+            scheduler_gamma=config.scheduler_gamma,
             max_epochs=config.max_epochs,
             accelerator=config.accelerator,
             devices=config.devices,
@@ -128,6 +134,9 @@ def run_native_evaluation(config: NativeProjectConfig) -> dict[str, Any]:
             in_channels=config.in_channels,
             learning_rate=config.learning_rate,
             optimizer=config.optimizer,
+            scheduler=config.scheduler,
+            scheduler_step_size=config.scheduler_step_size,
+            scheduler_gamma=config.scheduler_gamma,
             max_epochs=config.max_epochs,
             accelerator=config.accelerator,
             devices=config.devices,

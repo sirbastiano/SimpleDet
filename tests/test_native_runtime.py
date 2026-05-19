@@ -1,4 +1,5 @@
 import json
+import math
 from collections import OrderedDict
 import struct
 import sys
@@ -26,6 +27,50 @@ def _write_dummy_png(path: Path, width: int = 8, height: int = 8) -> None:
     path.write_bytes(header)
 
 
+class _LossScalar:
+    def __init__(self, value: float) -> None:
+        self.value = float(value)
+
+    def __add__(self, other):
+        return _LossScalar(self.value + float(other))
+
+    def __radd__(self, other):
+        return _LossScalar(float(other) + self.value)
+
+    def __float__(self):
+        return self.value
+
+
+class _FakeParameter:
+    def __init__(self, *, requires_grad: bool = True) -> None:
+        self.requires_grad = requires_grad
+
+
+class _TinyRetinaNet:
+    def __init__(self, *, params=None) -> None:
+        self._params = list(params) if params is not None else [_FakeParameter()]
+        self.loss_batches = []
+        self.prediction_batches = []
+
+    def parameters(self):
+        return iter(self._params)
+
+    def forward_loss(self, images, targets):
+        self.loss_batches.append((images, targets))
+        return {"loss_cls": _LossScalar(0.5), "loss_bbox": _LossScalar(0.25)}
+
+    def predict(self, images):
+        self.prediction_batches.append(images)
+        return [
+            {
+                "boxes": [[0.0, 0.0, 4.0, 4.0]],
+                "scores": [0.9],
+                "labels": [1],
+            }
+            for _ in images
+        ]
+
+
 class NativeRuntimeTests(unittest.TestCase):
     def _fake_runtime_modules(self):
         fake_torch = types.ModuleType("torch")
@@ -45,6 +90,16 @@ class NativeRuntimeTests(unittest.TestCase):
                     return forward(*args, **kwargs)
                 raise TypeError("forward not implemented")
 
+        class _Optimizer:
+            def __init__(self, params, **kwargs):
+                self.params = list(params)
+                self.kwargs = kwargs
+
+        class _Scheduler:
+            def __init__(self, optimizer, **kwargs):
+                self.optimizer = optimizer
+                self.kwargs = kwargs
+
         fake_nn.Module = Module
         fake_nn.ModuleList = list
         fake_nn.Sequential = lambda *layers: Module()
@@ -57,6 +112,16 @@ class NativeRuntimeTests(unittest.TestCase):
         fake_torch.zeros_like = lambda value: value
         fake_torch.zeros = lambda *args, **kwargs: 0
         fake_torch.finfo = lambda dtype: types.SimpleNamespace(eps=1e-12)
+        fake_torch.optim = types.SimpleNamespace(
+            SGD=_Optimizer,
+            Adam=_Optimizer,
+            AdamW=_Optimizer,
+            lr_scheduler=types.SimpleNamespace(
+                StepLR=_Scheduler,
+                ExponentialLR=_Scheduler,
+                CosineAnnealingLR=_Scheduler,
+            ),
+        )
         return {
             "torch": fake_torch,
             "torch.nn": fake_nn,
@@ -241,6 +306,112 @@ class NativeRuntimeTests(unittest.TestCase):
             "torch.nn": fake_nn,
             "torch.nn.functional": fake_f,
         }
+
+    def _fake_lightning_modules(self):
+        class _FakeLightningModule:
+            def __init__(self, *args, **kwargs):
+                self.logged = []
+
+            def log(self, name, value, **kwargs):
+                self.logged.append((name, value, kwargs))
+
+        return types.SimpleNamespace(LightningModule=_FakeLightningModule), object
+
+    def _import_engine_with_fake_runtime(self):
+        import importlib
+
+        return importlib.reload(importlib.import_module("simpledet.native.engine"))
+
+    def _build_tiny_lightning_module(self, *, params=None, optimizer="sgd", scheduler=None):
+        engine = self._import_engine_with_fake_runtime()
+        model = _TinyRetinaNet(params=params)
+        fake_pl, fake_checkpoint = self._fake_lightning_modules()
+        config = engine.NativeEngineConfig(
+            architecture="retinanet",
+            num_classes=2,
+            learning_rate=0.01,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            max_epochs=3,
+        )
+        with patch.object(engine, "build_native_model", return_value=model), patch.object(
+            engine,
+            "_load_lightning",
+            return_value=(fake_pl, fake_checkpoint),
+        ):
+            module, payload = engine.NativeDetectionLightningModule.build(config)
+        return module, payload, model
+
+    def test_lightning_training_step_runs_tiny_retinanet_fixture(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            module, payload, model = self._build_tiny_lightning_module()
+
+            loss = module.training_step((["image"], [{"image_id": [7]}]), 0)
+
+        self.assertTrue(math.isfinite(float(loss)))
+        self.assertEqual(float(loss), 0.75)
+        self.assertEqual(model.loss_batches, [(["image"], [{"image_id": [7]}])])
+        self.assertIs(payload.model, model)
+        self.assertIn("train_loss", [name for name, _, _ in module.logged])
+        self.assertIn("train_loss_cls", [name for name, _, _ in module.logged])
+
+    def test_lightning_validation_and_test_steps_log_metrics_and_predictions(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            module, payload, _ = self._build_tiny_lightning_module()
+
+            validation = module.validation_step((["image"], [{"image_id": [8]}]), 0)
+            test = module.test_step((["image"], [{"image_id": [8]}]), 0)
+
+        self.assertEqual(validation["detection_count"], 1.0)
+        self.assertTrue(math.isfinite(float(validation["loss"])))
+        self.assertEqual(test["predictions"][0]["image_id"], 8)
+        self.assertEqual(test["predictions"][0]["boxes"], [[0.0, 0.0, 4.0, 4.0]])
+        self.assertEqual(payload.latest_predictions, test["predictions"])
+        self.assertIn("val_detection_count", [name for name, _, _ in module.logged])
+        self.assertIn("test_detection_count", [name for name, _, _ in module.logged])
+
+    def test_lightning_optimizer_uses_only_trainable_parameters_and_scheduler(self):
+        trainable = _FakeParameter(requires_grad=True)
+        frozen = _FakeParameter(requires_grad=False)
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            module, _, _ = self._build_tiny_lightning_module(
+                params=[trainable, frozen],
+                optimizer="adamw",
+                scheduler="step",
+            )
+
+            configured = module.configure_optimizers()
+
+        optimizer = configured["optimizer"]
+        scheduler = configured["lr_scheduler"]
+        self.assertEqual(optimizer.params, [trainable])
+        self.assertEqual(optimizer.kwargs["lr"], 0.01)
+        self.assertIs(scheduler.optimizer, optimizer)
+        self.assertEqual(scheduler.kwargs["step_size"], 1)
+
+    def test_lightning_optimizer_rejects_model_with_no_trainable_parameters(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            module, _, _ = self._build_tiny_lightning_module(
+                params=[_FakeParameter(requires_grad=False)]
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "no trainable parameters"):
+                module.configure_optimizers()
+
+    def test_lightning_checkpoint_metadata_round_trips(self):
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            module, payload, _ = self._build_tiny_lightning_module(scheduler="cosine")
+            checkpoint = {}
+
+            module.on_save_checkpoint(checkpoint)
+            module.on_load_checkpoint(checkpoint)
+
+        metadata = checkpoint["simpledet"]
+        self.assertEqual(metadata["backend"], "native_lightning")
+        self.assertEqual(metadata["format_version"], 1)
+        self.assertEqual(metadata["engine_config"]["architecture"], "retinanet")
+        self.assertEqual(metadata["engine_config"]["scheduler"], "cosine")
+        self.assertEqual(payload.loaded_checkpoint_metadata, metadata)
 
     def _write_dataset(self, root: Path) -> None:
         (root / "Annotations").mkdir(parents=True, exist_ok=True)

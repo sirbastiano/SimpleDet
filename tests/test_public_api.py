@@ -166,7 +166,7 @@ class PublicApiTests(unittest.TestCase):
                             "in_channels": 3,
                         },
                         "runtime": {"result_folder": "/results"},
-                        "optimization": {"learning_rate": 0.001},
+                        "optimization": {"learning_rate": 0.001, "scheduler_choice": "step"},
                         "detector_spec": {
                             "architecture": "retinanet",
                             "family": "dense",
@@ -180,6 +180,7 @@ class PublicApiTests(unittest.TestCase):
 
         train_mock.assert_called_once()
         infer_mock.assert_called_once()
+        self.assertEqual(train_mock.call_args.args[0].scheduler, "step")
         self.assertEqual(infer_mock.call_args.args[0].checkpoint_path, train_result["checkpoint_path"])
         self.assertEqual(result["stages"], ["build", "train", "test"])
         self.assertEqual(result["backend"], "native_lightning")

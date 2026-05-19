@@ -347,6 +347,9 @@ def _build_native_project_config(
         num_workers=int(kwargs.get("num_workers", 0)),
         learning_rate=float(kwargs.get("learning_rate", 1e-3)),
         optimizer=str(kwargs.get("optimizer_choice", "adamw")).lower(),
+        scheduler=kwargs.get("scheduler_choice"),
+        scheduler_step_size=int(kwargs.get("scheduler_step_size", 1)),
+        scheduler_gamma=float(kwargs.get("scheduler_gamma", 0.1)),
         max_epochs=int(kwargs.get("max_epochs", 1)),
         accelerator=str(kwargs.get("accelerator", "cpu")),
         devices=int(kwargs.get("devices", 1)),
@@ -425,6 +428,7 @@ def run_project(
             "batch_size": project.runtime.batch_size,
             "learning_rate": project.optimization.learning_rate,
             "optimizer_choice": project.optimization.optimizer_choice,
+            "scheduler_choice": project.optimization.scheduler_choice,
             "max_epochs": project.runtime.max_epochs,
         },
     )

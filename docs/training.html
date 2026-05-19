@@ -94,11 +94,14 @@ result = run_training(
     resize=768,
     batch_size=2,
     learning_rate=0.001,
+    scheduler_choice="step",
     max_epochs=30,
 )</code></pre>
           <p>
             This still builds the project-layout pipeline under the hood. The difference is only the interface:
             you pass the run arguments directly and receive the stage outputs immediately.
+            Native Lightning execution supports <code>scheduler_choice</code> values of <code>step</code>,
+            <code>exponential</code>, and <code>cosine</code>; omit it to train without a scheduler.
           </p>
         </article>
         <article class="section">
