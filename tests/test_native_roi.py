@@ -14,6 +14,30 @@ _ROI_BBOX_HEAD_CASES = (
     {"name": "SparseRoIHead", "alias": "sparse_roi_head", "sparse": True},
 )
 
+_ROI_MASK_GRID_HEAD_CASES = (
+    {
+        "name": "FCNMaskHead",
+        "alias": "fcn_mask_head",
+        "output_key": "mask_logits",
+        "channels": 3,
+        "params": {"roi_feat_size": 2, "output_size": 4, "conv_out_channels": 8, "num_convs": 1},
+    },
+    {
+        "name": "CascadeMaskHead",
+        "alias": "cascade_mask_head",
+        "output_key": "mask_logits",
+        "channels": 3,
+        "params": {"roi_feat_size": 2, "output_size": 4, "conv_out_channels": 8, "num_convs": 1},
+    },
+    {
+        "name": "GridHead",
+        "alias": "grid_head",
+        "output_key": "grid_logits",
+        "channels": 9,
+        "params": {"grid_size": 3, "roi_feat_size": 2, "output_size": 4, "conv_out_channels": 8, "num_convs": 1},
+    },
+)
+
 
 class NativeRoIPrimitiveTests(unittest.TestCase):
     def test_list_heads_roi_includes_common_bbox_aliases(self):
@@ -24,6 +48,17 @@ class NativeRoIPrimitiveTests(unittest.TestCase):
         roi_heads = set(list_heads(kind="roi"))
 
         for case in _ROI_BBOX_HEAD_CASES:
+            with self.subTest(alias=case["alias"]):
+                self.assertIn(case["alias"], roi_heads)
+
+    def test_list_heads_roi_includes_mask_and_grid_aliases(self):
+        require_torch()
+
+        from simpledet.suite import list_heads
+
+        roi_heads = set(list_heads(kind="roi"))
+
+        for case in _ROI_MASK_GRID_HEAD_CASES:
             with self.subTest(alias=case["alias"]):
                 self.assertIn(case["alias"], roi_heads)
 
@@ -53,6 +88,22 @@ class NativeRoIPrimitiveTests(unittest.TestCase):
         self.assertEqual(tuple(outputs["cls_score"].shape), (2, 21))
         self.assertEqual(tuple(outputs["bbox_pred"].shape), (2, 84))
 
+    def test_build_head_fcn_mask_returns_expected_mask_logits(self):
+        torch = require_torch()
+        torch.manual_seed(0)
+
+        from simpledet.suite import build_head
+
+        head = build_head(name="fcn_mask_head", num_classes=3, in_channels=256)
+        head.eval()
+        roi_features = torch.full((2, 256, 14, 14), 0.25, dtype=torch.float32)
+
+        with torch.no_grad():
+            outputs = head(roi_features)
+
+        self.assertEqual(head.native_head_spec.name, "FCNMaskHead")
+        self.assertEqual(tuple(outputs["mask_logits"].shape), (2, 3, 28, 28))
+
     def test_roi_bbox_heads_construct_and_match_forward_shapes(self):
         torch = require_torch()
         torch.manual_seed(0)
@@ -72,6 +123,23 @@ class NativeRoIPrimitiveTests(unittest.TestCase):
                 self.assertEqual(tuple(outputs["bbox_pred"].shape), (4, 16))
                 if case["name"] == "SABLHead":
                     self.assertEqual(outputs["side_confidence"].shape[0], 4)
+
+    def test_roi_mask_and_grid_heads_construct_and_match_forward_shapes(self):
+        torch = require_torch()
+        torch.manual_seed(0)
+
+        for case in _ROI_MASK_GRID_HEAD_CASES:
+            with self.subTest(head=case["name"]):
+                head, head_spec = self._build_roi_mask_grid_head(case)
+                head.eval()
+                roi_features = torch.full((4, 8, 2, 2), 0.25, dtype=torch.float32)
+
+                with torch.no_grad():
+                    outputs = head(roi_features)
+
+                self.assertEqual(head_spec.name, case["name"])
+                self.assertEqual(head_spec.num_classes, 3)
+                self.assertEqual(tuple(outputs[case["output_key"]].shape), (4, case["channels"], 4, 4))
 
     def test_roi_bbox_head_targets_and_loss_smoke(self):
         torch = require_torch()
@@ -233,6 +301,78 @@ class NativeRoIPrimitiveTests(unittest.TestCase):
         )
         self.assertEqual(tuple(empty_grid.points.shape), (0, 3, 3, 2))
 
+    def test_roi_mask_and_grid_heads_build_targets_loss_and_decode(self):
+        torch = require_torch()
+        torch.manual_seed(0)
+
+        proposals = torch.tensor([[1.0, 1.0, 5.0, 5.0], [2.0, 2.0, 6.0, 6.0]])
+        mask = torch.zeros((1, 8, 8), dtype=torch.float32)
+        mask[:, 1:5, 1:5] = 1.0
+        matched_gt_indices = torch.tensor([1, 0], dtype=torch.long)
+        labels = torch.tensor([2, 0], dtype=torch.long)
+        roi_features = torch.full((2, 8, 2, 2), 0.25, dtype=torch.float32)
+
+        for case in _ROI_MASK_GRID_HEAD_CASES[:2]:
+            with self.subTest(head=case["name"]):
+                head, _ = self._build_roi_mask_grid_head(case)
+                outputs = head(roi_features)
+                targets = head.get_targets(proposals, mask, matched_gt_indices)
+                losses = head.loss(outputs, targets, labels=labels)
+                decoded = head.decode(outputs, labels=torch.tensor([2, 1], dtype=torch.long))
+
+                self.assertEqual(tuple(targets.mask_targets.shape), (1, 4, 4))
+                self.assertEqual(set(losses), {"loss_mask", "loss_total"})
+                self.assertTrue(bool(torch.isfinite(losses["loss_total"])))
+                self.assertEqual(tuple(decoded.shape), (2, 4, 4))
+
+        grid_head, _ = self._build_roi_mask_grid_head(_ROI_MASK_GRID_HEAD_CASES[2])
+        grid_outputs = grid_head(roi_features)
+        grid_targets = grid_head.get_targets(proposals, proposals)
+        grid_losses = grid_head.loss(grid_outputs, grid_targets)
+        decoded_grid = grid_head.decode(grid_outputs, proposals)
+
+        self.assertEqual(tuple(grid_targets.points.shape), (2, 3, 3, 2))
+        self.assertEqual(set(grid_losses), {"loss_grid", "loss_total"})
+        self.assertTrue(bool(torch.isfinite(grid_losses["loss_total"])))
+        self.assertEqual(tuple(decoded_grid["normalized_offsets"].shape), (2, 3, 3, 2))
+        self.assertEqual(tuple(decoded_grid["points"].shape), (2, 3, 3, 2))
+
+    def test_roi_mask_and_grid_heads_preserve_empty_roi_shapes(self):
+        torch = require_torch()
+
+        empty_features = torch.empty((0, 8, 2, 2), dtype=torch.float32)
+        empty_boxes = torch.empty((0, 4), dtype=torch.float32)
+
+        for case in _ROI_MASK_GRID_HEAD_CASES:
+            with self.subTest(head=case["name"]):
+                head, _ = self._build_roi_mask_grid_head(case)
+                outputs = head(empty_features)
+                self.assertEqual(tuple(outputs[case["output_key"]].shape), (0, case["channels"], 4, 4))
+
+                if case["name"] == "GridHead":
+                    targets = head.get_targets(empty_boxes, empty_boxes)
+                    decoded = head.decode(outputs, empty_boxes)
+                    self.assertEqual(tuple(targets.points.shape), (0, 3, 3, 2))
+                    self.assertEqual(tuple(decoded["normalized_offsets"].shape), (0, 3, 3, 2))
+                    self.assertEqual(tuple(decoded["points"].shape), (0, 3, 3, 2))
+                else:
+                    targets = head.get_targets(
+                        empty_boxes,
+                        torch.empty((0, 8, 8), dtype=torch.float32),
+                        torch.empty((0,), dtype=torch.long),
+                    )
+                    decoded = head.decode(outputs, labels=torch.empty((0,), dtype=torch.long))
+                    self.assertEqual(tuple(targets.mask_targets.shape), (0, 4, 4))
+                    self.assertEqual(tuple(decoded.shape), (0, 4, 4))
+
+    def test_grid_head_rejects_missing_grid_size_configuration(self):
+        require_torch()
+
+        from simpledet.suite import build_head
+
+        with self.assertRaisesRegex(ValueError, "grid_size"):
+            build_head(name="grid_head", num_classes=3, in_channels=8)
+
     def _build_roi_bbox_head(self, case):
         from simpledet.native.heads import build_native_head
 
@@ -242,6 +382,12 @@ class NativeRoIPrimitiveTests(unittest.TestCase):
             "conv_out_channels": 8,
         }
         plan = type("HeadPlan", (), {"type": case["alias"], "params": params})()
+        return build_native_head(plan, out_channels=8, num_classes=3)
+
+    def _build_roi_mask_grid_head(self, case):
+        from simpledet.native.heads import build_native_head
+
+        plan = type("HeadPlan", (), {"type": case["alias"], "params": dict(case["params"])})()
         return build_native_head(plan, out_channels=8, num_classes=3)
 
     def _roi_features_for_case(self, torch, case):

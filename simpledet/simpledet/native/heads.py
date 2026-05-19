@@ -586,6 +586,33 @@ class EfficientDetHead(_AnchorBoxDenseHead):
 
 _ROI_BBOX_DEPENDENCIES = (("torch", "cpu"),)
 _ROI_BBOX_CONTRACTS = ("roi_features", "roi_bbox_head_outputs", "roi_bbox_targets")
+_ROI_MASK_CONTRACTS = ("roi_features", "roi_mask_head_outputs", "roi_mask_targets", "roi_mask_decoding")
+_ROI_GRID_CONTRACTS = ("roi_features", "roi_grid_head_outputs", "roi_grid_targets", "roi_grid_decoding")
+
+
+def _non_negative_int(value: Any, name: str) -> int:
+    resolved = int(value)
+    if resolved < 0:
+        raise ValueError(f"{name} must be non-negative.")
+    return resolved
+
+
+def _as_4d_roi_tensor(roi_features: Any, *, in_channels: int, head_name: str):
+    feature = roi_features
+    if isinstance(feature, (list, tuple)):
+        if len(feature) != 1:
+            raise ValueError(f"{head_name} expects a single pooled ROI feature tensor.")
+        feature = feature[0]
+    if not torch.is_tensor(feature):
+        feature = torch.as_tensor(feature, dtype=torch.float32)
+    if feature.dim() != 4:
+        raise ValueError(f"{head_name} expects pooled ROI features with shape (N, C, H, W).")
+    if int(feature.shape[1]) != int(in_channels):
+        raise ValueError(
+            f"{head_name} expected feature channels {int(in_channels)}, "
+            f"got {int(feature.shape[1])}."
+        )
+    return feature
 
 
 class _RoIBBoxHeadBase(nn.Module):
@@ -1061,6 +1088,424 @@ class SparseRoIHead(DynamicBBoxHead):
         kwargs.setdefault("roi_feat_size", 1)
         kwargs.setdefault("with_avg_pool", True)
         super().__init__(**kwargs)
+
+
+@HEADS.register(
+    "FCNMaskHead",
+    aliases=("fcn_mask_head", "fcn_mask", "mask_head"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=_ROI_MASK_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native FCN-style ROI mask head with mask target and decode helpers.",
+)
+class FCNMaskHead(nn.Module):
+    """FCN mask head used by Mask R-CNN style ROI heads."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        roi_feat_size: int | tuple[int, int] = 14,
+        conv_out_channels: int = 256,
+        num_convs: int = 4,
+        upsample_scale: int = 2,
+        output_size: int | tuple[int, int] | None = None,
+        class_agnostic: bool = False,
+        loss_weight: float = 1.0,
+        **_unused: Any,
+    ) -> None:
+        super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.roi_feat_size = _roi_feat_size(roi_feat_size)
+        self.conv_out_channels = _positive_int(conv_out_channels, "conv_out_channels")
+        self.num_convs = _non_negative_int(num_convs, "num_convs")
+        self.upsample_scale = _positive_int(upsample_scale, "upsample_scale")
+        self.output_size = _roi_feat_size(
+            output_size
+            if output_size is not None
+            else (
+                self.roi_feat_size[0] * self.upsample_scale,
+                self.roi_feat_size[1] * self.upsample_scale,
+            )
+        )
+        self.class_agnostic = bool(class_agnostic)
+        self.loss_weight = float(loss_weight)
+        self.mask_channels = 1 if self.class_agnostic else self.num_classes
+
+        layers: list[nn.Module] = []
+        current_channels = self.in_channels
+        for _ in range(self.num_convs):
+            layers.append(nn.Conv2d(current_channels, self.conv_out_channels, kernel_size=3, padding=1))
+            layers.append(nn.ReLU(inplace=True))
+            current_channels = self.conv_out_channels
+        self.convs = nn.Sequential(*layers)
+        if self.upsample_scale > 1:
+            self.upsample = nn.ConvTranspose2d(
+                current_channels,
+                self.conv_out_channels,
+                kernel_size=self.upsample_scale,
+                stride=self.upsample_scale,
+            )
+            current_channels = self.conv_out_channels
+        else:
+            self.upsample = nn.Identity()
+        self.conv_logits = nn.Conv2d(current_channels, self.mask_channels, kernel_size=1)
+
+    def forward(self, roi_features: Any) -> dict[str, Any]:
+        feature = self._as_roi_tensor(roi_features)
+        if int(feature.shape[0]) == 0:
+            mask_logits = feature.new_zeros((0, self.mask_channels, *self.output_size))
+            return {"mask_logits": mask_logits, "mask_pred": mask_logits}
+        encoded = self.convs(feature)
+        encoded = self.upsample(encoded)
+        if self.upsample_scale > 1:
+            encoded = F.relu(encoded, inplace=True)
+        if tuple(encoded.shape[-2:]) != self.output_size:
+            encoded = F.interpolate(encoded, size=self.output_size, mode="bilinear", align_corners=False)
+        mask_logits = self.conv_logits(encoded)
+        return {"mask_logits": mask_logits, "mask_pred": mask_logits}
+
+    def get_targets(self, proposals: Any, gt_masks: Any, matched_gt_indices: Any, **kwargs: Any):
+        from .roi import build_roi_mask_targets
+
+        kwargs.setdefault("output_size", self.output_size)
+        return build_roi_mask_targets(proposals, gt_masks, matched_gt_indices, **kwargs)
+
+    def decode(self, outputs: Any, labels: Any | None = None):
+        mask_logits = self._unpack_mask_logits(outputs)
+        probabilities = mask_logits.sigmoid()
+        if labels is None:
+            return probabilities[:, 0] if self.class_agnostic else probabilities
+        return self._select_class_masks(probabilities, labels)
+
+    def loss(self, outputs: Any, targets: Any, *, labels: Any | None = None) -> dict[str, Any]:
+        mask_logits = self._unpack_mask_logits(outputs)
+        mask_targets = self._target_tensor(
+            targets,
+            "mask_targets",
+            dtype=mask_logits.dtype,
+            device=mask_logits.device,
+        )
+        if mask_targets.dim() != 3:
+            raise ValueError("mask_targets must have shape (N, H, W).")
+        positive_indices = self._target_value(targets, "positive_indices", default=None)
+        if positive_indices is None:
+            selected_logits = mask_logits
+            selected_labels = self._labels_for_selected_rows(
+                labels,
+                None,
+                target_count=int(mask_targets.shape[0]),
+                prediction_count=int(mask_logits.shape[0]),
+                device=mask_logits.device,
+            )
+        else:
+            positive_indices = torch.as_tensor(positive_indices, dtype=torch.long, device=mask_logits.device).reshape(-1)
+            selected_logits = mask_logits.index_select(0, positive_indices)
+            selected_labels = self._labels_for_selected_rows(
+                labels,
+                positive_indices,
+                target_count=int(mask_targets.shape[0]),
+                prediction_count=int(mask_logits.shape[0]),
+                device=mask_logits.device,
+            )
+        if int(mask_targets.shape[0]) != int(selected_logits.shape[0]):
+            raise ValueError("mask_targets must match the selected positive ROI predictions.")
+        if int(mask_targets.shape[0]) == 0:
+            zero = mask_logits.sum() * 0.0
+            return {"loss_mask": zero, "loss_total": zero}
+
+        selected = self._select_class_mask_logits(selected_logits, selected_labels)
+        if tuple(mask_targets.shape[-2:]) != tuple(selected.shape[-2:]):
+            mask_targets = F.interpolate(
+                mask_targets.unsqueeze(1),
+                size=tuple(selected.shape[-2:]),
+                mode="bilinear",
+                align_corners=False,
+            ).squeeze(1)
+        loss_mask = F.binary_cross_entropy_with_logits(selected, mask_targets, reduction="mean") * self.loss_weight
+        return {"loss_mask": loss_mask, "loss_total": loss_mask}
+
+    def _as_roi_tensor(self, roi_features: Any):
+        feature = _as_4d_roi_tensor(roi_features, in_channels=self.in_channels, head_name=self.__class__.__name__)
+        actual_h, actual_w = int(feature.shape[-2]), int(feature.shape[-1])
+        if (actual_h, actual_w) != self.roi_feat_size:
+            raise ValueError(
+                "ROI mask head expected pooled feature size "
+                f"{self.roi_feat_size}, got {(actual_h, actual_w)}."
+            )
+        return feature
+
+    def _unpack_mask_logits(self, outputs: Any):
+        if isinstance(outputs, dict):
+            return outputs["mask_logits"]
+        return torch.as_tensor(outputs)
+
+    def _target_value(self, targets: Any, name: str, *, default: Any | None = None):
+        if isinstance(targets, dict):
+            return targets.get(name, default)
+        return getattr(targets, name, default)
+
+    def _target_tensor(
+        self,
+        targets: Any,
+        name: str,
+        *,
+        dtype: Any | None = None,
+        device: Any | None = None,
+    ):
+        value = self._target_value(targets, name, default=None)
+        if value is None:
+            raise ValueError(f"ROI mask head loss requires targets.{name}.")
+        return torch.as_tensor(value, dtype=dtype, device=device)
+
+    def _labels_for_selected_rows(
+        self,
+        labels: Any | None,
+        positive_indices: Any | None,
+        *,
+        target_count: int,
+        prediction_count: int,
+        device: Any,
+    ):
+        if labels is None:
+            return None
+        label_tensor = torch.as_tensor(labels, dtype=torch.long, device=device).reshape(-1)
+        if positive_indices is not None and int(label_tensor.shape[0]) == int(prediction_count):
+            return label_tensor.index_select(0, positive_indices)
+        if int(label_tensor.shape[0]) == int(target_count):
+            return label_tensor
+        raise ValueError("labels must match selected mask targets or all ROI predictions.")
+
+    def _select_class_masks(self, probabilities: Any, labels: Any):
+        if self.class_agnostic:
+            return probabilities[:, 0]
+        label_tensor = torch.as_tensor(labels, dtype=torch.long, device=probabilities.device).reshape(-1)
+        if int(label_tensor.shape[0]) != int(probabilities.shape[0]):
+            raise ValueError("labels must match the number of mask predictions.")
+        channels = (label_tensor - 1).clamp(min=0, max=self.num_classes - 1)
+        rows = torch.arange(probabilities.shape[0], dtype=torch.long, device=probabilities.device)
+        return probabilities[rows, channels]
+
+    def _select_class_mask_logits(self, mask_logits: Any, labels: Any | None):
+        if self.class_agnostic:
+            return mask_logits[:, 0]
+        if labels is None:
+            raise ValueError("class-specific mask loss requires one-based labels for positive ROIs.")
+        return self._select_class_masks(mask_logits, labels)
+
+
+@HEADS.register(
+    "CascadeMaskHead",
+    aliases=("cascade_mask_head", "cascade_mask"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=(*_ROI_MASK_CONTRACTS, "cascade_mask_stages"),
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native Cascade Mask R-CNN ROI mask head.",
+)
+class CascadeMaskHead(FCNMaskHead):
+    """Cascade-aware FCN mask head with stage-weighted mask loss."""
+
+    def __init__(self, *, stage_loss_weight: float = 1.0, **kwargs: Any) -> None:
+        super().__init__(loss_weight=float(stage_loss_weight), **kwargs)
+        self.stage_loss_weight = float(stage_loss_weight)
+
+
+@HEADS.register(
+    "GridHead",
+    aliases=("grid_head", "grid_roi_head"),
+    required_dependencies=_ROI_BBOX_DEPENDENCIES,
+    tensor_contracts=_ROI_GRID_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+    summary="Native Grid R-CNN ROI grid head with grid target and decode helpers.",
+)
+class GridHead(nn.Module):
+    """Grid R-CNN style ROI head that predicts per-point heatmaps."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        grid_size: int | None = None,
+        roi_feat_size: int | tuple[int, int] = 14,
+        conv_out_channels: int = 256,
+        num_convs: int = 4,
+        upsample_scale: int = 2,
+        output_size: int | tuple[int, int] | None = None,
+        loss_weight: float = 1.0,
+        **_unused: Any,
+    ) -> None:
+        super().__init__()
+        if grid_size is None:
+            raise ValueError("GridHead requires `grid_size`; pass grid_size=<positive integer>.")
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.grid_size = _positive_int(grid_size, "grid_size")
+        self.roi_feat_size = _roi_feat_size(roi_feat_size)
+        self.conv_out_channels = _positive_int(conv_out_channels, "conv_out_channels")
+        self.num_convs = _non_negative_int(num_convs, "num_convs")
+        self.upsample_scale = _positive_int(upsample_scale, "upsample_scale")
+        self.output_size = _roi_feat_size(
+            output_size
+            if output_size is not None
+            else (
+                self.roi_feat_size[0] * self.upsample_scale,
+                self.roi_feat_size[1] * self.upsample_scale,
+            )
+        )
+        self.loss_weight = float(loss_weight)
+        self.num_grid_points = self.grid_size * self.grid_size
+
+        layers: list[nn.Module] = []
+        current_channels = self.in_channels
+        for _ in range(self.num_convs):
+            layers.append(nn.Conv2d(current_channels, self.conv_out_channels, kernel_size=3, padding=1))
+            layers.append(nn.ReLU(inplace=True))
+            current_channels = self.conv_out_channels
+        self.convs = nn.Sequential(*layers)
+        if self.upsample_scale > 1:
+            self.upsample = nn.ConvTranspose2d(
+                current_channels,
+                self.conv_out_channels,
+                kernel_size=self.upsample_scale,
+                stride=self.upsample_scale,
+            )
+            current_channels = self.conv_out_channels
+        else:
+            self.upsample = nn.Identity()
+        self.conv_logits = nn.Conv2d(current_channels, self.num_grid_points, kernel_size=1)
+
+    def forward(self, roi_features: Any) -> dict[str, Any]:
+        feature = self._as_roi_tensor(roi_features)
+        if int(feature.shape[0]) == 0:
+            grid_logits = feature.new_zeros((0, self.num_grid_points, *self.output_size))
+            return {"grid_logits": grid_logits, "grid_pred": grid_logits}
+        encoded = self.convs(feature)
+        encoded = self.upsample(encoded)
+        if self.upsample_scale > 1:
+            encoded = F.relu(encoded, inplace=True)
+        if tuple(encoded.shape[-2:]) != self.output_size:
+            encoded = F.interpolate(encoded, size=self.output_size, mode="bilinear", align_corners=False)
+        grid_logits = self.conv_logits(encoded)
+        return {"grid_logits": grid_logits, "grid_pred": grid_logits}
+
+    def get_targets(self, proposals: Any, matched_boxes: Any, **kwargs: Any):
+        from .roi import build_roi_grid_targets
+
+        kwargs.setdefault("grid_size", self.grid_size)
+        return build_roi_grid_targets(proposals, matched_boxes, **kwargs)
+
+    def decode(self, outputs: Any, proposals: Any | None = None) -> dict[str, Any]:
+        grid_logits = self._unpack_grid_logits(outputs)
+        if int(grid_logits.shape[1]) != self.num_grid_points:
+            raise ValueError("grid_logits channel count must equal grid_size * grid_size.")
+        probabilities = grid_logits.sigmoid()
+        height, width = int(probabilities.shape[-2]), int(probabilities.shape[-1])
+        scores, indices = probabilities.flatten(2).max(dim=2)
+        ys = (indices // width).to(dtype=probabilities.dtype)
+        xs = (indices % width).to(dtype=probabilities.dtype)
+        x_denominator = float(max(width - 1, 1))
+        y_denominator = float(max(height - 1, 1))
+        normalized = torch.stack((xs / x_denominator, ys / y_denominator), dim=-1)
+        normalized = normalized.reshape(-1, self.grid_size, self.grid_size, 2)
+        decoded: dict[str, Any] = {
+            "normalized_offsets": normalized,
+            "scores": scores.reshape(-1, self.grid_size, self.grid_size),
+        }
+        if proposals is not None:
+            boxes = torch.as_tensor(proposals, dtype=probabilities.dtype, device=probabilities.device).reshape(-1, 4)
+            if int(boxes.shape[0]) != int(normalized.shape[0]):
+                raise ValueError("proposals must match the number of grid predictions.")
+            widths = (boxes[:, 2] - boxes[:, 0]).clamp_min(torch.finfo(probabilities.dtype).eps)
+            heights = (boxes[:, 3] - boxes[:, 1]).clamp_min(torch.finfo(probabilities.dtype).eps)
+            decoded["points"] = torch.stack(
+                (
+                    boxes[:, None, None, 0] + normalized[..., 0] * widths[:, None, None],
+                    boxes[:, None, None, 1] + normalized[..., 1] * heights[:, None, None],
+                ),
+                dim=-1,
+            )
+        return decoded
+
+    def loss(self, outputs: Any, targets: Any) -> dict[str, Any]:
+        grid_logits = self._unpack_grid_logits(outputs)
+        normalized_offsets = self._target_tensor(
+            targets,
+            "normalized_offsets",
+            dtype=grid_logits.dtype,
+            device=grid_logits.device,
+        )
+        weights = self._target_tensor(
+            targets,
+            "weights",
+            dtype=grid_logits.dtype,
+            device=grid_logits.device,
+        )
+        expected_shape = (int(grid_logits.shape[0]), self.grid_size, self.grid_size)
+        if tuple(normalized_offsets.shape[:3]) != expected_shape or int(normalized_offsets.shape[-1]) != 2:
+            raise ValueError("normalized_offsets must have shape (N, grid_size, grid_size, 2).")
+        if tuple(weights.shape) != expected_shape:
+            raise ValueError("weights must have shape (N, grid_size, grid_size).")
+        if int(grid_logits.shape[0]) == 0:
+            zero = grid_logits.sum() * 0.0
+            return {"loss_grid": zero, "loss_total": zero}
+
+        height, width = int(grid_logits.shape[-2]), int(grid_logits.shape[-1])
+        flat_offsets = normalized_offsets.reshape(grid_logits.shape[0], self.num_grid_points, 2).clamp(0.0, 1.0)
+        xs = torch.round(flat_offsets[..., 0] * float(max(width - 1, 1))).to(dtype=torch.long).clamp(0, width - 1)
+        ys = torch.round(flat_offsets[..., 1] * float(max(height - 1, 1))).to(dtype=torch.long).clamp(0, height - 1)
+        target_heatmaps = grid_logits.new_zeros(grid_logits.shape)
+        rows = torch.arange(grid_logits.shape[0], dtype=torch.long, device=grid_logits.device)[:, None].expand(-1, self.num_grid_points)
+        points = torch.arange(self.num_grid_points, dtype=torch.long, device=grid_logits.device)[None, :].expand_as(rows)
+        target_heatmaps[rows.reshape(-1), points.reshape(-1), ys.reshape(-1), xs.reshape(-1)] = 1.0
+        point_weights = weights.reshape(grid_logits.shape[0], self.num_grid_points).view(
+            grid_logits.shape[0],
+            self.num_grid_points,
+            1,
+            1,
+        )
+        loss_grid = F.binary_cross_entropy_with_logits(grid_logits, target_heatmaps, reduction="none")
+        loss_grid = (loss_grid * point_weights).sum() / point_weights.sum().clamp_min(1.0)
+        loss_grid = loss_grid * self.loss_weight
+        return {"loss_grid": loss_grid, "loss_total": loss_grid}
+
+    def _as_roi_tensor(self, roi_features: Any):
+        feature = _as_4d_roi_tensor(roi_features, in_channels=self.in_channels, head_name=self.__class__.__name__)
+        actual_h, actual_w = int(feature.shape[-2]), int(feature.shape[-1])
+        if (actual_h, actual_w) != self.roi_feat_size:
+            raise ValueError(
+                "GridHead expected pooled feature size "
+                f"{self.roi_feat_size}, got {(actual_h, actual_w)}."
+            )
+        return feature
+
+    def _unpack_grid_logits(self, outputs: Any):
+        if isinstance(outputs, dict):
+            return outputs["grid_logits"]
+        return torch.as_tensor(outputs)
+
+    def _target_value(self, targets: Any, name: str, *, default: Any | None = None):
+        if isinstance(targets, dict):
+            return targets.get(name, default)
+        return getattr(targets, name, default)
+
+    def _target_tensor(
+        self,
+        targets: Any,
+        name: str,
+        *,
+        dtype: Any | None = None,
+        device: Any | None = None,
+    ):
+        value = self._target_value(targets, name, default=None)
+        if value is None:
+            raise ValueError(f"GridHead loss requires targets.{name}.")
+        return torch.as_tensor(value, dtype=dtype, device=device)
 
 
 @HEADS.register(
@@ -1611,6 +2056,12 @@ def _resolve_head_name(requested: str) -> str:
         return "SSDHead"
     if normalized.startswith("sabl"):
         return "SABLHead"
+    if normalized.startswith("fcnmask"):
+        return "FCNMaskHead"
+    if normalized.startswith("cascademask"):
+        return "CascadeMaskHead"
+    if normalized in {"grid", "gridhead", "gridroihead"}:
+        return "GridHead"
     if normalized.startswith("tood"):
         return "TOODHead"
     if normalized.startswith("solov2"):
