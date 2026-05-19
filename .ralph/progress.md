@@ -42,6 +42,52 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The environment still lacks bare `python` and the torch CPU extra; tensor-focused tests are present but skip until `simpledet[cpu]` is installed.
   - `make verify-dist` should run after `make build` so the wheel audit includes newly added native modules.
 ---
+## [2026-05-19 08:58:23 UTC] - US-033: Implement project config runner
+Thread:
+Run: 20260518-183418-2827287 (iteration 33)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-33.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-33.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 1f83c2d feat(config): add project run manifest
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_public_api.PublicApiTests tests.test_cli.TestCli` -> PASS (47 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (281 tests, 90 skipped)
+  - Command: `make test` -> PASS (281 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS after build refreshed dist artifacts
+  - Command: `PYTHONPATH=simpledet python -m simpledet --project-run /tmp/tmp.QYo7LKLtz7/project.toml` -> PASS (build-only temp config wrote `run-manifest.json`)
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - docs/cli-reference.html
+  - docs/configuration-guide.html
+  - docs/package-surface-audit.html
+  - docs/quickstart.html
+  - simpledet/simpledet/__init__.py
+  - simpledet/simpledet/api.py
+  - simpledet/simpledet/cli.py
+  - simpledet/simpledet/native/runtime.py
+  - tests/test_cli.py
+  - tests/test_public_api.py
+- What was implemented
+  - Added TOML/JSON project-run parsing for `detector`, `dataset`, `workdir`, `optimizer`, `scheduler`, `runtime`, `seed`, `stages`, `checkpoint`, and `export`, while preserving `detector_spec` and `optimization` compatibility.
+  - Normalized config and CLI stage selection across `build`, `train`, `test`, and `infer`, with CLI `--stages` overriding config stages and config/default stages used otherwise.
+  - Added project-level `run-manifest.json` writing in the workdir, including normalized detector, dataset, runtime, optimizer, scheduler, checkpoint, export, selected stages, and child native results.
+  - Kept dataset validation ahead of workdir creation and native runtime entry, including the missing-dataset-root negative path.
+  - Propagated configured annotation paths, image directory, seed, optimizer, scheduler, checkpoint, and runtime settings into `NativeProjectConfig`.
+  - Updated CLI/config/API/quickstart docs and focused tests for parsing, defaulting, stage selection, invalid stages, manifest writing, and validation-before-output behavior.
+  - Security/performance/regression review: project files are parsed as data only, legacy `.py` configs remain rejected, user-supplied filesystem paths stay explicit, build-only runs defer native training imports, and legacy project config aliases remain covered by tests.
+- **Learnings for future iterations:**
+  - `--project-run` can now execute a build-only config without entering the torch-heavy native runtime, which keeps the build stage useful as a low-cost config validation and plan inspection path.
+  - Existing project configs used `detector_spec` and `optimization`; compatibility should be preserved while docs and templates prefer `detector`, `optimizer`, and `scheduler`.
+  - Native runtime config needed explicit annotation and image-directory fields; validating paths without passing them through would make non-default project configs misleading.
+---
 ## [2026-05-19 06:22:59 UTC] - US-026: Expose public builder API
 Thread:
 Run: 20260518-183418-2827287 (iteration 26)
