@@ -1652,3 +1652,36 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Wheel `Requires-Python` metadata can normalize specifier ordering, so tests should compare normalized specifier sets against `pyproject.toml`.
   - `make verify-dist` combines `check-wheel-contents` with `tests.test_packaging`, making that file the right home for release artifact contract tests.
 ---
+## [2026-05-19 11:14:57 UTC] - US-042: Add detector matrix tests
+Thread:
+Run: 20260518-183418-2827287 (iteration 42)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-42.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-42.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 1d76ace test(detectors): add detector alias matrix
+- Post-commit status: `clean` after implementation commit; progress/activity follow-up committed separately
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_native_components.NativeDetectorMatrixTests` -> FAIL (direct module run omitted the `tests` helper path)
+  - Command: `PYTHONPATH=simpledet:tests python -m unittest tests.test_native_components.NativeDetectorMatrixTests` -> PASS (2 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_components.py'` -> PASS (29 tests, 3 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (302 tests, 90 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_components.py
+- What was implemented
+  - Added a registry-driven native detector matrix that loads the detector registry under fake CPU runtime modules, asserts at least 31 validated detector entries and aliases are discoverable, and verifies public detector listings are backed by registry aliases.
+  - The matrix builds tiny suite specs and constructs every registry name/alias through both its native registry factory and the public native detector builder with patched tiny components, so missing factories or placeholder-like factory paths fail the test.
+  - Fixed the advertised `Region Proposal Network` detector alias so it resolves to the native `rpn` architecture.
+  - Security/performance/regression review: tests use local fake modules and bounded registry loops only; no new external input handling, subprocess calls, dynamic execution, network access, or runtime-heavy forward matrix was introduced; full gates passed.
+- **Learnings for future iterations:**
+  - `list_detectors()` de-duplicates case-only aliases, so matrix coverage should source raw `(metadata.name, *metadata.aliases)` from `DETECTORS.entries()` and then assert the public list is a subset.
+  - The base environment can lack PyTorch, so alias-construction matrix tests should use fake native modules for registry coverage and leave real tensor forwards to the existing focused family tests.
+  - The `Region Proposal Network` alias was registered but not suite-resolvable until `resolve_architecture_name()` recognized its compact form.
+---
