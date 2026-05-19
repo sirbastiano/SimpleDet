@@ -87,6 +87,47 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - Existing project configs used `detector_spec` and `optimization`; compatibility should be preserved while docs and templates prefer `detector`, `optimizer`, and `scheduler`.
   - Native runtime config needed explicit annotation and image-directory fields; validating paths without passing them through would make non-default project configs misleading.
 ---
+## [2026-05-19 10:06:25 UTC] - US-037: Document model coverage
+Thread:
+Run: 20260518-183418-2827287 (iteration 37)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-37.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-37.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: a798bcf docs(coverage): add model coverage page
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_model_coverage_docs` -> PASS (2 tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_model_coverage_docs tests.test_cli` -> PASS (32 tests)
+  - Command: `PYTHONPATH=simpledet python -m simpledet list-detectors` -> PASS
+  - Command: `make docs-check` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (294 tests, 90 skipped)
+  - Command: `make verify-dist` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `tar -tzf dist/simpledet-0.1.0.tar.gz | rg '(^|/)docs/model-coverage\\.html$|(^|/)tests/test_model_coverage_docs\\.py$'` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - MANIFEST.in
+  - docs/index.html
+  - docs/model-coverage.html
+  - docs/package-surface-audit.html
+  - scripts/docs_audit.py
+  - scripts/verify_docs.py
+  - tests/test_model_coverage_docs.py
+- What was implemented
+  - Added a static model coverage page listing current detector, head, backbone, neck, alias, validation status, required extra, and limitation data.
+  - Explicitly documented VFNet, FOVEA/FoveaBox, RepPoints, YOLOF, CenterNet, Grid R-CNN, and Cascade R-CNN aliases with the correct status boundaries.
+  - Marked compatibility aliases, unvalidated head names, planned transformer variants, and historical MMDetection configs so they are not presented as fully supported.
+  - Linked the page from the docs home and package surface audit, required it in docs verification, and added snapshot checks for key aliases and negative support claims.
+  - Updated the sdist manifest so static docs ship with the docs snapshot tests.
+  - Security/performance/regression review: static docs only; no new external data paths, secrets, network calls, or executable user input; verification adds bounded local file/token scans; full unit, docs, build, and dist gates passed.
+- **Learnings for future iterations:**
+  - The base environment lacks torch, so native registry status audits need test fakes or static source review rather than importing native modules directly.
+  - Detector `compatibility_alias` rows can have validated heads underneath; docs must separate head validation from detector architecture-faithfulness.
+  - Any test that reads `docs/` must keep the static docs included in the sdist manifest, because the sdist already carries the tests.
+---
 ## [2026-05-19 06:22:59 UTC] - US-026: Expose public builder API
 Thread:
 Run: 20260518-183418-2827287 (iteration 26)
