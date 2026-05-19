@@ -683,3 +683,38 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - The repo's lightweight global unittest gate skips optional torch tests; use `.venv` from `uv sync --extra cpu --extra dev` for real CPU tensor coverage.
   - A broad real-torch native sweep currently exposes unrelated pre-existing ROI/geometry/API failures, so US-016 validation used focused real-torch tests plus the required lightweight global gate.
 ---
+## [2026-05-19 02:52:43 UTC] - US-018: Register mask and grid heads
+Thread:
+Run: 20260518-183418-2827287 (iteration 18)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-18.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-18.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: b61a164 feat(native): add roi mask and grid heads
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `PYTHONPATH=simpledet python -m unittest tests.test_native_roi` -> FAIL (direct module mode does not add `tests/` for `native_tensor_contracts`)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test_native_roi.py'` -> PASS (16 tests, 15 skipped without torch)
+  - Command: `uv run --extra cpu python -m unittest discover -s tests -p 'test_native_roi.py'` -> PASS (16 real CPU tensor tests)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (199 tests, 72 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - simpledet/simpledet/native/__init__.py
+  - simpledet/simpledet/native/heads.py
+  - tests/test_native_roi.py
+- What was implemented
+  - Registered native `FCNMaskHead`, `CascadeMaskHead`, and `GridHead` ROI aliases with runtime-validated registry metadata and tensor contracts.
+  - Added FCN/Cascade mask forward, target, loss, and decode helpers with default `(N, C, 14, 14) -> (N, num_classes, 28, 28)` mask logits.
+  - Added `GridHead` forward, target, loss, and grid decode helpers, with constructor validation that rejects missing `grid_size`.
+  - Added construction, direct `build_head`, forward-shape, target/loss/decode, negative-grid-config, and empty-ROI tests.
+  - Security/performance/regression review: no file/network/secret handling added; tensor work remains bounded by ROI count, grid size, and pooled feature size; existing ROI bbox behavior and global gates passed.
+- **Learnings for future iterations:**
+  - Use unittest discovery for focused test files that import helpers from `tests/`; direct module mode misses `native_tensor_contracts`.
+  - `uv run --extra cpu` is the real tensor validation path when the base interpreter skips torch-backed tests.
+  - The task-provided absolute activity helper path is absent, but `ralph log` is available on `PATH` and writes the required activity entries.
+---
