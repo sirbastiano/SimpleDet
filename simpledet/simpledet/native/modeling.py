@@ -35,6 +35,7 @@ SUPPORTED_NATIVE_ARCHITECTURES = {
     "rtmdet",
     "tood",
     "ssd",
+    "efficientdet",
     "sabl",
     "solov2",
     "grid_rcnn",

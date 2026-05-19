@@ -121,12 +121,12 @@ _DETECTOR_HELP = {
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
     "yolox": {
-        "summary": "YOLOX dense detector routed to a native dense FCOS-style head.",
+        "summary": "YOLOX dense detector with native objectness, class, and bbox branches.",
         "family": "dense",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
     "rtmdet": {
-        "summary": "RTMDet dense detector using native dense FCOS-style defaults.",
+        "summary": "RTMDet dense detector using a native RTMDet-style head and task-aligned targets.",
         "family": "dense",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
@@ -137,6 +137,11 @@ _DETECTOR_HELP = {
     },
     "ssd": {
         "summary": "Single-shot dense detector routed to a native anchor-compatible path.",
+        "family": "dense",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
+    "efficientdet": {
+        "summary": "EfficientDet dense detector with native anchor-based class and box heads.",
         "family": "dense",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },

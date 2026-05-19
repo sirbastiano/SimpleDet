@@ -298,6 +298,10 @@ class ExtensionRegistryTests(unittest.TestCase):
             "fovea_head": "FoveaHead",
             "free_anchor_head": "FreeAnchorRetinaHead",
             "rpn_head": "RPNHead",
+            "yolox_head": "YOLOXHead",
+            "rtmdet_head": "RTMDetHead",
+            "ssd_head": "SSDHead",
+            "efficientdet_head": "EfficientDetHead",
         }
         for alias, expected_name in aliases.items():
             with self.subTest(alias=alias):

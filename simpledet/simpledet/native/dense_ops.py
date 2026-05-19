@@ -24,7 +24,13 @@ from .geometry import (  # noqa: E402
     prediction_payload_to_dict,
     select_prediction_payload,
 )
-from .assignment import atss_assign, center_region_assign, max_iou_assign  # noqa: E402
+from .assignment import (  # noqa: E402
+    atss_assign,
+    center_region_assign,
+    max_iou_assign,
+    sim_ota_assign,
+    task_aligned_assign,
+)
 
 
 class DenseRetinaNetDecoder(nn.Module):
@@ -343,6 +349,234 @@ class DenseFoveaLoss(DenseFCOSLoss):
     """Finite Fovea smoke loss on the shared anchor-free dense target contract."""
 
 
+class DenseYOLOXDecoder(nn.Module):
+    def __init__(
+        self,
+        *,
+        score_threshold: float = 0.05,
+        nms_threshold: float = 0.5,
+        detections_per_img: int = 100,
+    ) -> None:
+        super().__init__()
+        self.score_threshold = float(score_threshold)
+        self.nms_threshold = float(nms_threshold)
+        self.detections_per_img = int(detections_per_img)
+
+    def forward(self, image, feature_maps, head_outputs):
+        from torchvision.ops import batched_nms
+
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        points = _point_priors_for_image(image, feature_maps)
+        cls_logits = flatten_cls_logits(head_outputs["cls_logits"])
+        bbox_regression = flatten_bbox_regression(head_outputs["bbox_regression"])
+        objectness = _required_objectness_logits(head_outputs)
+        class_scores = torch.sigmoid(cls_logits)
+        objectness_scores = torch.sigmoid(objectness).unsqueeze(1)
+        scores, labels = (class_scores * objectness_scores).max(dim=1)
+        decoded = clip_boxes_to_image(
+            decode_point_boxes(points, bbox_regression.clamp(min=0)),
+            image_size,
+        )
+
+        keep = scores >= self.score_threshold
+        payload = make_batched_nms_payload(decoded[keep], scores[keep], labels[keep] + 1)
+        if payload["boxes"].numel() == 0:
+            return prediction_payload_to_dict(payload)
+
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
+        keep_idx = keep_idx[: self.detections_per_img]
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
+
+
+class DenseYOLOXTargetBuilder:
+    def __init__(
+        self,
+        *,
+        objectness_target_config=None,
+        center_radius: float = 2.5,
+        candidate_topk: int = 10,
+    ) -> None:
+        if objectness_target_config is None:
+            raise ValueError(
+                "YOLOXHead training-loss setup requires objectness_target_config "
+                "for positive and negative objectness targets."
+            )
+        if not isinstance(objectness_target_config, dict):
+            raise ValueError("objectness_target_config must be a mapping.")
+        self.positive_value = float(
+            objectness_target_config.get(
+                "positive",
+                objectness_target_config.get("positive_value", 1.0),
+            )
+        )
+        self.negative_value = float(
+            objectness_target_config.get(
+                "negative",
+                objectness_target_config.get("negative_value", 0.0),
+            )
+        )
+        self.center_radius = float(center_radius)
+        self.candidate_topk = int(candidate_topk)
+
+    def __call__(self, points, pred_scores, pred_boxes, target):
+        priors = _point_boxes(points)
+        assignment = sim_ota_assign(
+            priors,
+            pred_scores,
+            pred_boxes,
+            target["boxes"],
+            target["labels"],
+            center_radius=self.center_radius,
+            candidate_topk=self.candidate_topk,
+        )
+        objectness_targets = pred_scores.new_full((points.shape[0],), self.negative_value)
+        objectness_targets[assignment.positive_mask] = self.positive_value
+        return assignment, objectness_targets
+
+
+class DenseYOLOXLoss(nn.Module):
+    def __init__(
+        self,
+        *,
+        objectness_target_config=None,
+        center_radius: float = 2.5,
+        candidate_topk: int = 10,
+    ) -> None:
+        super().__init__()
+        self.target_builder = DenseYOLOXTargetBuilder(
+            objectness_target_config=objectness_target_config,
+            center_radius=center_radius,
+            candidate_topk=candidate_topk,
+        )
+
+    def forward(self, images, targets, feature_pyramids, head_outputs_per_image):
+        total_cls = torch.tensor(0.0, device=images[0].device)
+        total_box = torch.tensor(0.0, device=images[0].device)
+        total_obj = torch.tensor(0.0, device=images[0].device)
+
+        for image, target, feature_maps, head_outputs in zip(
+            images,
+            targets,
+            feature_pyramids,
+            head_outputs_per_image,
+        ):
+            feature_maps = _feature_sequence(feature_maps)
+            points = _point_priors_for_image(image, feature_maps)
+            cls_logits = flatten_cls_logits(head_outputs["cls_logits"])
+            bbox_regression = flatten_bbox_regression(head_outputs["bbox_regression"])
+            objectness = _required_objectness_logits(head_outputs)
+            decoded = clip_boxes_to_image(
+                decode_point_boxes(points, bbox_regression.clamp(min=0)),
+                _image_size(image),
+            )
+            pred_scores = torch.sigmoid(cls_logits) * torch.sigmoid(objectness).unsqueeze(1)
+            assignment, objectness_targets = self.target_builder(points, pred_scores, decoded, target)
+            positive_mask = assignment.positive_mask
+            valid_mask = ~assignment.ignored_mask
+
+            class_targets = torch.zeros_like(cls_logits)
+            if positive_mask.any():
+                positive_labels = assignment.labels[positive_mask].long().clamp(min=1) - 1
+                class_targets[positive_mask, positive_labels] = 1.0
+
+            total_cls = total_cls + _binary_cross_entropy_valid(cls_logits, class_targets, valid_mask)
+            total_obj = total_obj + _binary_cross_entropy_valid(objectness, objectness_targets, valid_mask)
+
+            if positive_mask.any():
+                regression_targets = encode_point_boxes(points[positive_mask], assignment.matched_boxes[positive_mask])
+                total_box = total_box + F.l1_loss(
+                    bbox_regression[positive_mask],
+                    regression_targets,
+                    reduction="mean",
+                )
+
+        num_images = max(len(images), 1)
+        loss_cls = total_cls / num_images
+        loss_bbox = total_box / num_images
+        loss_objectness = total_obj / num_images
+        return {
+            "loss_cls": loss_cls,
+            "loss_bbox": loss_bbox,
+            "loss_objectness": loss_objectness,
+            "loss_total": loss_cls + loss_bbox + loss_objectness,
+        }
+
+
+class DenseRTMDetDecoder(DenseFCOSDecoder):
+    """RTMDet uses class scores and point-box decoding without objectness."""
+
+
+class DenseRTMDetTargetBuilder:
+    def __init__(self, *, topk: int = 13, alpha: float = 1.0, beta: float = 6.0) -> None:
+        self.topk = int(topk)
+        self.alpha = float(alpha)
+        self.beta = float(beta)
+
+    def __call__(self, points, pred_scores, pred_boxes, target):
+        return task_aligned_assign(
+            _point_boxes(points),
+            pred_scores,
+            pred_boxes,
+            target["boxes"],
+            target["labels"],
+            topk=self.topk,
+            alpha=self.alpha,
+            beta=self.beta,
+        )
+
+
+class DenseRTMDetLoss(nn.Module):
+    def __init__(self, *, topk: int = 13, alpha: float = 1.0, beta: float = 6.0) -> None:
+        super().__init__()
+        self.target_builder = DenseRTMDetTargetBuilder(topk=topk, alpha=alpha, beta=beta)
+
+    def forward(self, images, targets, feature_pyramids, head_outputs_per_image):
+        total_cls = torch.tensor(0.0, device=images[0].device)
+        total_box = torch.tensor(0.0, device=images[0].device)
+
+        for image, target, feature_maps, head_outputs in zip(
+            images,
+            targets,
+            feature_pyramids,
+            head_outputs_per_image,
+        ):
+            feature_maps = _feature_sequence(feature_maps)
+            points = _point_priors_for_image(image, feature_maps)
+            cls_logits = flatten_cls_logits(head_outputs["cls_logits"])
+            bbox_regression = flatten_bbox_regression(head_outputs["bbox_regression"])
+            decoded = clip_boxes_to_image(
+                decode_point_boxes(points, bbox_regression.clamp(min=0)),
+                _image_size(image),
+            )
+            assignment = self.target_builder(points, torch.sigmoid(cls_logits), decoded, target)
+            positive_mask = assignment.positive_mask
+            valid_mask = ~assignment.ignored_mask
+
+            class_targets = torch.zeros_like(cls_logits)
+            if positive_mask.any():
+                positive_labels = assignment.labels[positive_mask].long().clamp(min=1) - 1
+                class_targets[positive_mask, positive_labels] = 1.0
+            total_cls = total_cls + _binary_cross_entropy_valid(cls_logits, class_targets, valid_mask)
+
+            if positive_mask.any():
+                regression_targets = encode_point_boxes(points[positive_mask], assignment.matched_boxes[positive_mask])
+                total_box = total_box + F.l1_loss(
+                    bbox_regression[positive_mask],
+                    regression_targets,
+                    reduction="mean",
+                )
+
+        num_images = max(len(images), 1)
+        loss_cls = total_cls / num_images
+        loss_bbox = total_box / num_images
+        return {
+            "loss_cls": loss_cls,
+            "loss_bbox": loss_bbox,
+            "loss_total": loss_cls + loss_bbox,
+        }
+
+
 class DenseATSSDecoder(nn.Module):
     def __init__(
         self,
@@ -472,6 +706,121 @@ class DenseDDODDecoder(DenseATSSDecoder):
 
 class DenseDDODLoss(DenseATSSLoss):
     """Finite DDOD smoke loss on the shared ATSS dense target contract."""
+
+
+class DenseSSDDecoder(nn.Module):
+    def __init__(
+        self,
+        *,
+        score_threshold: float = 0.05,
+        nms_threshold: float = 0.5,
+        detections_per_img: int = 100,
+    ) -> None:
+        super().__init__()
+        self.score_threshold = float(score_threshold)
+        self.nms_threshold = float(nms_threshold)
+        self.detections_per_img = int(detections_per_img)
+
+    def forward(self, image, feature_maps, head_outputs):
+        from torchvision.ops import batched_nms
+
+        feature_maps = _feature_sequence(feature_maps)
+        image_size = _image_size(image)
+        anchors = _anchor_priors_for_image(image, feature_maps)
+        cls_logits = flatten_anchor_cls_logits(head_outputs["cls_logits"])
+        bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
+        scores, labels = torch.sigmoid(cls_logits).max(dim=1)
+        decoded = clip_boxes_to_image(decode_boxes(anchors, bbox_regression), image_size)
+
+        keep = scores >= self.score_threshold
+        payload = make_batched_nms_payload(decoded[keep], scores[keep], labels[keep] + 1)
+        if payload["boxes"].numel() == 0:
+            return prediction_payload_to_dict(payload)
+
+        keep_idx = batched_nms(payload["boxes"], payload["scores"], payload["nms_indices"], self.nms_threshold)
+        keep_idx = keep_idx[: self.detections_per_img]
+        return prediction_payload_to_dict(select_prediction_payload(payload, keep_idx))
+
+
+class DenseSSDTargetBuilder:
+    def __init__(
+        self,
+        *,
+        pos_iou_thr: float = 0.5,
+        neg_iou_thr: float = 0.4,
+    ) -> None:
+        self.pos_iou_thr = float(pos_iou_thr)
+        self.neg_iou_thr = float(neg_iou_thr)
+
+    def __call__(self, anchors, target):
+        return max_iou_assign(
+            anchors,
+            target["boxes"],
+            target["labels"],
+            pos_iou_thr=self.pos_iou_thr,
+            neg_iou_thr=self.neg_iou_thr,
+            ignored_boxes=_ignored_boxes_from_target(target),
+        )
+
+
+class DenseSSDLoss(nn.Module):
+    def __init__(
+        self,
+        *,
+        pos_iou_thr: float = 0.5,
+        neg_iou_thr: float = 0.4,
+    ) -> None:
+        super().__init__()
+        self.target_builder = DenseSSDTargetBuilder(pos_iou_thr=pos_iou_thr, neg_iou_thr=neg_iou_thr)
+
+    def forward(self, images, targets, feature_pyramids, head_outputs_per_image):
+        total_cls = torch.tensor(0.0, device=images[0].device)
+        total_box = torch.tensor(0.0, device=images[0].device)
+
+        for image, target, feature_maps, head_outputs in zip(
+            images,
+            targets,
+            feature_pyramids,
+            head_outputs_per_image,
+        ):
+            feature_maps = _feature_sequence(feature_maps)
+            anchors = _anchor_priors_for_image(image, feature_maps)
+            cls_logits = flatten_anchor_cls_logits(head_outputs["cls_logits"])
+            bbox_regression = flatten_anchor_bbox_regression(head_outputs["bbox_regression"])
+
+            assignment = self.target_builder(anchors, target)
+            positive_mask = assignment.positive_mask
+            valid_mask = ~assignment.ignored_mask
+            class_targets = torch.zeros_like(cls_logits)
+            if positive_mask.any():
+                positive_labels = assignment.labels[positive_mask].long().clamp(min=1) - 1
+                class_targets[positive_mask, positive_labels] = 1.0
+            total_cls = total_cls + _binary_cross_entropy_valid(cls_logits, class_targets, valid_mask)
+
+            if positive_mask.any():
+                regression_targets = encode_boxes(anchors[positive_mask], assignment.matched_boxes[positive_mask])
+                total_box = total_box + F.smooth_l1_loss(
+                    bbox_regression[positive_mask],
+                    regression_targets,
+                    reduction="mean",
+                )
+
+        num_images = max(len(images), 1)
+        loss_cls = total_cls / num_images
+        loss_bbox = total_box / num_images
+        return {
+            "loss_cls": loss_cls,
+            "loss_bbox": loss_bbox,
+            "loss_total": loss_cls + loss_bbox,
+        }
+
+
+class DenseEfficientDetDecoder(DenseSSDDecoder):
+    """EfficientDet uses the native anchor-based class and box decode path."""
+
+
+class DenseEfficientDetLoss(DenseSSDLoss):
+    """EfficientDet target assignment and finite loss on the shared anchor contract."""
 
 
 class DenseVFNetLoss(nn.Module):
@@ -646,6 +995,28 @@ def _anchor_priors_from_specs(feature_specs, feature_maps):
         device=feature_maps[0].device,
         dtype=feature_maps[0].dtype,
     )
+
+
+def _point_priors_for_image(image, feature_maps):
+    feature_specs = build_feature_map_specs(feature_maps, image_size=_image_size(image))
+    return torch.cat(
+        generate_points(
+            feature_specs,
+            device=feature_maps[0].device,
+            dtype=feature_maps[0].dtype,
+        ),
+        dim=0,
+    )
+
+
+def _point_boxes(points):
+    return torch.cat((points, points), dim=1)
+
+
+def _required_objectness_logits(head_outputs):
+    if "objectness_logits" not in head_outputs:
+        raise ValueError("YOLOXHead loss and decode require objectness_logits.")
+    return flatten_centerness_logits(head_outputs["objectness_logits"])
 
 
 def _is_tensor_like(value):

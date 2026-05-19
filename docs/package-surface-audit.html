@@ -187,8 +187,8 @@
               </tr>
               <tr>
                 <td>Native compatible, not architecture-faithful yet</td>
-                <td><code>gfl</code>, <code>vfnet</code>, <code>fovea</code>, <code>foveabox</code>, <code>reppoints</code>, <code>yolof</code>, <code>centernet</code>, <code>yolo</code>, <code>yolo3</code>, <code>yolo4</code>, <code>yolo_v3</code>, <code>yolov3</code>, <code>yolov4</code>, <code>yolov5</code>, <code>yolov6</code>, <code>yolov7</code>, <code>yolov8</code>, <code>yolov9</code>, <code>yolov10</code>, <code>yolox</code>, <code>rtmdet</code>, <code>rtmdet_tiny</code>, <code>rtmdet_s</code>, <code>rtmdet_m</code>, <code>rtmdet_l</code>, <code>ssd</code>, <code>ssd300</code>, <code>ssd512</code>, <code>ssdlite</code>, <code>sabl</code>, <code>tood</code>, <code>solov2</code>, <code>solov2_light</code></td>
-                <td>Aliases build native modules, but several reuse ATSS or FCOS-style losses/decoders or alias heads. They are not enough for future architecture-faithful support claims without tensor-contract and family-specific validation.</td>
+                <td><code>gfl</code>, <code>vfnet</code>, <code>fovea</code>, <code>foveabox</code>, <code>reppoints</code>, <code>yolof</code>, <code>centernet</code>, <code>yolo</code>, <code>yolo3</code>, <code>yolo4</code>, <code>yolo_v3</code>, <code>yolov3</code>, <code>yolov4</code>, <code>yolov5</code>, <code>yolov6</code>, <code>yolov7</code>, <code>yolov8</code>, <code>yolov9</code>, <code>yolov10</code>, <code>yolox</code>, <code>rtmdet</code>, <code>rtmdet_tiny</code>, <code>rtmdet_s</code>, <code>rtmdet_m</code>, <code>rtmdet_l</code>, <code>ssd</code>, <code>ssd300</code>, <code>ssd512</code>, <code>ssdlite</code>, <code>efficientdet</code>, <code>efficientdet_d0</code>, <code>efficientdet_d1</code>, <code>efficientdet_d2</code>, <code>sabl</code>, <code>tood</code>, <code>solov2</code>, <code>solov2_light</code></td>
+                <td>Aliases build native modules, with YOLOX, RTMDet, SSD, and EfficientDet now using explicit lightweight head, target, and decode paths. Several other families still reuse ATSS or FCOS-style losses/decoders or alias heads, so broader architecture-faithful claims still require family-specific validation.</td>
               </tr>
               <tr>
                 <td>Native transformer scaffold</td>
@@ -197,7 +197,7 @@
               </tr>
               <tr>
                 <td>Missing from package catalog/runtime</td>
-                <td>Fast R-CNN, RPN detector, Cascade Mask R-CNN, Libra R-CNN, Double-Head R-CNN, Dynamic R-CNN, Sparse R-CNN, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, EfficientDet, CornerNet, DAB-DETR, DDOD, AutoAssign, NAS-FCOS</td>
+                <td>Fast R-CNN, RPN detector, Cascade Mask R-CNN, Libra R-CNN, Double-Head R-CNN, Dynamic R-CNN, Sparse R-CNN, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, CornerNet, DAB-DETR, DDOD, AutoAssign, NAS-FCOS</td>
                 <td>No package-level catalog entry plus native assembler was found. Existing legacy configs, if any, do not count as support.</td>
               </tr>
               <tr>

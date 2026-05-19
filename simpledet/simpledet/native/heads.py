@@ -403,9 +403,43 @@ class YOLOFHead(FCOSDenseHead):
     """Anchor-free YOLOF-style head alias."""
 
 
-@HEADS.register("YOLOXHead")
+@HEADS.register(
+    "YOLOXHead",
+    aliases=("yolox", "yolox_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "yolox_anchor_free_outputs", "sim_ota_targets"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="YOLOX-family anchor-free dense head with explicit objectness, class, and bbox branches.",
+)
 class YOLOXHead(FCOSDenseHead):
-    """YOLOX-style anchor-free head alias."""
+    """YOLOX-style anchor-free head with a dedicated objectness branch."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_convs: int = 4,
+    ) -> None:
+        super().__init__(in_channels=in_channels, num_classes=num_classes, num_convs=num_convs)
+        self.objectness_logits = nn.Conv2d(self.in_channels, 1, kernel_size=3, padding=1)
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        logits = []
+        bbox_reg = []
+        objectness = []
+        for feature in features:
+            cls_feature = self.cls_tower(feature)
+            box_feature = self.box_tower(feature)
+            logits.append(self.cls_logits(cls_feature))
+            bbox_reg.append(self.bbox_pred(box_feature))
+            objectness.append(self.objectness_logits(box_feature))
+        return {
+            "cls_logits": logits,
+            "bbox_regression": bbox_reg,
+            "objectness_logits": objectness,
+        }
 
 
 @HEADS.register("YOLOHead")
@@ -413,9 +447,113 @@ class YOLOHead(YOLOXHead):
     """Compatibility alias for generic YOLO-style names."""
 
 
-@HEADS.register("SSDHead")
-class SSDHead(ATSSDenseHead):
-    """Legacy SSD-style anchor-based head alias."""
+@HEADS.register(
+    "RTMDetHead",
+    aliases=("rtmdet", "rtmdet_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "rtmdet_anchor_free_outputs", "task_aligned_targets"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="RTMDet-family anchor-free dense head with class and bbox branches.",
+)
+class RTMDetHead(FCOSDenseHead):
+    """RTMDet-style dense head using anchor-free class and bbox branches."""
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        logits = []
+        bbox_reg = []
+        for feature in features:
+            cls_feature = self.cls_tower(feature)
+            box_feature = self.box_tower(feature)
+            logits.append(self.cls_logits(cls_feature))
+            bbox_reg.append(self.bbox_pred(box_feature))
+        return {"cls_logits": logits, "bbox_regression": bbox_reg}
+
+
+class _AnchorBoxDenseHead(nn.Module):
+    """Anchor-based class and box head shared by SSD-style detectors."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_anchors: int = 9,
+        num_convs: int = 1,
+    ) -> None:
+        super().__init__()
+        self.in_channels = _positive_int(in_channels, "in_channels")
+        self.num_classes = _positive_int(num_classes, "num_classes")
+        self.num_anchors = _positive_int(num_anchors, "num_anchors")
+        self.num_convs = _positive_int(num_convs, "num_convs")
+        cls_tower = []
+        box_tower = []
+        for _ in range(self.num_convs):
+            cls_tower.append(nn.Conv2d(self.in_channels, self.in_channels, kernel_size=3, padding=1))
+            cls_tower.append(nn.ReLU(inplace=True))
+            box_tower.append(nn.Conv2d(self.in_channels, self.in_channels, kernel_size=3, padding=1))
+            box_tower.append(nn.ReLU(inplace=True))
+        self.cls_tower = nn.Sequential(*cls_tower)
+        self.box_tower = nn.Sequential(*box_tower)
+        self.cls_logits = nn.Conv2d(
+            self.in_channels,
+            self.num_anchors * self.num_classes,
+            kernel_size=3,
+            padding=1,
+        )
+        self.bbox_pred = nn.Conv2d(self.in_channels, self.num_anchors * 4, kernel_size=3, padding=1)
+
+    def __call__(self, features: list[Any] | tuple[Any, ...]):
+        return self.forward(features)
+
+    def forward(self, features: list[Any] | tuple[Any, ...]):
+        logits = []
+        bbox_reg = []
+        for feature in features:
+            logits.append(self.cls_logits(self.cls_tower(feature)))
+            bbox_reg.append(self.bbox_pred(self.box_tower(feature)))
+        return {"cls_logits": logits, "bbox_regression": bbox_reg}
+
+
+@HEADS.register(
+    "SSDHead",
+    aliases=("ssd", "ssd_head", "ssd300", "ssd512", "ssdlite"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "ssd_anchor_outputs", "max_iou_targets"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="SSD-family anchor-based dense head with class and bbox branches.",
+)
+class SSDHead(_AnchorBoxDenseHead):
+    """SSD-style anchor-based dense head."""
+
+
+@HEADS.register(
+    "EfficientDetHead",
+    aliases=("efficientdet", "efficientdet_head"),
+    required_dependencies=(("torch", "cpu"),),
+    tensor_contracts=("feature_pyramid", "efficientdet_anchor_outputs", "max_iou_targets"),
+    validation_status="runtime_validated",
+    family="dense",
+    summary="EfficientDet-family anchor-based dense head with repeated class and box subnets.",
+)
+class EfficientDetHead(_AnchorBoxDenseHead):
+    """EfficientDet-style anchor head with deeper shared subnets."""
+
+    def __init__(
+        self,
+        *,
+        in_channels: int,
+        num_classes: int,
+        num_anchors: int = 9,
+        num_convs: int = 3,
+    ) -> None:
+        super().__init__(
+            in_channels=in_channels,
+            num_classes=num_classes,
+            num_anchors=num_anchors,
+            num_convs=num_convs,
+        )
 
 
 @HEADS.register("SABLHead")
@@ -597,6 +735,8 @@ def _resolve_head_name(requested: str) -> str:
         return "YOLOFHead"
     if normalized.startswith("yolo"):
         return "YOLOXHead"
+    if normalized.startswith("rtmdet"):
+        return "RTMDetHead"
     if normalized.startswith("centernet"):
         return "CenterNetHead"
     if normalized.startswith("vfnet"):
@@ -605,6 +745,8 @@ def _resolve_head_name(requested: str) -> str:
         return "RepPointsHead"
     if normalized.startswith("fovea"):
         return "FoveaHead"
+    if normalized.startswith("efficientdet"):
+        return "EfficientDetHead"
     if normalized.startswith("ssd"):
         return "SSDHead"
     if normalized.startswith("sabl"):

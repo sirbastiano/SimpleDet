@@ -11,13 +11,21 @@ from .backbones import build_native_backbone
 from .dense_ops import (
     DenseATSSDecoder,
     DenseATSSLoss,
+    DenseEfficientDetDecoder,
+    DenseEfficientDetLoss,
     DenseFCOSDecoder,
     DenseFCOSLoss,
     DenseGFLDecoder,
     DenseGFLLoss,
+    DenseRTMDetDecoder,
+    DenseRTMDetLoss,
     DenseRetinaNetDecoder,
     DenseRetinaNetLoss,
+    DenseSSDDecoder,
+    DenseSSDLoss,
     DenseVFNetLoss,
+    DenseYOLOXDecoder,
+    DenseYOLOXLoss,
 )
 from .heads import build_native_head
 from .modeling import NativeDetrModel, NativeRetinaNetModel
@@ -112,6 +120,10 @@ def _assemble_dense_detector(
         loss_fn=loss_fn(),
         decoder=decoder(),
     )
+
+
+def _build_default_yolox_loss():
+    return DenseYOLOXLoss(objectness_target_config={"positive": 1.0, "negative": 0.0})
 
 
 @DETECTORS.register(
@@ -238,8 +250,8 @@ def assemble_vfnet_detector(components: NativeModelComponents, *, num_classes: i
 def assemble_yolo_like_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseFCOSLoss,
-        decoder=DenseFCOSDecoder,
+        loss_fn=_build_default_yolox_loss,
+        decoder=DenseYOLOXDecoder,
     )
 
 
@@ -251,8 +263,8 @@ def assemble_yolo_like_detector(components: NativeModelComponents, *, num_classe
 def assemble_rtmdet_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseFCOSLoss,
-        decoder=DenseFCOSDecoder,
+        loss_fn=DenseRTMDetLoss,
+        decoder=DenseRTMDetDecoder,
     )
 
 
@@ -297,8 +309,20 @@ def assemble_reppoints_detector(components: NativeModelComponents, *, num_classe
 def assemble_ssd_like_detector(components: NativeModelComponents, *, num_classes: int):
     return _assemble_dense_detector(
         components=components,
-        loss_fn=DenseATSSLoss,
-        decoder=DenseATSSDecoder,
+        loss_fn=DenseSSDLoss,
+        decoder=DenseSSDDecoder,
+    )
+
+
+@DETECTORS.register("efficientdet")
+@DETECTORS.register("efficientdet_d0")
+@DETECTORS.register("efficientdet_d1")
+@DETECTORS.register("efficientdet_d2")
+def assemble_efficientdet_detector(components: NativeModelComponents, *, num_classes: int):
+    return _assemble_dense_detector(
+        components=components,
+        loss_fn=DenseEfficientDetLoss,
+        decoder=DenseEfficientDetDecoder,
     )
 
 

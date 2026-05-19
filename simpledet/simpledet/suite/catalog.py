@@ -50,6 +50,7 @@ ARCHITECTURE_FAMILIES: dict[str, str] = {
     "rtmdet": "dense",
     "tood": "dense",
     "ssd": "dense",
+    "efficientdet": "dense",
     "sabl": "dense",
     "solov2": "dense",
     "faster_rcnn": "roi",
@@ -126,6 +127,8 @@ def resolve_architecture_name(name: str) -> str:
         return "yolo"
     if compact.startswith("rtmdet"):
         return "rtmdet"
+    if compact.startswith("efficientdet"):
+        return "efficientdet"
     if compact.startswith("solov2"):
         return "solov2"
     if compact.startswith("tood"):
@@ -161,9 +164,10 @@ _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE = {
     "yolov9": "YOLOXHead",
     "yolov10": "YOLOXHead",
     "yolox": "YOLOXHead",
-    "rtmdet": "FCOSHead",
+    "rtmdet": "RTMDetHead",
     "tood": "TOODHead",
     "ssd": "SSDHead",
+    "efficientdet": "EfficientDetHead",
     "sabl": "ATSSHead",
     "solov2": "FCOSHead",
     "vfnet": "VFNetHead",
