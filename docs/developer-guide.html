@@ -163,6 +163,12 @@ make docs-check</code></pre>
         </article>
 
         <article class="section">
+          <h2>Release readiness gate</h2>
+          <p>Before handoff, run <code>make release-ready</code>. The target rebuilds distributions, runs the unit, docs, and package artifact checks, then audits release claims so detector and head counts stay above 31 and installation docs stay aligned with package extras.</p>
+          <pre><code>make release-ready</code></pre>
+        </article>
+
+        <article class="section">
           <h2>Optional dependency rules</h2>
           <ul>
             <li>Base imports must stay lightweight. Do not make <code>import simpledet</code> require <code>torch</code>, <code>torchvision</code>, <code>timm</code>, geospatial packages, plotting libraries, MMDetection, MMEngine, or MMCV.</li>

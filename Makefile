@@ -5,7 +5,7 @@ UV ?= uv
 UVX ?= uvx
 UV_SYNC_FLAGS ?=
 
-.PHONY: help venv sync sync-cpu install install-runtime install-editable build sdist wheel verify-dist check publish publish-test test test-cpu-smoke clean docs-check docs-audit docs-verify
+.PHONY: help venv sync sync-cpu install install-runtime install-editable build sdist wheel verify-dist check release-readiness release-ready publish publish-test test test-cpu-smoke clean docs-check docs-audit docs-verify
 
 help:
 	@echo "Targets:"
@@ -23,6 +23,7 @@ help:
 	@echo "  make docs-check      Validate docs files and local links"
 	@echo "  make verify-dist     Audit built wheel and sdist contents"
 	@echo "  make check           Run tests, docs checks, artifact audits, and twine metadata checks"
+	@echo "  make release-ready   Run the final release readiness gate"
 	@echo "  make publish         Run bootstrap, build, check, then upload to PyPI"
 	@echo "  make publish-test    Run bootstrap, build, check, then upload to TestPyPI"
 	@echo "  make test-cpu-smoke  Run optional real CPU install/build/train/test/infer smoke"
@@ -64,6 +65,11 @@ verify-dist:
 
 check: test docs-check verify-dist
 	$(UVX) twine check dist/*
+
+release-readiness:
+	PYTHONPATH=simpledet $(PYTHON) scripts/release_readiness.py
+
+release-ready: build test docs-check verify-dist release-readiness
 
 docs-check: docs-audit
 	@echo "Docs check complete."

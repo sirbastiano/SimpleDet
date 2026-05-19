@@ -140,8 +140,13 @@ make sync-cpu
 make build
 make docs-audit
 make check
+make release-ready
 make test-cpu-smoke
 ```
+
+`make release-ready` is the final handoff gate. It rebuilds the package, runs
+the unit, docs, and distribution checks, then audits release claims so detector
+and head counts stay above 31 and docs stay aligned with package extras.
 
 `make test-cpu-smoke` is the optional slow CPU workflow gate for checkouts with
 `simpledet[cpu]` installed. It runs the tiny project-config smoke path through
