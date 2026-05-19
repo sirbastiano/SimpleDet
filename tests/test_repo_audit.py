@@ -9,6 +9,7 @@ from collections import Counter
 
 
 PACKAGE_ROOT = pathlib.Path(__file__).resolve().parents[1] / "simpledet" / "simpledet"
+REPO_ROOT = PACKAGE_ROOT.parents[1]
 SAFE_IMPORT_MODULES = [
     "simpledet",
     "simpledet._model_resolution",
@@ -36,6 +37,13 @@ SAFE_IMPORT_MODULES = [
     "simpledet.native.necks",
     "simpledet.native.runtime",
 ]
+PUBLIC_ATTRIBUTE_EXPORT_MODULES = [
+    "simpledet.suite",
+    "simpledet.extensions",
+]
+PUBLIC_NAMESPACE_EXPORT_MODULES = {
+    "simpledet.detectors": ("train", "evaluate", "infer", "data", "cli"),
+}
 OPTIONAL_DEPS = {
     "numpy",
     "torch",
@@ -47,7 +55,18 @@ OPTIONAL_DEPS = {
     "pycocotools",
 }
 FORBIDDEN_LEGACY_MODULES = {"mmdet", "mmcv", "mmengine"}
-FORBIDDEN_LEGACY_TEXT = re.compile(r"\b(mmdet|mmcv|mmengine)\b")
+FORBIDDEN_LEGACY_TEXT = re.compile(r"\b(mmdet|mmdetection|mmcv|mmengine)\b", re.IGNORECASE)
+EXPLICIT_LEGACY_TEXT_ALLOWLIST = {
+    "_legacy.py": (
+        "Legacy MMDetection .py config import/conversion is unsupported.",
+    ),
+    "suite/compiler.py": (
+        "compile_detector_spec is a retired MMDet-era compiler.",
+    ),
+    "suite/native_plan.py": (
+        "Native backend component plan independent of MMDet config shape.",
+    ),
+}
 
 
 def _root_module(module_name):
@@ -78,6 +97,19 @@ def _legacy_stack_import_references(tree):
             if module_name and _root_module(module_name) in FORBIDDEN_LEGACY_MODULES:
                 offenders.append((node.lineno, module_name))
     return offenders
+
+
+def _legacy_text_references(path, text):
+    relative_path = path.relative_to(PACKAGE_ROOT).as_posix()
+    allowed_snippets = EXPLICIT_LEGACY_TEXT_ALLOWLIST.get(relative_path, ())
+    references = []
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        if not FORBIDDEN_LEGACY_TEXT.search(line):
+            continue
+        if any(snippet in line for snippet in allowed_snippets):
+            continue
+        references.append((line_no, line.strip()))
+    return references
 
 
 class TestRepoAudit(unittest.TestCase):
@@ -140,6 +172,29 @@ class TestRepoAudit(unittest.TestCase):
         self.assertNotEqual(summary["classes"], 0)
         self.assertEqual(skipped, [])
 
+    def test_public_all_exports_are_discoverable(self):
+        simpledet = importlib.import_module("simpledet")
+        self.assertEqual(len(simpledet.__all__), len(set(simpledet.__all__)))
+        for symbol in simpledet.__all__:
+            self.assertIn(symbol, dir(simpledet))
+
+        for module_name in PUBLIC_ATTRIBUTE_EXPORT_MODULES:
+            with self.subTest(module=module_name):
+                module = importlib.import_module(module_name)
+                exports = tuple(getattr(module, "__all__", ()))
+                self.assertNotEqual(exports, ())
+                self.assertEqual(len(exports), len(set(exports)))
+                missing = [symbol for symbol in exports if not hasattr(module, symbol)]
+                self.assertEqual(missing, [])
+
+        for module_name, expected_submodules in PUBLIC_NAMESPACE_EXPORT_MODULES.items():
+            with self.subTest(module=module_name):
+                module = importlib.import_module(module_name)
+                exports = tuple(getattr(module, "__all__", ()))
+                self.assertEqual(exports, expected_submodules)
+                for symbol in exports:
+                    importlib.import_module(f"{module_name}.{symbol}")
+
     def test_safe_public_modules_import_and_expose_api(self):
         for module_name in SAFE_IMPORT_MODULES:
             with self.subTest(module=module_name):
@@ -179,8 +234,8 @@ class TestRepoAudit(unittest.TestCase):
         text_offenders = []
         for path in sorted(self._python_files()):
             text = path.read_text(encoding="utf-8")
-            if FORBIDDEN_LEGACY_TEXT.search(text):
-                text_offenders.append(str(path.relative_to(PACKAGE_ROOT)))
+            for line_no, line in _legacy_text_references(path, text):
+                text_offenders.append(f"{path.relative_to(PACKAGE_ROOT)}:{line_no}: {line}")
             tree = ast.parse(text, filename=str(path))
             references = _legacy_stack_import_references(tree)
             for line_no, module_name in references:
@@ -192,6 +247,21 @@ class TestRepoAudit(unittest.TestCase):
             "Found legacy MMDet/MMCV/MMEngine references:\n" + "\n".join(text_offenders),
         )
         self.assertEqual(offenders, [], "Found legacy MMDet/MMCV/MMEngine imports:\n" + "\n".join(offenders))
+
+    def test_archived_configs_and_explicit_migration_references_are_not_audited_as_runtime_deps(self):
+        audited_paths = set(self._python_files())
+        archived_config = REPO_ROOT / "MyConfigs" / "coco_pretraining.py"
+        self.assertTrue(archived_config.exists())
+        self.assertNotIn(archived_config, audited_paths)
+        self.assertRegex(archived_config.read_text(encoding="utf-8"), FORBIDDEN_LEGACY_TEXT)
+
+        for relative_path, allowed_snippets in EXPLICIT_LEGACY_TEXT_ALLOWLIST.items():
+            with self.subTest(path=relative_path):
+                path = PACKAGE_ROOT / relative_path
+                text = path.read_text(encoding="utf-8")
+                for snippet in allowed_snippets:
+                    self.assertIn(snippet, text)
+                self.assertEqual(_legacy_text_references(path, text), [])
 
     def test_legacy_stack_import_audit_helper_detects_static_and_dynamic_imports(self):
         tree = ast.parse(
