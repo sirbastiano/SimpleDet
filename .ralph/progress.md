@@ -960,3 +960,45 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `simpledet list-detectors` can show runtime validation only when native optional dependencies are importable; without CPU extras it still lists catalog names but reports `unregistered`.
   - Use `uv run --extra cpu` for real tensor smoke and CLI validation-status checks because the base interpreter may skip torch-backed tests.
 ---
+## [2026-05-19 05:16:44 UTC] - US-024: Register lightweight detector families
+Thread:
+Run: 20260518-183418-2827287 (iteration 24)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-24.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-24.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 95da6ad feat(detectors): register lightweight families
+- Post-commit status: `clean` after progress/log follow-up commit
+- Verification:
+  - Command: `python3 -m compileall -q simpledet/simpledet/suite/catalog.py simpledet/simpledet/native/assemblers.py simpledet/simpledet/native/dense_ops.py tests/test_suite.py tests/test_native_backend_plan.py tests/test_native_dense_detectors.py` -> PASS
+  - Command: `PYTHONPATH=simpledet python3 -m unittest tests.test_suite tests.test_native_backend_plan tests.test_native_dense_detectors tests.test_native_components tests.test_native_dense_heads` -> FAIL (direct module form did not add `tests/` for `native_tensor_contracts`; reran corrected command)
+  - Command: `PYTHONPATH=simpledet:tests python3 -m unittest tests.test_suite tests.test_native_backend_plan tests.test_native_dense_detectors tests.test_native_components tests.test_native_dense_heads` -> PASS (81 tests, 29 skipped)
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (225 tests, 87 skipped)
+  - Command: `make docs-check` -> PASS
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - docs/api-reference.html
+  - simpledet/simpledet/native/assemblers.py
+  - simpledet/simpledet/native/dense_ops.py
+  - simpledet/simpledet/suite/catalog.py
+  - tests/test_native_backend_plan.py
+  - tests/test_native_dense_detectors.py
+  - tests/test_suite.py
+- What was implemented
+  - Added architecture-specific defaults for YOLOX, RTMDet, SSD, EfficientDet, and CenterNet, including `build_detector(name="efficientdet_d0", num_classes=3)` compiling to EfficientNet-B0, BiFPN, and EfficientDetHead.
+  - Made `build_detector(name=...)` a supported public call form and fixed YOLOX normalization so it no longer collapses into the generic `yolo` alias.
+  - Added suite-level and native assembly validation that rejects YOLO-family detectors with non-`YOLOXPAFPN` necks.
+  - Added runtime detector metadata for YOLOX, RTMDet, SSD, EfficientDet, and CenterNet, while keeping generic YOLO aliases marked as compatibility aliases.
+  - Added a native CenterNet decoder using heatmap, width-height, and offset branches for prediction decode.
+  - Added CPU construction, forward-contract, and prediction-decode smoke coverage for the five lightweight families.
+  - Updated API docs with the lightweight defaults and constraints.
+  - Security/performance/regression review: no new file, network, secret, or permission handling; decode work stays in existing per-level tensor/NMS patterns and bounded `detections_per_img`; explicit user encoder/neck specs are preserved except for the intentional YOLO incompatibility validation; full gates passed.
+- **Learnings for future iterations:**
+  - `resolve_architecture_name` must check `yolox` before the generic `yolo` prefix or YOLOX-specific registry/defaults are unreachable.
+  - EfficientDet defaults can compile without TIMM, but default native module construction uses the TIMM-backed EfficientNet alias and needs `simpledet[timm]`.
+  - Tests importing `native_tensor_contracts` directly need `PYTHONPATH=simpledet:tests`; discovery mode adds the tests directory automatically.
+---

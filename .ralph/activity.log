@@ -206,3 +206,4 @@
 [2026-05-19 05:05:23] US-024 discovery started: guardrails, prior errors, PRD story, AGENTS, and command surface reviewed
 [2026-05-19 05:13:57] US-024 code changes applied: lightweight defaults, YOLO neck validation, CenterNet decode, registry metadata, tests, and docs updated
 [2026-05-19 05:15:20] US-024 verification completed: focused tests, full unittest, docs-check, build, and verify-dist passed
+[2026-05-19 05:17:28] US-024 progress log updated with implementation commit 95da6ad and verification details
