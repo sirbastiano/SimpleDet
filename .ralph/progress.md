@@ -1459,3 +1459,35 @@ Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-2026051
   - `build_detector("retinanet", backbone="resnet18")` can compile without an explicit neck, so examples that print neck plan metadata should pass `build_neck("FPN", ...)`.
   - Keep data-bearing examples path-driven and fail-fast; import tests should verify no script does filesystem work at import time.
 ---
+## [2026-05-19 09:47:07 UTC] - US-036: Update installation documentation
+Thread:
+Run: 20260518-183418-2827287 (iteration 36)
+Run log: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-36.log
+Run summary: /shared/home/rdelprete/PythonProjects/MMDET/.ralph/runs/run-20260518-183418-2827287-iter-36.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: e702e18 docs(installation): clarify setup paths
+- Post-commit status: `clean` after progress/activity follow-up commit
+- Verification:
+  - Command: `make docs-check` -> PASS
+  - Command: `PYTHONPATH=simpledet python -m unittest discover -s tests -p 'test*.py'` -> PASS (287 tests, 91 skipped)
+  - Command: `make build` -> PASS
+  - Command: `make verify-dist` -> PASS
+  - Command: `git diff --check` -> PASS
+  - Command: `rg -n "pip install .*mmdet|pip install .*mmcv|pip install .*mmengine|python -m pip install .*mmdet|python -m pip install .*mmcv|python -m pip install .*mmengine" README.md docs` -> PASS (no install instructions found)
+- Files changed:
+  - .ralph/activity.log
+  - .ralph/progress.md
+  - README.md
+  - docs/installation.html
+  - docs/troubleshooting.html
+- What was implemented
+  - Expanded README quick installation guidance into a setup matrix covering base, CPU, TIMM, docs, geo, plots, dev, and editable local development paths.
+  - Reworked the installation docs page with an install-path table, combined extras examples, the required editable `python -m pip install -e '.[cpu,timm,dev]'` command, runtime verification, and troubleshooting guidance.
+  - Added install-specific troubleshooting rows for CPU runtime wheel mismatches, missing TIMM, and optional docs/geo/plots extras.
+  - Security/performance/regression review: docs only; no executable code, network calls, dependency changes, or new runtime imports were introduced; negative install-instruction check confirms no MMDetection/MMCV/MMEngine installation command was added.
+- **Learnings for future iterations:**
+  - The `docs` extra is currently empty in `pyproject.toml`, so docs should describe it as workflow setup while noting the present static docs checks are lightweight.
+  - `make build` should run before `make verify-dist` when documentation changes need fresh package metadata and sdist/wheel artifacts.
+  - The repo-local `/shared/home/rdelprete/PythonProjects/MMDET/ralph` executable is absent, but the `ralph` helper is available on `PATH` and writes the required activity entries.
+---
