@@ -170,14 +170,44 @@ _DETECTOR_HELP = {
         "family": "roi",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
+    "cascade_mask_rcnn": {
+        "summary": "Cascade Mask R-CNN two-stage detector with cascade bbox and mask heads.",
+        "family": "roi",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
+    "double_head_rcnn": {
+        "summary": "Double-Head R-CNN detector using separate native ROI classification and regression towers.",
+        "family": "roi",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
+    "dynamic_rcnn": {
+        "summary": "Dynamic R-CNN detector using native dynamic ROI feature mixing.",
+        "family": "roi",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
+    "fast_rcnn": {
+        "summary": "Fast R-CNN ROI detector that consumes external or target proposals without an RPN stage.",
+        "family": "roi",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
     "faster_rcnn": {
         "summary": "Two-stage ROI detector for balanced accuracy and broad compatibility.",
+        "family": "roi",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
+    "libra_rcnn": {
+        "summary": "Libra R-CNN detector using native balanced ROI sampling with two-stage heads.",
         "family": "roi",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
     "mask_rcnn": {
         "summary": "Two-stage ROI detector with instance-mask heads built on the native runtime.",
         "family": "roi",
+        "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
+    },
+    "rpn": {
+        "summary": "Standalone region proposal network detector that emits native proposal boxes and scores.",
+        "family": "proposal",
         "recommended_encoders": ("resnet18.a1_in1k", "convnext_tiny.in12k_ft_in1k"),
     },
 }
@@ -187,6 +217,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="simpledet",
         description="SimpleDet package bootstrap and diagnostics utility.",
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=("list-detectors", "list-encoders"),
+        help="Optional command alias for --list-detectors or --list-encoders.",
     )
     parser.add_argument(
         "--version",
@@ -356,9 +392,21 @@ def _check_runtime() -> int:
 
 def _list_detectors() -> int:
     from .suite.catalog import ARCHITECTURE_FAMILIES
+    from .extensions import DETECTORS
 
+    try:
+        from .native import assemblers as _native_assemblers  # noqa: F401
+    except ImportError:
+        pass
+
+    print("name\tfamily\tnative_validation")
     for name in sorted(ARCHITECTURE_FAMILIES):
-        print(name)
+        try:
+            metadata = DETECTORS.lookup(name)
+            validation_status = metadata.validation_status
+        except KeyError:
+            validation_status = "unregistered"
+        print(f"{name}\t{ARCHITECTURE_FAMILIES[name]}\t{validation_status}")
     return 0
 
 
@@ -508,10 +556,10 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.check_runtime:
         return _check_runtime()
 
-    if args.list_detectors:
+    if args.command == "list-detectors" or args.list_detectors:
         return _list_detectors()
 
-    if args.list_encoders:
+    if args.command == "list-encoders" or args.list_encoders:
         return _list_encoders()
 
     if args.show_detector_help:

@@ -140,34 +140,37 @@ class NativeBuildPlanTests(unittest.TestCase):
         self.assertEqual(plan.head.params["num_classes"], 2)
 
     def test_compile_native_detector_plan_for_two_stage_components(self):
-        faster = compile_native_detector_plan(
-            build_detector("faster_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
-        )
-        self.assertEqual(faster.family, "roi")
-        self.assertEqual(faster.rpn_head.type, "RPNHead")
-        self.assertEqual(faster.rpn_head.params["num_anchors"], 1)
-        self.assertEqual(faster.bbox_head.type, "Shared2FCBBoxHead")
-        self.assertIs(faster.head, faster.bbox_head)
-        self.assertIsNone(faster.mask_head)
-        self.assertIsNone(faster.grid_head)
+        expected = {
+            "faster_rcnn": ("roi", "RPNHead", "Shared2FCBBoxHead", None, None),
+            "fast_rcnn": ("roi", None, "Shared2FCBBoxHead", None, None),
+            "mask_rcnn": ("roi", "RPNHead", "Shared2FCBBoxHead", "FCNMaskHead", None),
+            "cascade_rcnn": ("roi", "RPNHead", "CascadeBBoxHead", None, None),
+            "cascade_mask_rcnn": ("roi", "RPNHead", "CascadeBBoxHead", "CascadeMaskHead", None),
+            "grid_rcnn": ("roi", "RPNHead", "Shared2FCBBoxHead", None, "GridHead"),
+            "libra_rcnn": ("roi", "RPNHead", "Shared2FCBBoxHead", None, None),
+            "double_head_rcnn": ("roi", "RPNHead", "DoubleConvFCBBoxHead", None, None),
+            "dynamic_rcnn": ("roi", "RPNHead", "DynamicBBoxHead", None, None),
+        }
+        for architecture, (family, rpn_type, bbox_type, mask_type, grid_type) in expected.items():
+            with self.subTest(architecture=architecture):
+                plan = compile_native_detector_plan(
+                    build_detector(architecture, num_classes=3, encoder="resnet18.a1_in1k")
+                )
+                self.assertEqual(plan.family, family)
+                self.assertEqual(None if plan.rpn_head is None else plan.rpn_head.type, rpn_type)
+                if plan.rpn_head is not None:
+                    self.assertEqual(plan.rpn_head.params["num_anchors"], 1)
+                self.assertEqual(plan.bbox_head.type, bbox_type)
+                self.assertIs(plan.head, plan.bbox_head)
+                self.assertEqual(None if plan.mask_head is None else plan.mask_head.type, mask_type)
+                self.assertEqual(None if plan.grid_head is None else plan.grid_head.type, grid_type)
 
-        mask = compile_native_detector_plan(
-            build_detector("mask_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
+        rpn = compile_native_detector_plan(
+            build_detector("rpn", num_classes=3, encoder="resnet18.a1_in1k")
         )
-        self.assertEqual(mask.bbox_head.type, "Shared2FCBBoxHead")
-        self.assertTrue(mask.bbox_head.params["with_mask"])
-        self.assertEqual(mask.mask_head.type, "FCNMaskHead")
-
-        grid = compile_native_detector_plan(
-            build_detector("grid_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
-        )
-        self.assertEqual(grid.grid_head.type, "GridHead")
-        self.assertEqual(grid.grid_head.params["grid_size"], 7)
-
-        cascade = compile_native_detector_plan(
-            build_detector("cascade_rcnn", num_classes=3, encoder="resnet18.a1_in1k")
-        )
-        self.assertEqual(cascade.bbox_head.type, "CascadeBBoxHead")
+        self.assertEqual(rpn.family, "proposal")
+        self.assertEqual(rpn.rpn_head.type, "RPNHead")
+        self.assertIs(rpn.head, rpn.rpn_head)
 
     def test_compile_native_detector_plan_for_query_components(self):
         expected_heads = {
@@ -348,9 +351,15 @@ class ExtensionRegistryTests(unittest.TestCase):
             "YOLOF": ("yolof", "dense"),
             "CenterNet": ("centernet", "dense"),
             "Faster R-CNN": ("faster_rcnn", "roi"),
+            "Fast R-CNN": ("fast_rcnn", "roi"),
+            "RPN": ("rpn", "proposal"),
             "Mask R-CNN": ("mask_rcnn", "roi"),
             "Grid R-CNN": ("grid_rcnn", "roi"),
             "Cascade R-CNN": ("cascade_rcnn", "roi"),
+            "Cascade Mask R-CNN": ("cascade_mask_rcnn", "roi"),
+            "Libra R-CNN": ("libra_rcnn", "roi"),
+            "Double-Head R-CNN": ("double_head_rcnn", "roi"),
+            "Dynamic R-CNN": ("dynamic_rcnn", "roi"),
             "DAB-DETR": ("dab_detr", "transformer"),
         }
         for alias, (expected_name, expected_family) in aliases.items():
@@ -361,6 +370,30 @@ class ExtensionRegistryTests(unittest.TestCase):
                 self.assertTrue(alias_metadata.required_dependencies)
                 self.assertTrue(alias_metadata.tensor_contracts)
                 self.assertNotEqual(alias_metadata.validation_status, "unvalidated")
+
+    def test_roi_validation_rejects_missing_required_native_heads(self):
+        with patch.dict(sys.modules, _fake_torch_modules()):
+            from simpledet.native.assemblers import _validate_roi_head_plan
+
+            missing_rpn = types.SimpleNamespace(
+                architecture="faster_rcnn",
+                rpn_head=None,
+                bbox_head=ComponentPlan(kind="head", type="Shared2FCBBoxHead"),
+                mask_head=None,
+                grid_head=None,
+            )
+            with self.assertRaisesRegex(ValueError, "requires an RPN head"):
+                _validate_roi_head_plan(missing_rpn)
+
+            wrong_bbox = types.SimpleNamespace(
+                architecture="faster_rcnn",
+                rpn_head=ComponentPlan(kind="head", type="RPNHead"),
+                bbox_head=ComponentPlan(kind="head", type="RetinaHead"),
+                mask_head=None,
+                grid_head=None,
+            )
+            with self.assertRaisesRegex(ValueError, "requires an ROI bbox head"):
+                _validate_roi_head_plan(wrong_bbox)
 
     def test_native_head_registry_exposes_core_dense_aliases(self):
         with patch.dict(sys.modules, _fake_torch_modules()):

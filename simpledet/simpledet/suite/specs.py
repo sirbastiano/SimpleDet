@@ -128,8 +128,8 @@ class DetectorSpec:
         self.family = str(self.family).strip().lower()
         self.architecture = str(self.architecture).strip().lower()
         self.num_classes = int(self.num_classes)
-        if self.family not in {"dense", "roi", "transformer"}:
-            raise ValueError("`family` must be one of: dense, roi, transformer.")
+        if self.family not in {"dense", "proposal", "roi", "transformer"}:
+            raise ValueError("`family` must be one of: dense, proposal, roi, transformer.")
         if self.num_classes <= 0:
             raise ValueError("`num_classes` must be a positive integer.")
         self.imports = _copy_imports(self.imports)

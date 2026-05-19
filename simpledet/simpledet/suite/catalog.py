@@ -69,10 +69,17 @@ ARCHITECTURE_FAMILIES: dict[str, str] = {
     "solov2": "dense",
     "faster_rcnn": "roi",
     "faster-rcnn": "roi",
+    "fast_rcnn": "roi",
+    "fast-rcnn": "roi",
+    "rpn": "proposal",
     "mask_rcnn": "roi",
     "mask-rcnn": "roi",
     "grid_rcnn": "roi",
     "cascade_rcnn": "roi",
+    "cascade_mask_rcnn": "roi",
+    "libra_rcnn": "roi",
+    "double_head_rcnn": "roi",
+    "dynamic_rcnn": "roi",
 }
 
 
@@ -127,6 +134,10 @@ def resolve_architecture_name(name: str) -> str:
         "fasterrcnnnext",
     }:
         return "faster_rcnn"
+    if compact in {"fastrcnn", "fastrcnncv", "fastrcnnnext"}:
+        return "fast_rcnn"
+    if compact in {"rpn", "rpndetector", "rpnhead"}:
+        return "rpn"
     if compact in {
         "maskrcnn",
         "maskrcnncv",
@@ -137,6 +148,14 @@ def resolve_architecture_name(name: str) -> str:
         return "grid_rcnn"
     if compact in {"cascadercnn", "cascadercnncv", "cascadercnnnext"}:
         return "cascade_rcnn"
+    if compact in {"cascademaskrcnn", "cascademaskrcnncv", "cascademaskrcnnnext"}:
+        return "cascade_mask_rcnn"
+    if compact in {"librarcnn", "librarcnncv", "librarcnnnext"}:
+        return "libra_rcnn"
+    if compact in {"doubleheadrcnn", "doubleheadrcnncv", "doubleheadrcnnnext"}:
+        return "double_head_rcnn"
+    if compact in {"dynamicrcnn", "dynamicrcnncv", "dynamicrcnnnext"}:
+        return "dynamic_rcnn"
     if compact.startswith("retinanet"):
         return "retinanet"
     if compact.startswith("fcos"):
@@ -169,12 +188,24 @@ def resolve_architecture_name(name: str) -> str:
         return "sabl"
     if compact.startswith("fasterrcnn"):
         return "faster_rcnn"
+    if compact.startswith("fastrcnn"):
+        return "fast_rcnn"
+    if compact.startswith("rpn"):
+        return "rpn"
     if compact.startswith("maskrcnn"):
         return "mask_rcnn"
     if compact.startswith("gridrcnn"):
         return "grid_rcnn"
     if compact.startswith("cascadercnn"):
         return "cascade_rcnn"
+    if compact.startswith("cascademaskrcnn"):
+        return "cascade_mask_rcnn"
+    if compact.startswith("librarcnn"):
+        return "libra_rcnn"
+    if compact.startswith("doubleheadrcnn"):
+        return "double_head_rcnn"
+    if compact.startswith("dynamicrcnn"):
+        return "dynamic_rcnn"
     return normalized
 
 
@@ -210,8 +241,13 @@ _DENSE_DEFAULT_HEAD_BY_ARCHITECTURE = {
 
 _ROI_DEFAULT_BBOX_HEAD_BY_ARCHITECTURE = {
     "cascade_rcnn": "CascadeBBoxHead",
+    "cascade_mask_rcnn": "CascadeBBoxHead",
+    "double_head_rcnn": "DoubleConvFCBBoxHead",
+    "dynamic_rcnn": "DynamicBBoxHead",
+    "fast_rcnn": "Shared2FCBBoxHead",
     "faster_rcnn": "Shared2FCBBoxHead",
     "grid_rcnn": "Shared2FCBBoxHead",
+    "libra_rcnn": "Shared2FCBBoxHead",
     "mask_rcnn": "Shared2FCBBoxHead",
 }
 
@@ -716,7 +752,13 @@ def build_detector(
                     "Shared2FCBBoxHead",
                 ),
                 num_classes=num_classes,
-                with_mask=normalized_architecture == "mask_rcnn",
+                with_mask=normalized_architecture in {"mask_rcnn", "cascade_mask_rcnn"},
+            )
+        elif family == "proposal":
+            head = build_head(
+                "RPNHead",
+                num_classes=1,
+                num_anchors=1,
             )
         else:
             head = None
@@ -756,8 +798,8 @@ def build_custom_detector(
     normalized_family = str(family).strip().lower()
     if not normalized_architecture:
         raise ValueError("Custom detector architectures require a non-empty name.")
-    if normalized_family not in {"dense", "roi", "transformer"}:
-        raise ValueError("Custom detector families must be one of: dense, roi, transformer.")
+    if normalized_family not in {"dense", "proposal", "roi", "transformer"}:
+        raise ValueError("Custom detector families must be one of: dense, proposal, roi, transformer.")
 
     if isinstance(encoder, str):
         encoder = build_encoder(
@@ -793,7 +835,13 @@ def build_custom_detector(
                     "Shared2FCBBoxHead",
                 ),
                 num_classes=num_classes,
-                with_mask=normalized_architecture == "mask_rcnn",
+                with_mask=normalized_architecture in {"mask_rcnn", "cascade_mask_rcnn"},
+            )
+        elif normalized_family == "proposal":
+            head = build_head(
+                "RPNHead",
+                num_classes=1,
+                num_anchors=1,
             )
         else:
             head = None

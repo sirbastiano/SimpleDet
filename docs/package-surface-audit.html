@@ -182,8 +182,8 @@
             <tbody>
               <tr>
                 <td>Native runtime registered</td>
-                <td><code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>faster_rcnn</code>, <code>faster-rcnn</code>, <code>mask_rcnn</code>, <code>mask-rcnn</code>, <code>grid_rcnn</code>, <code>gridrcnn</code>, <code>cascade_rcnn</code>, <code>cascadercnn</code></td>
-                <td>Registered in <code>native/assemblers.py</code> and covered by suite/native tests. ROI families use the compact native ROI model boundary.</td>
+                <td><code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>rpn</code>, <code>fast_rcnn</code>, <code>fast-rcnn</code>, <code>faster_rcnn</code>, <code>faster-rcnn</code>, <code>mask_rcnn</code>, <code>mask-rcnn</code>, <code>cascade_rcnn</code>, <code>cascadercnn</code>, <code>cascade_mask_rcnn</code>, <code>cascademaskrcnn</code>, <code>grid_rcnn</code>, <code>gridrcnn</code>, <code>libra_rcnn</code>, <code>librarcnn</code>, <code>double_head_rcnn</code>, <code>doubleheadrcnn</code>, <code>dynamic_rcnn</code>, <code>dynamicrcnn</code></td>
+                <td>Registered in <code>native/assemblers.py</code> and covered by suite/native tests. The first ten ROI/proposal families have explicit native defaults and runtime-validated discovery metadata.</td>
               </tr>
               <tr>
                 <td>Native compatible, not architecture-faithful yet</td>
@@ -197,7 +197,7 @@
               </tr>
               <tr>
                 <td>Missing from package catalog/runtime</td>
-                <td>Fast R-CNN, RPN detector, Cascade Mask R-CNN, Libra R-CNN, Double-Head R-CNN, Dynamic R-CNN, Sparse R-CNN detector composition, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, CornerNet detector, DDOD, AutoAssign, NAS-FCOS</td>
+                <td>Sparse R-CNN detector composition, FSAF, FreeAnchor, GFocalV2 as <code>gfocalv2</code>, PAA, CornerNet detector, DDOD, AutoAssign, NAS-FCOS</td>
                 <td>No package-level catalog entry plus native assembler was found. Existing legacy configs, if any, do not count as support.</td>
               </tr>
               <tr>

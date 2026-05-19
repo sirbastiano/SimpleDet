@@ -73,13 +73,17 @@ def compile_native_detector_plan(spec: DetectorSpec) -> DetectorBuildPlan:
     grid_head = None
     if spec.family == "roi":
         _validate_roi_detector_spec(spec, head)
-        rpn_head = _default_head_plan("RPNHead", num_classes=1, num_anchors=1)
+        if _roi_detector_requires_rpn(spec.architecture):
+            rpn_head = _default_head_plan("RPNHead", num_classes=1, num_anchors=1)
         bbox_head = head or _default_head_plan(_default_roi_bbox_head_type(spec.architecture), num_classes=spec.num_classes)
         head = bbox_head
-        if spec.architecture == "mask_rcnn":
-            mask_head = _default_head_plan("FCNMaskHead", num_classes=spec.num_classes)
+        if spec.architecture in {"mask_rcnn", "cascade_mask_rcnn"}:
+            mask_head = _default_head_plan(_default_roi_mask_head_type(spec.architecture), num_classes=spec.num_classes)
         if spec.architecture == "grid_rcnn":
             grid_head = _default_head_plan("GridHead", num_classes=spec.num_classes, grid_size=7)
+    elif spec.family == "proposal":
+        rpn_head = head or _default_head_plan("RPNHead", num_classes=1, num_anchors=1)
+        head = rpn_head
     elif spec.family == "transformer":
         head = _compile_transformer_head_plan(spec, head, decoder)
 
@@ -105,9 +109,23 @@ def _default_head_plan(head_type: str, **params: Any) -> ComponentPlan:
 
 
 def _default_roi_bbox_head_type(architecture: str) -> str:
-    if architecture == "cascade_rcnn":
+    if architecture in {"cascade_rcnn", "cascade_mask_rcnn"}:
         return "CascadeBBoxHead"
+    if architecture == "double_head_rcnn":
+        return "DoubleConvFCBBoxHead"
+    if architecture == "dynamic_rcnn":
+        return "DynamicBBoxHead"
     return "Shared2FCBBoxHead"
+
+
+def _default_roi_mask_head_type(architecture: str) -> str:
+    if architecture == "cascade_mask_rcnn":
+        return "CascadeMaskHead"
+    return "FCNMaskHead"
+
+
+def _roi_detector_requires_rpn(architecture: str) -> bool:
+    return architecture != "fast_rcnn"
 
 
 _TRANSFORMER_DEFAULT_HEAD_BY_ARCHITECTURE = {
@@ -167,11 +185,11 @@ def _compile_transformer_head_plan(
 
 
 def _validate_roi_detector_spec(spec: DetectorSpec, head: ComponentPlan | None) -> None:
-    if spec.architecture == "mask_rcnn":
+    if spec.architecture in {"mask_rcnn", "cascade_mask_rcnn"}:
         if head is None or not bool(head.params.get("with_mask", False)):
             raise ValueError(
-                "mask_rcnn build-plan validation requires a mask head; use "
-                "build_detector('mask_rcnn', ...) defaults or pass a head with with_mask=True."
+                f"{spec.architecture} build-plan validation requires a mask-capable ROI head; use "
+                f"build_detector('{spec.architecture}', ...) defaults or pass a head with with_mask=True."
             )
 
 

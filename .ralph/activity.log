@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 04:18:59 | run=20260518-183418-2827287 | iter=21 | mode=build | story=US-021 | duration=1677s | status=success
 - 2026-05-19 03:50:57 | run=20260518-183418-2827287 | iter=20 | mode=build | story=US-020 | duration=1822s | status=success
 - 2026-05-19 03:20:32 | run=20260518-183418-2827287 | iter=19 | mode=build | story=US-019 | duration=1437s | status=success
 - 2026-05-19 02:56:29 | run=20260518-183418-2827287 | iter=18 | mode=build | story=US-018 | duration=1242s | status=success
@@ -185,3 +186,10 @@
 [2026-05-19 04:13:29] US-021 verification completed: full unittest gate, make test, docs-check, verify-dist, build, post-build verify-dist, CPU query tests, CPU+timm example, and diff check passed
 [2026-05-19 04:16:52] US-021 pre-commit security performance regression review completed: no file/network/secret handling added; query runtime uses bounded per-image feature/head loops and no-grad prediction; affected/full/build gates and real CPU query example passed
 [2026-05-19 04:18:13] US-021 progress log updated with implementation commit da9c4af and verification details
+[2026-05-19 04:18:57] ITERATION 21 end (duration=1677s)
+[2026-05-19 04:19:02] ITERATION 22 start (mode=build story=US-022)
+[2026-05-19 04:21:04] Start work on US-022 register first ten detector families
+[2026-05-19 04:33:44] US-022 code changes applied: first ten detector families registered with native defaults, CLI validation status, docs, and focused smoke tests
+[2026-05-19 04:36:05] US-022 verification completed: focused tests, CPU tensor smoke, full unittest, make test, docs-check, verify-dist, build, post-build verify-dist, and diff check passed
+[2026-05-19 04:37:38] US-022 final verification passed after metadata cleanup: full unittest, docs-check, verify-dist, build, and post-build verify-dist
+[2026-05-19 04:38:26] US-022 pre-commit security performance regression review completed: no file/network/secret handling added; proposal/top-k paths bounded; full gates and CPU tensor smokes passed; legacy manual ROI fallback preserved

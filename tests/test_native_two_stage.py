@@ -8,9 +8,18 @@ from native_tensor_contracts import make_cpu_detector_smoke_batch, require_torch
 
 
 class NativeTwoStageDetectorTests(unittest.TestCase):
-    def _components(self, torch):
+    def _components(self, torch, architecture="faster_rcnn"):
         from simpledet.native.assemblers import NativeModelComponents
-        from simpledet.native.heads import RPNHead, Shared2FCBBoxHead
+        from simpledet.native.heads import (
+            CascadeBBoxHead,
+            CascadeMaskHead,
+            DoubleConvFCBBoxHead,
+            DynamicBBoxHead,
+            FCNMaskHead,
+            GridHead,
+            RPNHead,
+            Shared2FCBBoxHead,
+        )
 
         class _Backbone(torch.nn.Module):
             def forward(self, images):
@@ -22,19 +31,89 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
             def forward(self, features):
                 return OrderedDict([("0", features[0])])
 
+        bbox_head_cls = {
+            "cascade_rcnn": CascadeBBoxHead,
+            "cascade_mask_rcnn": CascadeBBoxHead,
+            "double_head_rcnn": DoubleConvFCBBoxHead,
+            "dynamic_rcnn": DynamicBBoxHead,
+        }.get(architecture, Shared2FCBBoxHead)
+        bbox_head = bbox_head_cls(
+            in_channels=4,
+            num_classes=3,
+            roi_feat_size=7,
+            fc_out_channels=16,
+            conv_out_channels=8,
+        )
+        rpn_head = None
+        if architecture != "fast_rcnn":
+            rpn_head = RPNHead(in_channels=4, num_classes=1, num_anchors=1, num_convs=1)
+        mask_head = None
+        if architecture == "mask_rcnn":
+            mask_head = FCNMaskHead(
+                in_channels=4,
+                num_classes=3,
+                roi_feat_size=14,
+                conv_out_channels=8,
+            )
+        if architecture == "cascade_mask_rcnn":
+            mask_head = CascadeMaskHead(
+                in_channels=4,
+                num_classes=3,
+                roi_feat_size=14,
+                conv_out_channels=8,
+            )
+        grid_head = None
+        if architecture == "grid_rcnn":
+            grid_head = GridHead(
+                in_channels=4,
+                num_classes=3,
+                roi_feat_size=14,
+                conv_out_channels=8,
+                grid_size=7,
+            )
         return NativeModelComponents(
-            plan=SimpleNamespace(architecture="faster_rcnn", family="roi", head=None),
+            plan=SimpleNamespace(architecture=architecture, family="roi", head=None),
             backbone=_Backbone(),
             backbone_spec=SimpleNamespace(feature_channels=(4,)),
             neck=_Neck(),
             neck_spec=SimpleNamespace(out_channels=4, num_outs=1),
-            rpn_head=RPNHead(in_channels=4, num_classes=1, num_anchors=1, num_convs=1),
-            bbox_head=Shared2FCBBoxHead(
-                in_channels=4,
-                num_classes=3,
-                roi_feat_size=7,
-                fc_out_channels=16,
-            ),
+            rpn_head=rpn_head,
+            rpn_head_spec=SimpleNamespace(name="RPNHead") if rpn_head is not None else None,
+            bbox_head=bbox_head,
+            bbox_head_spec=SimpleNamespace(name=bbox_head.__class__.__name__),
+            head=bbox_head,
+            head_spec=SimpleNamespace(name=bbox_head.__class__.__name__),
+            mask_head=mask_head,
+            mask_head_spec=SimpleNamespace(name=mask_head.__class__.__name__) if mask_head is not None else None,
+            grid_head=grid_head,
+            grid_head_spec=SimpleNamespace(name="GridHead") if grid_head is not None else None,
+        )
+
+    def _rpn_components(self, torch):
+        from simpledet.native.assemblers import NativeModelComponents
+        from simpledet.native.heads import RPNHead
+
+        class _Backbone(torch.nn.Module):
+            def forward(self, images):
+                feature = images.mean(dim=1, keepdim=True)
+                feature = torch.nn.functional.adaptive_avg_pool2d(feature, (4, 4))
+                return (feature.expand(-1, 4, -1, -1).contiguous(),)
+
+        class _Neck(torch.nn.Module):
+            def forward(self, features):
+                return (features[0],)
+
+        rpn_head = RPNHead(in_channels=4, num_classes=1, num_anchors=1, num_convs=1)
+        return NativeModelComponents(
+            plan=SimpleNamespace(architecture="rpn", family="proposal", head=None),
+            backbone=_Backbone(),
+            backbone_spec=SimpleNamespace(feature_channels=(4,)),
+            neck=_Neck(),
+            neck_spec=SimpleNamespace(out_channels=4, num_outs=1),
+            head=rpn_head,
+            head_spec=SimpleNamespace(name="RPNHead"),
+            rpn_head=rpn_head,
+            rpn_head_spec=SimpleNamespace(name="RPNHead"),
         )
 
     def _fake_torchvision_modules(self, torch):
@@ -119,6 +198,99 @@ class NativeTwoStageDetectorTests(unittest.TestCase):
         self.assertEqual(predictions[0]["boxes"].shape[-1], 4)
         self.assertEqual(predictions[0]["boxes"].shape[0], predictions[0]["scores"].shape[0])
         self.assertEqual(predictions[0]["boxes"].shape[0], predictions[0]["labels"].shape[0])
+
+    def test_first_ten_roi_detector_families_run_tensor_smoke_paths(self):
+        torch = require_torch()
+        from simpledet.native.modeling import build_detector
+        from simpledet.native.roi import TwoStageDetector
+
+        architectures = (
+            "fast_rcnn",
+            "mask_rcnn",
+            "cascade_rcnn",
+            "cascade_mask_rcnn",
+            "grid_rcnn",
+            "libra_rcnn",
+            "double_head_rcnn",
+            "dynamic_rcnn",
+        )
+        batch = make_cpu_detector_smoke_batch(
+            batch_size=1,
+            image_size=(16, 16),
+            boxes_per_image=1,
+            num_classes=3,
+        )
+        for architecture in architectures:
+            with self.subTest(architecture=architecture):
+                components = self._components(torch, architecture=architecture)
+                with patch.dict(sys.modules, self._fake_torchvision_modules(torch)), patch(
+                    "simpledet.native.assemblers.build_native_components",
+                    return_value=components,
+                ):
+                    model = build_detector(name=architecture, num_classes=3, pretrained=False)
+
+                self.assertIsInstance(model, TwoStageDetector)
+                self.assertEqual(model.roi_variant, architecture)
+                losses = model(batch.images, batch.targets)
+                self.assertIn("loss_roi_classifier", losses)
+                self.assertIn("loss_roi_box_reg", losses)
+                self.assertIn("loss_total", losses)
+                if architecture == "fast_rcnn":
+                    self.assertNotIn("loss_rpn_objectness", losses)
+                    self.assertEqual(model.proposal_source, "external")
+                else:
+                    self.assertIn("loss_rpn_objectness", losses)
+                if architecture in {"mask_rcnn", "cascade_mask_rcnn"}:
+                    self.assertIn("loss_mask", losses)
+                if architecture == "grid_rcnn":
+                    self.assertIn("loss_grid", losses)
+                for loss in losses.values():
+                    self.assertEqual(tuple(loss.shape), ())
+                    self.assertTrue(bool(torch.isfinite(loss)))
+
+                model.eval()
+                with torch.no_grad():
+                    predictions = model(batch.images)
+                self.assertEqual(len(predictions), 1)
+                self.assertIn("boxes", predictions[0])
+                self.assertIn("scores", predictions[0])
+                self.assertIn("labels", predictions[0])
+
+    def test_rpn_detector_runs_tensor_smoke_paths(self):
+        torch = require_torch()
+        from simpledet.native.modeling import build_detector
+        from simpledet.native.modeling import SingleStageDetector
+
+        batch = make_cpu_detector_smoke_batch(
+            batch_size=1,
+            image_size=(16, 16),
+            boxes_per_image=1,
+            num_classes=3,
+        )
+        components = self._rpn_components(torch)
+
+        with patch(
+            "simpledet.native.assemblers.build_native_components",
+            return_value=components,
+        ):
+            model = build_detector(name="rpn", num_classes=3, pretrained=False)
+
+        self.assertIsInstance(model, SingleStageDetector)
+        losses = model(batch.images, batch.targets)
+        self.assertEqual(
+            set(losses),
+            {"loss_rpn_objectness", "loss_rpn_box_reg", "loss_total"},
+        )
+        for loss in losses.values():
+            self.assertEqual(tuple(loss.shape), ())
+            self.assertTrue(bool(torch.isfinite(loss)))
+
+        model.eval()
+        with torch.no_grad():
+            predictions = model(batch.images)
+        self.assertEqual(len(predictions), 1)
+        self.assertEqual(set(predictions[0]), {"boxes", "scores", "labels"})
+        self.assertEqual(predictions[0]["boxes"].shape[-1], 4)
 
     def test_mask_rcnn_build_plan_requires_mask_head(self):
         from simpledet.suite import build_detector, build_head, compile_native_detector_plan

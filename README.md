@@ -52,7 +52,7 @@ SimpleDet is designed to make detector development predictable and production-fr
 | Execution | Native PyTorch Lightning training, inference, and evaluation path |
 | Adaptation | Automatic channel/shape alignment during model compilation |
 | Packaging | Project-level run orchestration and validation commands |
-| Catalog support | `retinanet`, `retina`, `fcos`, `atss`, `gfl`, `vfnet`, `fovea`, `foveabox`, `reppoints`, `yolof`, `centernet`, `faster_rcnn`, `mask_rcnn`, `grid_rcnn`, `cascade_rcnn` |
+| Catalog support | `retinanet`, `retina`, `fcos`, `atss`, `gfl`, `vfnet`, `fovea`, `foveabox`, `reppoints`, `yolof`, `centernet`, `rpn`, `fast_rcnn`, `faster_rcnn`, `mask_rcnn`, `cascade_rcnn`, `cascade_mask_rcnn`, `grid_rcnn`, `libra_rcnn`, `double_head_rcnn`, `dynamic_rcnn` |
 
 ## Quick installation
 

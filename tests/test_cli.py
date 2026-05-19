@@ -31,8 +31,14 @@ class TestCli(unittest.TestCase):
         fake_nn.Sequential = lambda *layers: object()
         fake_nn.Conv2d = lambda *args, **kwargs: object()
         fake_nn.ConvTranspose2d = lambda *args, **kwargs: object()
+        fake_nn.Embedding = lambda *args, **kwargs: types.SimpleNamespace(weight=object())
         fake_nn.Identity = lambda *args, **kwargs: object()
+        fake_nn.Linear = lambda *args, **kwargs: object()
         fake_nn.ReLU = lambda *args, **kwargs: object()
+        fake_nn.TransformerEncoderLayer = lambda *args, **kwargs: object()
+        fake_nn.TransformerDecoderLayer = lambda *args, **kwargs: object()
+        fake_nn.TransformerEncoder = lambda *args, **kwargs: object()
+        fake_nn.TransformerDecoder = lambda *args, **kwargs: object()
         fake_torch.nn = fake_nn
         fake_numpy.random = types.SimpleNamespace(seed=lambda *_args, **_kwargs: None)
         fake_numpy.ndarray = object
@@ -74,6 +80,31 @@ class TestCli(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         patched.assert_called_once()
+
+    def test_main_accepts_list_detectors_command_alias(self):
+        output = io.StringIO()
+        with patch("simpledet.cli._list_detectors", return_value=0) as patched:
+            with redirect_stdout(output):
+                exit_code = main(["list-detectors"])
+
+        self.assertEqual(exit_code, 0)
+        patched.assert_called_once()
+
+    def test_list_detectors_prints_native_validation_status(self):
+        from simpledet.cli import _list_detectors
+
+        output = io.StringIO()
+        with patch.dict(sys.modules, self._fake_runtime_modules()):
+            with redirect_stdout(output):
+                exit_code = _list_detectors()
+
+        self.assertEqual(exit_code, 0)
+        lines = output.getvalue().splitlines()
+        self.assertEqual(lines[0], "name\tfamily\tnative_validation")
+        cascade = [line for line in lines if line.startswith("cascade_rcnn\t")]
+        grid = [line for line in lines if line.startswith("grid_rcnn\t")]
+        self.assertEqual(cascade, ["cascade_rcnn\troi\truntime_validated"])
+        self.assertEqual(grid, ["grid_rcnn\troi\truntime_validated"])
 
     def test_main_lists_encoders(self):
         output = io.StringIO()

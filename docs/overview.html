@@ -56,7 +56,7 @@
           <p>This is where you describe the architecture itself: backbone, neck, head or decoder, and class count.</p>
           <ul>
             <li><code>simpledet.suite</code> defines <code>EncoderSpec</code>, <code>NeckSpec</code>, <code>HeadSpec</code>, <code>DecoderSpec</code>, and <code>DetectorSpec</code>.</li>
-            <li>Supported native architectures: <code>retinanet</code>, <code>retina</code>, <code>fcos</code>, <code>atss</code>, <code>gfl</code>, <code>vfnet</code>, <code>fovea</code>, <code>foveabox</code>, <code>reppoints</code>, <code>yolof</code>, <code>centernet</code>, <code>faster_rcnn</code>, <code>mask_rcnn</code>, <code>grid_rcnn</code>, and <code>cascade_rcnn</code>.</li>
+            <li>Supported native architectures include dense families such as <code>retinanet</code>, <code>fcos</code>, <code>vfnet</code>, <code>fovea</code>, <code>reppoints</code>, <code>yolof</code>, and <code>centernet</code>, plus first-ten ROI/proposal families such as <code>rpn</code>, <code>fast_rcnn</code>, <code>faster_rcnn</code>, <code>mask_rcnn</code>, <code>cascade_rcnn</code>, <code>cascade_mask_rcnn</code>, <code>grid_rcnn</code>, <code>libra_rcnn</code>, <code>double_head_rcnn</code>, and <code>dynamic_rcnn</code>.</li>
             <li>Backbone sources: <code>timm</code> encoders or explicit registry-backed custom backbones.</li>
           </ul>
           <p><strong>Start here if:</strong> you want to decide what detector to run without manually editing several channel and feature-map fields.</p>

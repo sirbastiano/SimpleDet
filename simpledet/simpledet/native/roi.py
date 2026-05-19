@@ -463,7 +463,9 @@ class TwoStageDetector(nn.Module):
         grid_roi_pool: nn.Module | None = None,
         grid_head: nn.Module | None = None,
         roi_variant: str = "faster_rcnn",
+        proposal_source: str = "rpn",
         cascade_num_stages: int = 1,
+        roi_sample_size: int = 2,
         grid_size: int | None = None,
     ) -> None:
         super().__init__()
@@ -483,16 +485,20 @@ class TwoStageDetector(nn.Module):
         self.core_spec = core_spec
         self.with_mask = mask_roi_pool is not None or mask_head is not None
         self.roi_variant = str(roi_variant)
+        requested_proposal_source = str(proposal_source).strip().lower() or "rpn"
+        if self.rpn_head is None and requested_proposal_source == "rpn":
+            requested_proposal_source = "learned"
+        self.proposal_source = requested_proposal_source
         self.cascade_num_stages = max(1, int(cascade_num_stages))
         self.grid_size = grid_size
         self.proposal_iou_threshold = 0.5
-        self.roi_sample_size = 2
+        self.roi_sample_size = max(1, int(roi_sample_size))
         self.postprocess_topk = 4
         hidden_channels = max(128, int(in_channels))
         self.proposal_head = None
         self.proposal_objectness = None
         self.proposal_regressor = None
-        if self.rpn_head is None:
+        if self.rpn_head is None and self.proposal_source == "learned":
             self.proposal_head = nn.Sequential(
                 nn.Linear(int(in_channels), hidden_channels),
                 nn.ReLU(),
@@ -543,7 +549,12 @@ class TwoStageDetector(nn.Module):
         losses: list[dict[str, torch.Tensor]] = []
         for image_index, image in enumerate(images):
             features = self.extract_features(image)
-            anchors, anchor_tensor, refined_proposals, proposal_logits = self._run_rpn_stage(image, features)
+            target = targets[image_index] if targets is not None else None
+            anchors, anchor_tensor, refined_proposals, proposal_logits = self._run_rpn_stage(
+                image,
+                features,
+                target=target,
+            )
             image_shapes = [self._image_shape(image)]
             proposal_scores = self._proposal_scores(proposal_logits)
             if targets is not None:
@@ -671,7 +682,6 @@ class TwoStageDetector(nn.Module):
     ):
         proposal_reference = anchors[0] if len(anchors) > 0 else sampled_proposals
         target_box = self._coerce_box(self._first_target_box(target, proposal_reference), reference=class_logits)
-        rpn_losses = self._rpn_losses(proposal_logits, anchors, target_box)
         roi_losses = self._roi_losses(
             sampled_proposals=sampled_proposals,
             sampled_labels=sampled_labels,
@@ -679,7 +689,9 @@ class TwoStageDetector(nn.Module):
             box_deltas=box_deltas,
             target_box=target_box,
         )
-        losses = {**rpn_losses, **roi_losses}
+        losses = dict(roi_losses)
+        if self.rpn_head is not None or self.proposal_source == "learned":
+            losses.update(self._rpn_losses(proposal_logits, anchors, target_box))
         if self.with_mask:
             losses["loss_mask"] = mask_loss if mask_loss is not None else self._zero_loss_like(roi_losses["loss_roi_classifier"])
         if self.grid_head is not None:
@@ -766,7 +778,7 @@ class TwoStageDetector(nn.Module):
                     )
         return anchors or self._heuristic_proposals(image)
 
-    def _run_rpn_stage(self, image, features):
+    def _run_rpn_stage(self, image, features, *, target=None):
         anchors = self._generate_anchor_proposals(image, features)
         anchor_tensor = self._boxes_to_tensor(anchors, reference=image)
         if self.rpn_head is not None:
@@ -778,6 +790,20 @@ class TwoStageDetector(nn.Module):
                 anchor_tensor = anchor_tensor[:matched_count]
             refined_proposals = self._decode_boxes(anchor_tensor, proposal_deltas)
             return anchors, anchor_tensor, refined_proposals, proposal_logits
+        if self.proposal_source in {"external", "heuristic"}:
+            if target is not None and "proposals" in target and _row_count(target["proposals"]) > 0:
+                refined_proposals = self._coerce_proposal_tensor(target["proposals"], reference=image)
+            elif target is not None and "boxes" in target and _row_count(target["boxes"]) > 0:
+                refined_proposals = self._coerce_proposal_tensor(target["boxes"], reference=image)
+            else:
+                refined_proposals = anchor_tensor
+            proposal_logits = refined_proposals.new_zeros((int(refined_proposals.shape[0]),))
+            proposal_rows = [tuple(float(value) for value in row.tolist()) for row in refined_proposals]
+            return proposal_rows, refined_proposals, refined_proposals, proposal_logits
+        if self.proposal_head is None or self.proposal_objectness is None or self.proposal_regressor is None:
+            raise ValueError(
+                f"Two-stage detector '{self.roi_variant}' requires a native RPN head or explicit proposal source."
+            )
         image_shapes = [self._image_shape(image)]
         pooled = self._roi_pool(self.box_roi_pool, features, [anchor_tensor], image_shapes)
         pooled = pooled.mean(dim=(-1, -2))
@@ -1302,6 +1328,21 @@ class TwoStageDetector(nn.Module):
                 kwargs["device"] = device
             return value.to(**kwargs)
         return self._boxes_to_tensor([self._box_to_tuple(value)], reference=reference)[0]
+
+    def _coerce_proposal_tensor(self, value, *, reference):
+        if hasattr(value, "to") and hasattr(value, "shape"):
+            kwargs = {}
+            dtype = getattr(reference, "dtype", None) or self._float_dtype()
+            if dtype is not None:
+                kwargs["dtype"] = dtype
+            device = getattr(reference, "device", None)
+            if device is not None:
+                kwargs["device"] = device
+            proposal_tensor = value.to(**kwargs)
+            if proposal_tensor.dim() != 2 or int(proposal_tensor.shape[-1]) != 4:
+                raise ValueError("Fast R-CNN proposals must have shape (N, 4).")
+            return proposal_tensor
+        return self._boxes_to_tensor(value, reference=reference)
 
     def _scalar_tensor(self, value, *, reference):
         kwargs = {}
@@ -1881,17 +1922,20 @@ def build_native_roi_detector(factory_name: str, components, *, num_classes: int
         "mask_head": components.mask_head,
         "grid_head": components.grid_head,
         "roi_variant": normalized_factory,
+        "proposal_source": "external" if normalized_factory == "fast_rcnn" else "rpn",
         "box_roi_pool": MultiScaleRoIAlign(
             featmap_names=featmap_names,
             output_size=core_spec.box_output_size,
             sampling_ratio=core_spec.sampling_ratio,
         ),
     }
-    if normalized_factory == "cascade_rcnn":
+    if normalized_factory in {"cascade_rcnn", "cascade_mask_rcnn"}:
         kwargs["cascade_num_stages"] = 3
+    if normalized_factory == "libra_rcnn":
+        kwargs["roi_sample_size"] = 4
     if normalized_factory == "grid_rcnn":
         kwargs["grid_size"] = 7
-    if normalized_factory == "mask_rcnn":
+    if normalized_factory in {"mask_rcnn", "cascade_mask_rcnn"}:
         kwargs["mask_roi_pool"] = MultiScaleRoIAlign(
             featmap_names=featmap_names,
             output_size=core_spec.mask_output_size,
@@ -1908,6 +1952,8 @@ def build_native_roi_detector(factory_name: str, components, *, num_classes: int
 
 def _normalize_roi_factory_name(factory_name: str) -> str:
     compact = "".join(char for char in str(factory_name).strip().lower() if char.isalnum())
+    if compact == "fastrcnn":
+        return "fast_rcnn"
     if compact == "fasterrcnn":
         return "faster_rcnn"
     if compact == "maskrcnn":
@@ -1916,6 +1962,14 @@ def _normalize_roi_factory_name(factory_name: str) -> str:
         return "grid_rcnn"
     if compact == "cascadercnn":
         return "cascade_rcnn"
+    if compact == "cascademaskrcnn":
+        return "cascade_mask_rcnn"
+    if compact == "librarcnn":
+        return "libra_rcnn"
+    if compact == "doubleheadrcnn":
+        return "double_head_rcnn"
+    if compact == "dynamicrcnn":
+        return "dynamic_rcnn"
     return str(factory_name).strip().lower().replace("-", "_")
 
 

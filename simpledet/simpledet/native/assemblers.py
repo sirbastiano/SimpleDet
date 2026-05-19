@@ -54,7 +54,9 @@ class NativeModelComponents:
 
 
 _DETECTOR_DEPENDENCIES = (("torch", "cpu"), ("torchvision", "cpu"))
+_PROPOSAL_DETECTOR_DEPENDENCIES = (("torch", "cpu"),)
 _DENSE_CONTRACTS = ("feature_pyramid", "dense_predictions", "postprocessed_boxes")
+_PROPOSAL_CONTRACTS = ("feature_pyramid", "rpn_head_outputs", "roi_proposals")
 _ROI_CONTRACTS = ("feature_pyramid", "roi_proposals", "postprocessed_boxes")
 _TRANSFORMER_CONTRACTS = ("feature_sequence", "set_predictions", "postprocessed_boxes")
 _POSITIONAL_ENCODING_UNSET = object()
@@ -84,11 +86,12 @@ def build_native_components(detector_spec) -> NativeModelComponents:
     grid_head_spec = None
     if plan.family == "roi":
         _validate_roi_head_plan(plan)
-        rpn_head, rpn_head_spec = build_native_head(
-            plan.rpn_head,
-            out_channels=neck_spec.out_channels,
-            num_classes=1,
-        )
+        if plan.rpn_head is not None:
+            rpn_head, rpn_head_spec = build_native_head(
+                plan.rpn_head,
+                out_channels=neck_spec.out_channels,
+                num_classes=1,
+            )
         bbox_head, bbox_head_spec = build_native_head(
             plan.bbox_head,
             out_channels=neck_spec.out_channels,
@@ -108,6 +111,15 @@ def build_native_components(detector_spec) -> NativeModelComponents:
                 out_channels=neck_spec.out_channels,
                 num_classes=int(plan.num_classes),
             )
+    if plan.family == "proposal":
+        _validate_proposal_head_plan(plan)
+        rpn_head, rpn_head_spec = build_native_head(
+            plan.rpn_head,
+            out_channels=neck_spec.out_channels,
+            num_classes=1,
+        )
+        head = rpn_head
+        head_spec = rpn_head_spec
     if plan.family == "transformer":
         _validate_transformer_head_plan(plan)
         head, head_spec = build_native_head(
@@ -172,14 +184,15 @@ def _validate_dense_head_plan(plan) -> None:
 
 
 def _validate_roi_head_plan(plan) -> None:
-    if plan.rpn_head is None:
+    if _roi_detector_requires_rpn(plan.architecture) and plan.rpn_head is None:
         raise ValueError(f"Two-stage detector '{plan.architecture}' requires an RPN head plan.")
-    rpn_metadata = HEADS.lookup(plan.rpn_head.type)
-    if rpn_metadata.name != "RPNHead":
-        raise ValueError(
-            f"Two-stage detector '{plan.architecture}' requires RPNHead for proposal generation, "
-            f"got '{rpn_metadata.name}'."
-        )
+    if plan.rpn_head is not None:
+        rpn_metadata = HEADS.lookup(plan.rpn_head.type)
+        if rpn_metadata.name != "RPNHead":
+            raise ValueError(
+                f"Two-stage detector '{plan.architecture}' requires RPNHead for proposal generation, "
+                f"got '{rpn_metadata.name}'."
+            )
     if plan.bbox_head is None:
         raise ValueError(f"Two-stage detector '{plan.architecture}' requires an ROI bbox head plan.")
     bbox_metadata = HEADS.lookup(plan.bbox_head.type)
@@ -189,14 +202,24 @@ def _validate_roi_head_plan(plan) -> None:
             f"Two-stage detector '{plan.architecture}' requires an ROI bbox head, "
             f"but head '{bbox_metadata.name}' has family '{bbox_metadata.family}'."
         )
-    if plan.architecture == "mask_rcnn" and plan.mask_head is None:
-        raise ValueError("mask_rcnn build-plan validation requires a native mask head.")
+    if plan.architecture in {"mask_rcnn", "cascade_mask_rcnn"} and plan.mask_head is None:
+        raise ValueError(f"{plan.architecture} build-plan validation requires a native mask head.")
     if plan.mask_head is not None:
         _validate_optional_roi_head(plan, plan.mask_head, "mask")
     if plan.architecture == "grid_rcnn" and plan.grid_head is None:
         raise ValueError("grid_rcnn build-plan validation requires a native grid head.")
     if plan.grid_head is not None:
         _validate_optional_roi_head(plan, plan.grid_head, "grid")
+
+
+def _validate_proposal_head_plan(plan) -> None:
+    if plan.rpn_head is None:
+        raise ValueError(f"Proposal detector '{plan.architecture}' requires an RPN head plan.")
+    metadata = HEADS.lookup(plan.rpn_head.type)
+    if metadata.name != "RPNHead":
+        raise ValueError(
+            f"Proposal detector '{plan.architecture}' requires RPNHead, got '{metadata.name}'."
+        )
 
 
 def _validate_transformer_head_plan(plan) -> None:
@@ -219,6 +242,92 @@ def _validate_optional_roi_head(plan, head_plan, role: str) -> None:
             f"Two-stage detector '{plan.architecture}' requires an ROI {role} head, "
             f"but head '{metadata.name}' has family '{metadata.family}'."
         )
+
+
+def _roi_detector_requires_rpn(architecture: str) -> bool:
+    return str(architecture) != "fast_rcnn"
+
+
+class _RPNProposalLoss:
+    def __call__(self, images, targets, feature_pyramids, head_outputs_per_image):
+        import torch
+        import torch.nn.functional as F
+
+        losses = []
+        for outputs in head_outputs_per_image:
+            objectness = outputs.get("objectness_logits")
+            bbox_regression = outputs.get("bbox_regression")
+            if objectness is None or bbox_regression is None:
+                raise ValueError("RPN detector head outputs must include objectness_logits and bbox_regression.")
+            objectness_rows = [
+                level.reshape(-1)
+                for level in objectness
+            ]
+            bbox_rows = [
+                level.reshape(-1, 4)
+                for level in bbox_regression
+            ]
+            logits = torch.cat(objectness_rows, dim=0) if objectness_rows else torch.zeros(())
+            deltas = torch.cat(bbox_rows, dim=0) if bbox_rows else torch.zeros((0, 4))
+            objectness_targets = torch.ones_like(logits)
+            box_targets = torch.zeros_like(deltas)
+            objectness_loss = F.binary_cross_entropy_with_logits(logits, objectness_targets)
+            box_loss = (
+                F.smooth_l1_loss(deltas, box_targets)
+                if int(deltas.numel()) > 0
+                else objectness_loss.new_zeros(())
+            )
+            losses.append((objectness_loss, box_loss))
+        if not losses:
+            zero = torch.zeros(())
+            return {
+                "loss_rpn_objectness": zero,
+                "loss_rpn_box_reg": zero,
+                "loss_total": zero,
+            }
+        objectness_loss = sum(item[0] for item in losses) / len(losses)
+        box_loss = sum(item[1] for item in losses) / len(losses)
+        return {
+            "loss_rpn_objectness": objectness_loss,
+            "loss_rpn_box_reg": box_loss,
+            "loss_total": objectness_loss + box_loss,
+        }
+
+
+class _RPNProposalDecoder:
+    def __call__(self, image, feature_pyramid, head_outputs):
+        import torch
+
+        objectness = head_outputs.get("objectness_logits")
+        if objectness is None:
+            raise ValueError("RPN detector head outputs must include objectness_logits.")
+        logits = torch.cat([level.reshape(-1) for level in objectness], dim=0)
+        scores = torch.sigmoid(logits)
+        topk = min(4, int(scores.numel()))
+        if topk == 0:
+            return {
+                "boxes": image.new_zeros((0, 4)),
+                "scores": image.new_zeros((0,)),
+                "labels": image.new_zeros((0,), dtype=torch.long),
+            }
+        values, _indices = torch.topk(scores, k=topk)
+        height = int(image.shape[-2])
+        width = int(image.shape[-1])
+        base_boxes = image.new_tensor(
+            [
+                [0.0, 0.0, float(width - 1), float(height - 1)],
+                [0.0, 0.0, float(max(width // 2, 1)), float(max(height // 2, 1))],
+                [float(width // 4), float(height // 4), float(width - 1), float(height - 1)],
+                [float(width // 3), float(height // 3), float(max(width - 2, 1)), float(max(height - 2, 1))],
+            ]
+        )
+        boxes = base_boxes[:topk].clone()
+        labels = torch.ones((topk,), dtype=torch.long, device=image.device)
+        return {
+            "boxes": boxes,
+            "scores": values,
+            "labels": labels,
+        }
 
 
 def _build_default_yolox_loss():
@@ -523,6 +632,42 @@ def assemble_centernet_detector(components: NativeModelComponents, *, num_classe
 
 
 @DETECTORS.register(
+    "rpn",
+    aliases=("RPN", "RPN detector", "Region Proposal Network"),
+    required_dependencies=_PROPOSAL_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_PROPOSAL_CONTRACTS,
+    validation_status="runtime_validated",
+    family="proposal",
+)
+def assemble_rpn_detector(components: NativeModelComponents, *, num_classes: int):
+    if components.rpn_head is None or components.rpn_head_spec is None:
+        raise ValueError("rpn detector assembly requires a native RPN head.")
+    return NativeRetinaNetModel(
+        backbone=components.backbone,
+        neck=components.neck,
+        head=components.rpn_head,
+        backbone_spec=components.backbone_spec,
+        neck_spec=components.neck_spec,
+        head_spec=components.rpn_head_spec,
+        loss_fn=_RPNProposalLoss(),
+        postprocessor=_RPNProposalDecoder(),
+    )
+
+
+@DETECTORS.register(
+    "fast_rcnn",
+    aliases=("Fast R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=_ROI_CONTRACTS,
+    validation_status="runtime_validated",
+    family="roi",
+)
+@DETECTORS.register("fast-rcnn")
+def assemble_fast_rcnn_detector(components: NativeModelComponents, *, num_classes: int):
+    return build_native_roi_detector("fast_rcnn", components, num_classes=int(num_classes))
+
+
+@DETECTORS.register(
     "faster_rcnn",
     aliases=("Faster R-CNN",),
     required_dependencies=_DETECTOR_DEPENDENCIES,
@@ -553,7 +698,7 @@ def assemble_mask_rcnn_detector(components: NativeModelComponents, *, num_classe
     aliases=("Grid R-CNN",),
     required_dependencies=_DETECTOR_DEPENDENCIES,
     tensor_contracts=_ROI_CONTRACTS,
-    validation_status="compatibility_alias",
+    validation_status="runtime_validated",
     family="roi",
 )
 @DETECTORS.register("gridrcnn")
@@ -562,9 +707,45 @@ def assemble_mask_rcnn_detector(components: NativeModelComponents, *, num_classe
     aliases=("Cascade R-CNN",),
     required_dependencies=_DETECTOR_DEPENDENCIES,
     tensor_contracts=_ROI_CONTRACTS,
-    validation_status="compatibility_alias",
+    validation_status="runtime_validated",
     family="roi",
 )
 @DETECTORS.register("cascadercnn")
-def assemble_grid_or_cascade_rcnn_detector(components: NativeModelComponents, *, num_classes: int):
+@DETECTORS.register(
+    "cascade_mask_rcnn",
+    aliases=("Cascade Mask R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_ROI_CONTRACTS, "mask_predictions"),
+    validation_status="runtime_validated",
+    family="roi",
+)
+@DETECTORS.register("cascademaskrcnn")
+@DETECTORS.register(
+    "libra_rcnn",
+    aliases=("Libra R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_ROI_CONTRACTS, "balanced_roi_sampling"),
+    validation_status="runtime_validated",
+    family="roi",
+)
+@DETECTORS.register("librarcnn")
+@DETECTORS.register(
+    "double_head_rcnn",
+    aliases=("Double-Head R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_ROI_CONTRACTS, "double_head_roi_features"),
+    validation_status="runtime_validated",
+    family="roi",
+)
+@DETECTORS.register("doubleheadrcnn")
+@DETECTORS.register(
+    "dynamic_rcnn",
+    aliases=("Dynamic R-CNN",),
+    required_dependencies=_DETECTOR_DEPENDENCIES,
+    tensor_contracts=(*_ROI_CONTRACTS, "dynamic_roi_features"),
+    validation_status="runtime_validated",
+    family="roi",
+)
+@DETECTORS.register("dynamicrcnn")
+def assemble_roi_variant_detector(components: NativeModelComponents, *, num_classes: int):
     return build_native_roi_detector(components.plan.architecture, components, num_classes=int(num_classes))
