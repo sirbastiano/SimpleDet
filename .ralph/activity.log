@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-05-19 09:14:35 | run=20260518-183418-2827287 | iter=34 | mode=build | story=US-034 | duration=884s | status=success
 - 2026-05-19 08:59:38 | run=20260518-183418-2827287 | iter=33 | mode=build | story=US-033 | duration=1588s | status=success
 - 2026-05-19 08:33:07 | run=20260518-183418-2827287 | iter=32 | mode=build | story=US-032 | duration=1389s | status=success
 - 2026-05-19 08:09:53 | run=20260518-183418-2827287 | iter=31 | mode=build | story=US-031 | duration=993s | status=success
@@ -294,3 +295,9 @@
 [2026-05-19 09:09:46] US-034 verification completed: focused CLI, full unittest, docs-check, build, verify-dist, doctor strict/non-strict
 [2026-05-19 09:10:16] US-034 pre-commit security performance regression review completed: import-spec checks only, bounded dependency list, workdir temp file cleanup, CLI regressions covered
 [2026-05-19 09:13:40] US-034 progress log updated with commit bfdeb68 and verification outcomes
+[2026-05-19 09:14:27] ITERATION 34 end (duration=884s)
+[2026-05-19 09:14:39] ITERATION 35 start (mode=build story=US-035)
+[2026-05-19 09:17:34] Start US-035 example gallery work
+[2026-05-19 09:25:44] Added US-035 example gallery scripts, docs page updates, manifest entry, and example tests
+[2026-05-19 09:29:09] US-035 verification passed: examples tests, full unit suite, docs-check, build, verify-dist
+[2026-05-19 09:31:50] US-035 final verification passed after ckpt example rename: full unit suite, docs-check, build, verify-dist

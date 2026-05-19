@@ -39,76 +39,72 @@
       </section>
       <section class="content">
         <article class="section">
-          <h2>Executed package showcase</h2>
-          <p><code>notebooks/Tools/simpledet_showcase.ipynb</code> is the canonical runnable tour. It saves outputs for detector alias coverage, dense and ROI family routing, custom multi-band encoders, native build-plan compilation, project config templates, and optional runtime registry discovery.</p>
+          <h2>Script gallery</h2>
+          <p>The <code>examples/</code> directory contains copyable scripts for common workflows. The construction and discovery examples run without sample data. Dataset and checkpoint examples default to <code>examples/sample_data/...</code> and fail with a clear message when those files are not present, so pass your own local paths when adapting them.</p>
+          <pre><code>PYTHONPATH=simpledet python examples/quick_detector.py
+PYTHONPATH=simpledet python examples/timm_retinanet.py
+PYTHONPATH=simpledet python examples/registry_discovery.py --pattern retina</code></pre>
         </article>
         <article class="section">
-          <h2>Satellite imagery vessel detection</h2>
-          <pre><code>from simpledet.suite import build_detector, build_neck
+          <h2>Detector construction</h2>
+          <pre><code>from simpledet.suite import build_detector, build_neck, compile_native_detector_plan
 
-detector_spec = build_detector(
+spec = build_detector(
     "retinanet",
-    encoder="convnext_tiny.in12k_ft_in1k",
-    neck=build_neck(name="FPN", out_channels=192, num_outs=5),
-    num_classes=1,
-    in_channels=4,
-)</code></pre>
-          <p>Notebook starting point: <code>notebooks/Tools/suite_01_dense_detector.ipynb</code>.</p>
+    backbone="resnet18",
+    neck=build_neck("FPN", out_channels=256, num_outs=4),
+    num_classes=3,
+    pretrained=False,
+)
+plan = compile_native_detector_plan(spec)</code></pre>
+          <p>Script starting point: <code>examples/quick_detector.py</code>.</p>
         </article>
         <article class="section">
-          <h2>Building detection</h2>
-          <pre><code>from simpledet.suite import build_detector, build_neck
+          <h2>TIMM RetinaNet</h2>
+          <pre><code>from simpledet.suite import build_detector
 
-detector_spec = build_detector(
-    "faster_rcnn",
-    encoder="convnext_tiny.in12k_ft_in1k",
-    neck=build_neck(name="FPN", out_channels=192),
-    num_classes=1,
-    in_channels=3,
+spec = build_detector(
+    "retinanet",
+    encoder="timm:resnet18",
+    num_classes=3,
+    pretrained=False,
 )</code></pre>
-          <p>Notebook starting point: <code>notebooks/Tools/suite_02_roi_detector.ipynb</code>.</p>
+          <p>Script starting point: <code>examples/timm_retinanet.py</code>. Install <code>simpledet[timm]</code> before building the actual torch module.</p>
         </article>
         <article class="section">
-          <h2>Ship detection with FCOS</h2>
-          <pre><code>from simpledet.suite import build_detector, build_neck
+          <h2>COCO training config</h2>
+          <pre><code>PYTHONPATH=simpledet python examples/coco_training_config.py \
+  --dataset-root ./data/coco \
+  --workdir ./runs/coco-retinanet
 
-detector_spec = build_detector(
-    "fcos",
-    encoder="convnext_tiny.in12k_ft_in1k",
-    neck=build_neck(name="FPN", out_channels=192, num_outs=4),
-    num_classes=1,
-    in_channels=3,
-)</code></pre>
-          <p>Notebook starting point: <code>notebooks/Tools/suite_01_dense_detector.ipynb</code>.</p>
+PYTHONPATH=simpledet python examples/coco_training_config.py \
+  --dataset-root ./data/coco \
+  --workdir ./runs/coco-retinanet \
+  --run</code></pre>
+          <p>The script validates <code>images/</code> and <code>annotations/train.json</code>, <code>annotations/val.json</code>, and <code>annotations/test.json</code> before training.</p>
         </article>
         <article class="section">
-          <h2>API-first training flow</h2>
-          <pre><code>from simpledet import run_training
-from simpledet.suite import build_detector
+          <h2>YOLO dataset config</h2>
+          <pre><code>PYTHONPATH=simpledet python examples/yolo_dataset_config.py \
+  --dataset-root ./data/yolo
 
-result = run_training(
-    dataset_root='/path/to/data',
-    detector_spec=build_detector("retinanet", ...),
-    categories=('wake',),
-    in_channels=3,
-    tif_channels_to_load=[1, 2, 3],
-)</code></pre>
-          <p>Notebook starting point: <code>notebooks/Tools/api_pipeline_training_example.ipynb</code>.</p>
+PYTHONPATH=simpledet python examples/yolo_dataset_config.py \
+  --dataset-root ./data/yolo \
+  --classes-file ./data/yolo/data.yaml \
+  --inspect</code></pre>
+          <p>The config expects YOLO-style <code>images/</code> and <code>labels/</code> directories and can use the public dataset adapter to inspect labels.</p>
         </article>
         <article class="section">
-          <h2>API-first inference flow</h2>
-          <pre><code>from simpledet import run_inference
-from simpledet.suite import build_detector
-
-spec = build_detector("fcos", ...)
-result = run_inference(
-    dataset_root='/path/to/data',
-    categories=('wake',),
-    in_channels=3,
-    detector_spec=spec,
-    tif_channels_to_load=[1, 2, 3],
-)</code></pre>
-          <p>Notebook starting point: <code>notebooks/Tools/api_inference_example.ipynb</code>.</p>
+          <h2>Checkpoint inference</h2>
+          <pre><code>PYTHONPATH=simpledet python examples/load_ckpt_for_inference.py \
+  --checkpoint ./runs/coco-retinanet/checkpoints/model.pt \
+  --model-name fasterrcnn_resnet50_fpn \
+  --num-classes 2</code></pre>
+          <p>The checkpoint loader uses <code>torch.load</code>, so only pass checkpoint files you trust.</p>
+        </article>
+        <article class="section">
+          <h2>Executed package showcase</h2>
+          <p><code>notebooks/Tools/simpledet_showcase.ipynb</code> remains the longer runnable tour for detector alias coverage, dense and ROI family routing, custom multi-band encoders, native build-plan compilation, project config templates, and optional runtime registry discovery.</p>
         </article>
       </section>
     </main>
