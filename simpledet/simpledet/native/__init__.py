@@ -24,6 +24,13 @@ from .assignment import (
     task_aligned_assign,
 )
 from .backbones import BackboneSpec, TimmFeatureBackbone, build_native_backbone
+from .cnn_blocks import (
+    ConvNeXtBlock,
+    ConvNeXtFeatureBackbone,
+    ConvNeXtStage,
+    DropPath,
+    LayerNorm2d,
+)
 from .data import NativeDataConfig, NativeDataValidationError, NativeDetectionDataModule
 from .engine import NativeDetectionLightningModule, NativeEngineConfig, build_native_trainer
 from .heads import (
@@ -185,6 +192,11 @@ __all__ = [
     "sim_ota_assign",
     "point_assign",
     "sample_assignment",
+    "ConvNeXtBlock",
+    "ConvNeXtFeatureBackbone",
+    "ConvNeXtStage",
+    "DropPath",
+    "LayerNorm2d",
     "TimmFeatureBackbone",
     "build_native_components",
     "build_native_backbone",

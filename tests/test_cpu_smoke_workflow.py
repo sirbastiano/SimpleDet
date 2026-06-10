@@ -289,25 +289,28 @@ def _smoke_project_config(dataset_root: Path, workdir: Path) -> dict:
 
 
 def _clear_native_runtime_modules():
-    module_names = (
-        ("simpledet.native.runtime", "runtime"),
-        ("simpledet.native.engine", "engine"),
-        ("simpledet.native.modeling", "modeling"),
-        ("simpledet.native.roi", "roi"),
-        ("simpledet.native.assemblers", "assemblers"),
-        ("simpledet.native.assignment", "assignment"),
-        ("simpledet.native.backbones", "backbones"),
-        ("simpledet.native.dense_ops", "dense_ops"),
-        ("simpledet.native.heads", "heads"),
-        ("simpledet.native.losses", "losses"),
-        ("simpledet.native.necks", "necks"),
-        ("simpledet.native.transformer_ops", "transformer_ops"),
+    from simpledet.extensions import (
+        ASSIGNERS,
+        DECODERS,
+        DETECTORS,
+        ENCODERS,
+        HEADS,
+        LOSSES,
+        NECKS,
+        POSTPROCESSORS,
     )
-    native_package = sys.modules.get("simpledet.native")
-    for module_name, attribute in module_names:
-        sys.modules.pop(module_name, None)
-        if native_package is not None:
-            vars(native_package).pop(attribute, None)
+
+    for registry in (ASSIGNERS, DECODERS, DETECTORS, ENCODERS, HEADS, LOSSES, NECKS, POSTPROCESSORS):
+        for name, factory in tuple(registry._items.items()):
+            if str(getattr(factory, "__module__", "")).startswith("simpledet.native"):
+                registry._items.pop(name, None)
+                registry._metadata.pop(name, None)
+    for module_name in tuple(sys.modules):
+        if module_name == "simpledet.native" or module_name.startswith("simpledet.native."):
+            sys.modules.pop(module_name, None)
+    simpledet_package = sys.modules.get("simpledet")
+    if simpledet_package is not None:
+        vars(simpledet_package).pop("native", None)
 
 
 class CpuSmokeWorkflowTests(unittest.TestCase):

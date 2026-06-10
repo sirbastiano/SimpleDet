@@ -43,6 +43,7 @@ REQUIRED_WHEEL_MODULES = (
     "simpledet/discovery.py",
     "simpledet/detectors/cli.py",
     "simpledet/extensions/registry.py",
+    "simpledet/native/cnn_blocks.py",
     "simpledet/native/modeling.py",
     "simpledet/suite/__init__.py",
 )
@@ -60,6 +61,7 @@ REQUIRED_SDIST_SUFFIXES = (
     "/simpledet/simpledet/__init__.py",
     "/simpledet/simpledet/__main__.py",
     "/simpledet/simpledet/cli.py",
+    "/simpledet/simpledet/native/cnn_blocks.py",
     "/simpledet/simpledet/native/modeling.py",
     "/simpledet/simpledet/suite/__init__.py",
     "/tests/test_packaging.py",
@@ -214,7 +216,7 @@ class TestPackagingMetadata(unittest.TestCase):
 
         self.assertEqual(project["requires-python"], ">=3.10,<3.13")
         self.assertEqual(project["license"], "MIT")
-        self.assertEqual(project["dependencies"], [])
+        self.assertEqual(project["dependencies"], ["tomli>=2.0.1; python_version < '3.11'"])
         self.assertEqual(set(extras), EXPECTED_EXTRAS)
         self.assertIn("Programming Language :: Python :: 3.12", project["classifiers"])
 
@@ -311,7 +313,9 @@ class TestBuiltDistributions(unittest.TestCase):
             REPO_ROOT / "MANIFEST.in",
             REPO_ROOT / "assets" / "simpledet-logo.svg",
             REPO_ROOT / "notebooks" / "Tools" / "simpledet_showcase.ipynb",
+            REPO_ROOT / "notebooks" / "Tools" / "create_train_object_detector.ipynb",
             REPO_ROOT / "examples" / "timm_retinanet.py",
+            REPO_ROOT / "examples" / "custom_components_training.py",
         ]
         latest_source_mtime = max(
             path.stat().st_mtime for path in source_inputs if path.exists()
@@ -383,6 +387,9 @@ class TestBuiltDistributions(unittest.TestCase):
         self.assertTrue(
             any(name.endswith("/notebooks/Tools/simpledet_showcase.ipynb") for name in names)
         )
+        self.assertTrue(
+            any(name.endswith("/notebooks/Tools/create_train_object_detector.ipynb") for name in names)
+        )
 
     def test_sdist_includes_example_gallery(self):
         with tarfile.open(self.sdist_path, "r:gz") as archive:
@@ -390,6 +397,8 @@ class TestBuiltDistributions(unittest.TestCase):
 
         self.assertTrue(any(name.endswith("/examples/timm_retinanet.py") for name in names))
         self.assertTrue(any(name.endswith("/examples/quick_detector.py") for name in names))
+        self.assertTrue(any(name.endswith("/examples/custom_components.py") for name in names))
+        self.assertTrue(any(name.endswith("/examples/custom_components_training.py") for name in names))
 
 
 class TestDistributionVerifierNegativeCases(unittest.TestCase):

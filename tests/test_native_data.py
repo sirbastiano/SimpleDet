@@ -184,7 +184,36 @@ def _fake_runtime_modules():
     }
 
 
+def _clear_native_runtime_modules():
+    from simpledet.extensions import (
+        ASSIGNERS,
+        DECODERS,
+        DETECTORS,
+        ENCODERS,
+        HEADS,
+        LOSSES,
+        NECKS,
+        POSTPROCESSORS,
+    )
+
+    registries = (ASSIGNERS, DECODERS, DETECTORS, ENCODERS, HEADS, LOSSES, NECKS, POSTPROCESSORS)
+    for registry in registries:
+        for name, factory in tuple(registry._items.items()):
+            if str(getattr(factory, "__module__", "")).startswith("simpledet.native"):
+                registry._items.pop(name, None)
+                registry._metadata.pop(name, None)
+    for module_name in tuple(sys.modules):
+        if module_name == "simpledet.native" or module_name.startswith("simpledet.native."):
+            sys.modules.pop(module_name, None)
+    simpledet_package = sys.modules.get("simpledet")
+    if simpledet_package is not None:
+        vars(simpledet_package).pop("native", None)
+
+
 class NativeDataModuleTests(unittest.TestCase):
+    def tearDown(self):
+        _clear_native_runtime_modules()
+
     def test_coco_fixture_produces_train_batch_with_metadata_and_transforms(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

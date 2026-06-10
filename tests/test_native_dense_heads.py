@@ -2,6 +2,7 @@ import unittest
 
 from native_tensor_contracts import (
     assert_dense_head_output_contract,
+    clear_native_runtime_state,
     make_cpu_detector_smoke_batch,
     require_torch,
 )
@@ -173,9 +174,13 @@ _LIGHTWEIGHT_HEAD_CASES = (
 
 
 class NativeDenseHeadTests(unittest.TestCase):
+    def setUp(self):
+        clear_native_runtime_state()
+
     def test_list_heads_dense_includes_core_dense_aliases(self):
         require_torch()
 
+        import simpledet.native.heads  # noqa: F401
         from simpledet.suite import list_heads
 
         dense_heads = set(list_heads(kind="dense"))
@@ -187,6 +192,7 @@ class NativeDenseHeadTests(unittest.TestCase):
     def test_list_heads_dense_includes_advanced_dense_aliases(self):
         require_torch()
 
+        import simpledet.native.heads  # noqa: F401
         from simpledet.suite import list_heads
 
         dense_heads = set(list_heads(kind="dense"))
@@ -198,6 +204,7 @@ class NativeDenseHeadTests(unittest.TestCase):
     def test_list_heads_dense_includes_lightweight_dense_aliases(self):
         require_torch()
 
+        import simpledet.native.heads  # noqa: F401
         from simpledet.suite import list_heads
 
         dense_heads = set(list_heads(kind="dense"))

@@ -12,6 +12,7 @@ from simpledet.suite import (
     inspect_backbone,
     list_backbones,
 )
+from native_tensor_contracts import require_torch
 
 
 class _FeatureInfo:
@@ -230,10 +231,43 @@ class NativeBackboneTests(unittest.TestCase):
         self.assertEqual(captured["kwargs"]["in_chans"], 4)
         self.assertEqual(captured["kwargs"]["out_indices"], (1, 2, 3, 4))
         self.assertEqual(captured["kwargs"]["drop_rate"], 0.1)
+        self.assertNotIn("type", captured["kwargs"])
         self.assertEqual(backbone.feature_channels, (256, 512, 1024, 2048))
         self.assertEqual(metadata.name, "resnet50")
         self.assertEqual(metadata.source, "native")
         self.assertEqual(metadata.feature_channels, (256, 512, 1024, 2048))
+
+    def test_convnext_alias_uses_native_cnn_blocks_without_timm_requirement(self):
+        torch = require_torch()
+        from simpledet.extensions import ENCODERS
+        from simpledet.native.backbones import ConvNeXtFeatureBackbone, build_native_backbone
+
+        metadata = ENCODERS.lookup("ConvNeXt")
+        required_modules = {dependency.module for dependency in metadata.required_dependencies}
+        self.assertEqual(metadata.name, "convnext_tiny")
+        self.assertEqual(metadata.validation_status, "runtime_validated")
+        self.assertIn("torch", required_modules)
+        self.assertNotIn("timm", required_modules)
+
+        encoder = build_backbone(
+            "ConvNeXt",
+            pretrained=False,
+            out_indices=(1, 2, 3, 4),
+            depths=(1, 1, 1, 1),
+        )
+        spec = build_detector("retinanet", num_classes=2, encoder=encoder)
+        plan = compile_native_detector_plan(spec)
+        backbone, backbone_spec = build_native_backbone(plan.encoder)
+        backbone.eval()
+
+        with torch.no_grad():
+            features = backbone(torch.zeros(1, 3, 64, 64))
+
+        self.assertIsInstance(backbone, ConvNeXtFeatureBackbone)
+        self.assertEqual(backbone_spec.name, "convnext_tiny")
+        self.assertEqual(backbone_spec.source, "native")
+        self.assertEqual(backbone_spec.feature_channels, (96, 192, 384, 768))
+        self.assertEqual(tuple(int(feature.shape[1]) for feature in features), (96, 192, 384, 768))
 
     def test_build_native_backbone_preserves_custom_feature_channel_metadata(self):
         fake_modules = _fake_torch_modules()
@@ -509,11 +543,19 @@ class NativeBackboneTests(unittest.TestCase):
         spec = build_detector("retinanet", num_classes=2, encoder=encoder)
         plan = compile_native_detector_plan(spec)
         backbone, metadata = build_native_backbone(plan.encoder)
+        backbone.train()
+        batch_norm_layers = [
+            module
+            for module in backbone.modules()
+            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm)
+        ]
 
         with torch.no_grad():
             features = backbone(torch.zeros(1, 3, 64, 64))
 
         self.assertTrue(hasattr(backbone, "feature_info"))
+        self.assertTrue(batch_norm_layers)
+        self.assertTrue(all(not module.training for module in batch_norm_layers))
         self.assertEqual(len(features), 4)
         self.assertEqual(
             metadata.feature_channels,

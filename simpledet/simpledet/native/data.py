@@ -17,6 +17,20 @@ class NativeDataValidationError(DatasetError):
     """Raised when native datamodule inputs are unusable for a stage."""
 
 
+def _lightning_datamodule_base():
+    try:
+        from lightning.pytorch import LightningDataModule  # type: ignore
+
+        return LightningDataModule
+    except (ImportError, ModuleNotFoundError):
+        try:
+            from pytorch_lightning import LightningDataModule  # type: ignore
+
+            return LightningDataModule
+        except (ImportError, ModuleNotFoundError):
+            return object
+
+
 def _resolve_annotation_path(dataset_root: str, split: str) -> str:
     root = Path(dataset_root).expanduser()
     split_name = _normalize_split(split).lower()
@@ -234,10 +248,11 @@ class NativeDataConfig:
     shuffle_train: bool = True
 
 
-class NativeDetectionDataModule:
+class NativeDetectionDataModule(_lightning_datamodule_base()):
     """Lightning-compatible datamodule without hard dependency at import time."""
 
     def __init__(self, config: NativeDataConfig) -> None:
+        super().__init__()
         self.config = config
         self.train_dataset: NativeDetectionDataset | None = None
         self.val_dataset: NativeDetectionDataset | None = None

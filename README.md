@@ -129,6 +129,7 @@ Troubleshooting starts with the installed extra set: use `simpledet[cpu]` before
 - [CLI reference](docs/cli-reference.html)
 - [Core concepts](docs/core-concepts.html)
 - Executed showcase notebook: `notebooks/Tools/simpledet_showcase.ipynb`
+- Create and train notebook: `notebooks/Tools/create_train_object_detector.ipynb` shows explicit ResNet-18/ResNet-50/ConvNeXt backbones, FPN, dense/ROI heads, detector-plan, and CPU training glue.
 - [Roadmap / changelog](docs/roadmap-changelog.html)
 
 ### Repository workflow commands
@@ -142,6 +143,24 @@ make docs-audit
 make check
 make release-ready
 make test-cpu-smoke
+```
+
+Prepare a COCO 2017 subset for the native project runner with:
+
+```bash
+PYTHONPATH=simpledet python scripts/prepare_coco_simpledet.py \
+  --source-root /data/coco \
+  --output-root ./data/coco \
+  --train-limit 1000 \
+  --val-limit 200 \
+  --test-limit 200
+```
+
+Train one CPU epoch with a custom registered backbone, neck, and dense head on
+COCO-format data with:
+
+```bash
+PYTHONPATH=simpledet python examples/custom_components_training.py --run
 ```
 
 `make release-ready` is the final handoff gate. It rebuilds the package, runs

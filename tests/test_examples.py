@@ -17,6 +17,8 @@ EXPECTED_EXAMPLES = {
     "yolo_dataset_config.py",
     "load_ckpt_for_inference.py",
     "registry_discovery.py",
+    "custom_components.py",
+    "custom_components_training.py",
 }
 
 

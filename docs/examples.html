@@ -81,7 +81,18 @@ PYTHONPATH=simpledet python examples/coco_training_config.py \
   --dataset-root ./data/coco \
   --workdir ./runs/coco-retinanet \
   --run</code></pre>
-          <p>The script validates <code>images/</code> and <code>annotations/train.json</code>, <code>annotations/val.json</code>, and <code>annotations/test.json</code> before training.</p>
+          <p>The script validates <code>images/</code> and <code>annotations/train.json</code>, <code>annotations/val.json</code>, and <code>annotations/test.json</code> before training. For COCO 2017 source folders, create that SimpleDet layout first:</p>
+          <pre><code>PYTHONPATH=simpledet python scripts/prepare_coco_simpledet.py \
+  --source-root /data/coco \
+  --output-root ./data/coco \
+  --train-limit 1000 \
+  --val-limit 200 \
+  --test-limit 200</code></pre>
+        </article>
+        <article class="section">
+          <h2>Custom components training</h2>
+          <pre><code>PYTHONPATH=simpledet python examples/custom_components_training.py --run</code></pre>
+          <p><code>examples/custom_components.py</code> registers <code>ExampleTinyBackbone</code>, <code>ExampleTinyNeck</code>, and <code>ExampleTinyDenseHead</code>. The training script wires those custom parts into a RetinaNet detector spec and runs build, one CPU training epoch, test, and inference on COCO-format data.</p>
         </article>
         <article class="section">
           <h2>YOLO dataset config</h2>
@@ -105,6 +116,10 @@ PYTHONPATH=simpledet python examples/yolo_dataset_config.py \
         <article class="section">
           <h2>Executed package showcase</h2>
           <p><code>notebooks/Tools/simpledet_showcase.ipynb</code> remains the longer runnable tour for detector alias coverage, dense and ROI family routing, custom multi-band encoders, native build-plan compilation, project config templates, and optional runtime registry discovery.</p>
+        </article>
+        <article class="section">
+          <h2>Create and train notebook</h2>
+          <p><code>notebooks/Tools/create_train_object_detector.ipynb</code> creates a tiny COCO-format dataset, builds explicit ResNet-18, ResNet-50, ConvNeXt, FPN, RetinaHead, FCOSHead, and ROI bbox-head recipes, shows the compiled detector glue, validates the config, trains for one CPU epoch, then runs test and inference.</p>
         </article>
       </section>
     </main>

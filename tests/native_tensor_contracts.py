@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
+import sys
 import unittest
 
 
@@ -268,9 +269,38 @@ def _shape_tuple(value: Any, *, key: str, level_index: int) -> tuple[int, ...]:
     return tuple(int(dimension) for dimension in shape)
 
 
+def clear_native_runtime_state() -> None:
+    """Remove native module and registry state that may have been loaded with fake torch."""
+
+    from simpledet.extensions import (
+        ASSIGNERS,
+        DECODERS,
+        DETECTORS,
+        ENCODERS,
+        HEADS,
+        LOSSES,
+        NECKS,
+        POSTPROCESSORS,
+    )
+
+    registries = (ASSIGNERS, DECODERS, DETECTORS, ENCODERS, HEADS, LOSSES, NECKS, POSTPROCESSORS)
+    for registry in registries:
+        for name, factory in tuple(registry._items.items()):
+            if str(getattr(factory, "__module__", "")).startswith("simpledet.native"):
+                registry._items.pop(name, None)
+                registry._metadata.pop(name, None)
+    for module_name in tuple(sys.modules):
+        if module_name == "simpledet.native" or module_name.startswith("simpledet.native."):
+            sys.modules.pop(module_name, None)
+    simpledet_package = sys.modules.get("simpledet")
+    if simpledet_package is not None:
+        vars(simpledet_package).pop("native", None)
+
+
 __all__ = [
     "DetectorSmokeBatch",
     "assert_dense_head_output_contract",
+    "clear_native_runtime_state",
     "make_cpu_detector_smoke_batch",
     "make_dummy_boxes",
     "make_dummy_feature_maps",

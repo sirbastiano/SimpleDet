@@ -4,10 +4,13 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from native_tensor_contracts import make_cpu_detector_smoke_batch, require_torch
+from native_tensor_contracts import clear_native_runtime_state, make_cpu_detector_smoke_batch, require_torch
 
 
 class NativeTwoStageDetectorTests(unittest.TestCase):
+    def setUp(self):
+        clear_native_runtime_state()
+
     def _components(self, torch, architecture="faster_rcnn"):
         from simpledet.native.assemblers import NativeModelComponents
         from simpledet.native.heads import (

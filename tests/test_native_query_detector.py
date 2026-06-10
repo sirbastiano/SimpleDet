@@ -2,7 +2,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from native_tensor_contracts import make_cpu_detector_smoke_batch, require_torch
+from native_tensor_contracts import clear_native_runtime_state, make_cpu_detector_smoke_batch, require_torch
 
 
 _QUERY_DETECTOR_CASES = (
@@ -20,6 +20,9 @@ _QUERY_DETECTOR_CASES = (
 
 
 class NativeQueryDetectorTests(unittest.TestCase):
+    def setUp(self):
+        clear_native_runtime_state()
+
     def _components(self, torch, *, architecture, head_name, head_extra=None, overrides=None):
         from simpledet.native.assemblers import NativeModelComponents
         from simpledet.native.heads import build_native_head

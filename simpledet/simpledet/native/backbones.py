@@ -8,9 +8,20 @@ from typing import Any
 from ..detectors._deps import require_dependency
 from ..extensions import ENCODERS
 from ..suite.backbone_aliases import BACKBONE_ALIASES
+from .cnn_blocks import ConvNeXtFeatureBackbone
 
 require_dependency("torch", "native backbones")
 import torch.nn as nn  # noqa: E402
+
+_TIMM_CONTROL_KEYS = {
+    "model_name",
+    "pretrained",
+    "in_channels",
+    "out_indices",
+    "type",
+    "feature_channels",
+    "freeze_norm",
+}
 
 
 @dataclass(slots=True, frozen=True)
@@ -39,6 +50,7 @@ class TimmFeatureBackbone(nn.Module):
         pretrained: bool = True,
         in_channels: int = 3,
         out_indices: tuple[int, ...] | None = None,
+        freeze_norm: bool = True,
         timm_kwargs: dict[str, Any] | None = None,
     ) -> None:
         super().__init__()
@@ -49,6 +61,7 @@ class TimmFeatureBackbone(nn.Module):
         self.pretrained = bool(pretrained)
         self.in_channels = int(in_channels)
         extra_kwargs = dict(timm_kwargs or {})
+        self.freeze_norm = bool(extra_kwargs.pop("freeze_norm", freeze_norm))
         if out_indices is None and "out_indices" in extra_kwargs:
             out_indices = extra_kwargs.pop("out_indices")
         self.out_indices = _coerce_out_indices(out_indices)
@@ -64,24 +77,42 @@ class TimmFeatureBackbone(nn.Module):
         self.encoder = timm.create_model(self.model_name, **kwargs)
         self.feature_info = _extract_feature_info(self.encoder)
         self.feature_channels = _extract_feature_channels(self.feature_info)
+        if self.freeze_norm:
+            _set_batch_norm_eval(self.encoder)
 
     def __call__(self, x):
         return self.forward(x)
+
+    def train(self, mode: bool = True):
+        try:
+            result = super().train(mode)
+        except AttributeError:
+            result = self
+        if self.freeze_norm:
+            _set_batch_norm_eval(self.encoder)
+        return result
 
     def forward(self, x):
         return tuple(self.encoder(x))
 
 
 for _backbone_alias in BACKBONE_ALIASES:
+    _is_native_convnext = _backbone_alias.name == "convnext_tiny"
     ENCODERS.register(
         _backbone_alias.name,
         aliases=_backbone_alias.aliases,
-        required_dependencies=(("torch", "cpu"), ("timm", "timm")),
+        required_dependencies=(("torch", "cpu"),)
+        if _is_native_convnext
+        else (("torch", "cpu"), ("timm", "timm")),
         tensor_contracts=("features_only_backbone", "feature_channels"),
-        validation_status="metadata_validated",
+        validation_status="runtime_validated" if _is_native_convnext else "metadata_validated",
         family=_backbone_alias.family,
-        summary=_backbone_alias.summary,
-    )(TimmFeatureBackbone)
+        summary=(
+            "Native ConvNeXt-Tiny feature backbone built from reusable CNN blocks."
+            if _is_native_convnext
+            else _backbone_alias.summary
+        ),
+    )(ConvNeXtFeatureBackbone if _is_native_convnext else TimmFeatureBackbone)
 
 
 def build_native_backbone(encoder_plan) -> tuple[Any, BackboneSpec]:
@@ -96,13 +127,14 @@ def build_native_backbone(encoder_plan) -> tuple[Any, BackboneSpec]:
         extra = {
             key: value
             for key, value in encoder_plan.params.items()
-            if key not in {"model_name", "pretrained", "in_channels", "out_indices"}
+            if key not in _TIMM_CONTROL_KEYS
         }
         backbone = TimmFeatureBackbone(
             model_name=encoder_plan.params["model_name"],
             pretrained=bool(encoder_plan.params.get("pretrained", True)),
             in_channels=int(encoder_plan.params.get("in_channels") or 3),
             out_indices=out_indices_value,
+            freeze_norm=bool(encoder_plan.params.get("freeze_norm", True)),
             timm_kwargs=extra,
         )
         spec = BackboneSpec(
@@ -120,7 +152,10 @@ def build_native_backbone(encoder_plan) -> tuple[Any, BackboneSpec]:
     if factory is TimmFeatureBackbone:
         timm_kwargs = dict(params.pop("timm_kwargs", {}) or {})
         for key in list(params):
-            if key not in {"model_name", "pretrained", "in_channels", "out_indices"}:
+            if key == "type":
+                params.pop(key)
+                continue
+            if key not in _TIMM_CONTROL_KEYS:
                 timm_kwargs[key] = params.pop(key)
         if timm_kwargs:
             params["timm_kwargs"] = timm_kwargs
@@ -162,3 +197,19 @@ def _extract_feature_channels(feature_info: Any) -> tuple[int, ...]:
     if not isinstance(info, list):
         raise ValueError("Native timm backbone feature_info is not usable.")
     return tuple(int(item["num_chs"]) for item in info)
+
+
+def _set_batch_norm_eval(module: Any) -> None:
+    modules = getattr(module, "modules", None)
+    if not callable(modules):
+        return
+    batchnorm_base = getattr(
+        getattr(getattr(nn, "modules", None), "batchnorm", None),
+        "_BatchNorm",
+        None,
+    )
+    if batchnorm_base is None:
+        return
+    for child in modules():
+        if isinstance(child, batchnorm_base):
+            child.eval()

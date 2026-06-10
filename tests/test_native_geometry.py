@@ -48,7 +48,7 @@ class NativeGeometryTests(unittest.TestCase):
         torch.testing.assert_close(decoded, targets)
         overlaps = box_iou(anchors, targets)
         self.assertEqual(tuple(overlaps.shape), (2, 2))
-        self.assertGreater(float(overlaps[0, 0]), 0.5)
+        torch.testing.assert_close(overlaps[0, 0], torch.tensor(72.0 / 148.0))
         self.assertEqual(float(overlaps[0, 1]), 0.0)
 
     def test_point_box_round_trip_clip_scale_and_payload(self):

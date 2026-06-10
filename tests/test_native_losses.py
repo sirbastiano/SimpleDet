@@ -1,9 +1,12 @@
 import unittest
 
-from native_tensor_contracts import require_torch
+from native_tensor_contracts import clear_native_runtime_state, require_torch
 
 
 class NativeLossTests(unittest.TestCase):
+    def setUp(self):
+        clear_native_runtime_state()
+
     def test_loss_registry_exposes_common_detection_losses(self):
         require_torch()
 

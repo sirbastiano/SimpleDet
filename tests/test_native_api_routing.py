@@ -3,16 +3,51 @@ import types
 import unittest
 from unittest.mock import patch
 
-from simpledet.extensions import DETECTORS
+from simpledet.extensions import ASSIGNERS, DECODERS, DETECTORS, ENCODERS, HEADS, LOSSES, NECKS, POSTPROCESSORS
+
+
+def _clear_native_runtime_modules():
+    for registry in (ASSIGNERS, DECODERS, DETECTORS, ENCODERS, HEADS, LOSSES, NECKS, POSTPROCESSORS):
+        for name, factory in tuple(registry._items.items()):
+            if str(getattr(factory, "__module__", "")).startswith("simpledet.native"):
+                registry._items.pop(name, None)
+                registry._metadata.pop(name, None)
+    for module_name in tuple(sys.modules):
+        if module_name == "simpledet.native" or module_name.startswith("simpledet.native."):
+            sys.modules.pop(module_name, None)
+    simpledet_package = sys.modules.get("simpledet")
+    if simpledet_package is not None:
+        vars(simpledet_package).pop("native", None)
 
 
 class NativeApiRoutingTests(unittest.TestCase):
+    def setUp(self):
+        _clear_native_runtime_modules()
+
+    def tearDown(self):
+        _clear_native_runtime_modules()
+
     def _fake_runtime_modules(self):
         fake_torch = types.ModuleType("torch")
         fake_nn = types.ModuleType("torch.nn")
         fake_f = types.ModuleType("torch.nn.functional")
         fake_numpy = types.ModuleType("numpy")
         fake_timm = types.ModuleType("timm")
+        fake_native = types.ModuleType("simpledet.native")
+        fake_native.__path__ = []
+        fake_runtime = types.ModuleType("simpledet.native.runtime")
+
+        class NativeProjectConfig:
+            def __init__(self, **kwargs):
+                vars(self).update(kwargs)
+
+        fake_runtime.NativeProjectConfig = NativeProjectConfig
+        fake_runtime.run_native_training = lambda config: {"backend": "native_lightning"}
+        fake_runtime.run_native_inference = lambda config: {"backend": "native_lightning"}
+        fake_native.runtime = fake_runtime
+        simpledet_package = sys.modules.get("simpledet")
+        if simpledet_package is not None:
+            vars(simpledet_package)["native"] = fake_native
         fake_torch.cuda = types.SimpleNamespace(
             is_available=lambda: False,
             manual_seed=lambda *_args, **_kwargs: None,
@@ -50,6 +85,8 @@ class NativeApiRoutingTests(unittest.TestCase):
             "torch.nn.functional": fake_f,
             "numpy": fake_numpy,
             "timm": fake_timm,
+            "simpledet.native": fake_native,
+            "simpledet.native.runtime": fake_runtime,
         }
 
     def _retina_spec(self):

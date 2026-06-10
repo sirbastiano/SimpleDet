@@ -391,12 +391,32 @@ def build_detector(
         in_channels=int(in_channels),
         detector_spec=detector_spec,
     )
-    if not isinstance(model, (SingleStageDetector, TwoStageDetector, QueryDetector)):
+    if not _is_native_detector_model(model):
         raise ValueError(
             f"build_detector(name={name!r}) expected a native detector, "
             f"got {type(model).__name__}."
         )
     return model
+
+
+def _is_native_detector_model(model: Any) -> bool:
+    if isinstance(model, (SingleStageDetector, TwoStageDetector, QueryDetector)):
+        return True
+    model_type = type(model)
+    detector_class_names = {
+        "NativeRetinaNetModel",
+        "SingleStageDetector",
+        "TwoStageDetector",
+        "NativeRoIModel",
+        "SparseRCNNDetector",
+        "QueryDetector",
+    }
+    if model_type.__name__ not in detector_class_names:
+        return False
+    module_name = str(getattr(model_type, "__module__", ""))
+    if not module_name.startswith("simpledet.native"):
+        return False
+    return all(callable(getattr(model, method, None)) for method in ("forward_loss", "predict"))
 
 
 def _merge_detr_predictions(predictions):

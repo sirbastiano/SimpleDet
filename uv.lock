@@ -2106,6 +2106,9 @@ wheels = [
 name = "simpledet"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
 
 [package.optional-dependencies]
 cpu = [
@@ -2123,7 +2126,6 @@ dev = [
     { name = "build" },
     { name = "coverage" },
     { name = "ruff" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "twine" },
 ]
 geo = [
@@ -2157,7 +2159,7 @@ requires-dist = [
     { name = "shapely", marker = "extra == 'geo'", specifier = ">=2,<3" },
     { name = "terminaltables", marker = "extra == 'cpu'", specifier = ">=3.1.10,<4" },
     { name = "timm", marker = "extra == 'timm'", specifier = ">=1.0,<2" },
-    { name = "tomli", marker = "python_full_version < '3.11' and extra == 'dev'", specifier = ">=2.0.1" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0.1" },
     { name = "torch", marker = "extra == 'cpu'", specifier = ">=2.4,<2.11" },
     { name = "torchvision", marker = "extra == 'cpu'", specifier = ">=0.19,<0.26" },
     { name = "twine", marker = "extra == 'dev'" },

@@ -3,10 +3,13 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from native_tensor_contracts import make_dummy_targets, require_torch
+from native_tensor_contracts import clear_native_runtime_state, make_dummy_targets, require_torch
 
 
 class NativeSingleStageDetectorTests(unittest.TestCase):
+    def setUp(self):
+        clear_native_runtime_state()
+
     def _make_detector(self, *, num_classes=3):
         torch = require_torch()
         from simpledet.native.modeling import SingleStageDetector

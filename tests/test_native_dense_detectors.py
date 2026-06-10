@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from native_tensor_contracts import (
     assert_dense_head_output_contract,
+    clear_native_runtime_state,
     make_cpu_detector_smoke_batch,
     require_torch,
 )
@@ -112,6 +113,9 @@ _TEST_NECK = "US023IdentityNeck"
 
 
 class NativeDenseDetectorFamilyTests(unittest.TestCase):
+    def setUp(self):
+        clear_native_runtime_state()
+
     def test_suite_construction_for_every_dense_detector_alias(self):
         from simpledet.suite import compile_native_detector_plan
 

@@ -23,9 +23,17 @@ _MIN_VALIDATED_DETECTORS = 31
 
 
 def _clear_native_modules():
+    for registry in _NATIVE_REGISTRIES:
+        for name, factory in tuple(registry._items.items()):
+            if str(getattr(factory, "__module__", "")).startswith("simpledet.native"):
+                registry._items.pop(name, None)
+                registry._metadata.pop(name, None)
     for module_name in list(sys.modules):
         if module_name == "simpledet.native" or module_name.startswith("simpledet.native."):
             sys.modules.pop(module_name, None)
+    simpledet_package = sys.modules.get("simpledet")
+    if simpledet_package is not None:
+        vars(simpledet_package).pop("native", None)
 
 
 def _snapshot_native_registries():
@@ -290,6 +298,10 @@ def _tiny_native_components(plan, module_cls):
 
 
 class NativeDetectorMatrixTests(unittest.TestCase):
+    def tearDown(self):
+        _clear_native_modules()
+        _reset_native_registry_cache()
+
     def _fake_native_runtime(self):
         fake_modules = _fake_torch_modules()
         fake_modules.update(_fake_torchvision_modules(fake_modules["torch"]))
@@ -416,6 +428,10 @@ class NativeDetectorMatrixTests(unittest.TestCase):
 
 
 class NativeComponentTests(unittest.TestCase):
+    def tearDown(self):
+        _clear_native_modules()
+        _reset_native_registry_cache()
+
     def test_build_native_neck_aliases_resolved(self):
         fake_timm = types.ModuleType("timm")
         fake_timm.create_model = lambda *args, **kwargs: _FakeEncoder([64, 128, 256, 512])
